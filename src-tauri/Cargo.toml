@@ -1,0 +1,48 @@
+[package]
+name = "open-speech-studio"
+version = "0.1.0"
+description = "Open source voice dictation - local AI speech-to-text"
+authors = ["OpenAEC Foundation"]
+license = "Apache-2.0"
+repository = "https://github.com/OpenAEC-Foundation/open-speech-studio"
+edition = "2021"
+
+[lib]
+name = "open_speech_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-store = "2"
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+whisper-rs = "0.13"
+cpal = "0.15"
+hound = "3.5"
+ringbuf = "0.4"
+tokio = { version = "1", features = ["full"] }
+enigo = "0.2"
+dirs = "5"
+log = "0.4"
+env_logger = "0.11"
+regex-lite = "0.1"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+cuda = ["whisper-rs/cuda"]
+vulkan = ["whisper-rs/vulkan"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

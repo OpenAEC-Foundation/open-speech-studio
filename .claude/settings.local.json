@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "symitech-erpnext",
+    "freecad-mcp"
+  ]
+}
