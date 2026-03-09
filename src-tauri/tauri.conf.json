@@ -41,6 +41,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": [
+      "../models/*.bin"
+    ],
     "windows": {
       "nsis": {
         "installMode": "both",

@@ -22,14 +22,23 @@ export default function App() {
       const s = await api.getSettings();
       setSettings(s);
 
-      // Auto-load model if path is set
-      if (s.model_path) {
-        setStatusMessage("Model laden...");
-        await api.loadModel(s.model_path);
+      // Check if the backend already auto-loaded a bundled model
+      const loaded = await api.isModelLoaded();
+      if (loaded) {
         setIsModelLoaded(true);
-        setStatusMessage("Model geladen - Klaar voor dictatie");
+        setStatusMessage(`Model "${s.model_name}" geladen - Klaar voor dictatie (Ctrl+Shift+Space)`);
+      } else if (s.model_path) {
+        // Model path exists but wasn't auto-loaded, try loading
+        setStatusMessage("Model laden...");
+        try {
+          await api.loadModel(s.model_path);
+          setIsModelLoaded(true);
+          setStatusMessage(`Model "${s.model_name}" geladen - Klaar voor dictatie`);
+        } catch {
+          setStatusMessage("Model laden mislukt - Ga naar Modellen om een model te selecteren");
+        }
       } else {
-        setStatusMessage("Geen model geselecteerd - Ga naar Modellen om een model te downloaden");
+        setStatusMessage("Geen model gevonden - Ga naar Modellen om een model te downloaden");
       }
     } catch (e) {
       console.error("Init error:", e);

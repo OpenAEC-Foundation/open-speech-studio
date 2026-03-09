@@ -47,5 +47,6 @@ export const api = {
   removeDictionaryWord: (word: string) => invoke<void>("remove_dictionary_word", { word }),
 
   getAudioDevices: () => invoke<string[]>("get_audio_devices"),
+  isModelLoaded: () => invoke<boolean>("is_model_loaded"),
   typeText: (text: string) => invoke<void>("type_text", { text }),
 };

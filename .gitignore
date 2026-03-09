@@ -20,9 +20,8 @@ Thumbs.db
 .env
 .env.local
 
-# Models (too large for git)
-*.bin
-*.ggml
+# Models worden via Git LFS bijgehouden
+# *.bin bestanden in models/ worden WEL meegenomen (LFS)
 
 # Logs
 *.log

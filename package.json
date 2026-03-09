@@ -4,6 +4,9 @@
   "description": "Open source voice dictation tool - local AI speech-to-text for every app",
   "type": "module",
   "scripts": {
+    "setup": "node setup.js",
+    "setup:dev": "node setup.js --dev",
+    "setup:cuda": "node setup.js --cuda",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

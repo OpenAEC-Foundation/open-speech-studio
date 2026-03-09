@@ -191,6 +191,12 @@ async fn get_recording_status(state: State<'_, AppState>) -> Result<bool, String
 }
 
 #[tauri::command]
+async fn is_model_loaded(state: State<'_, AppState>) -> Result<bool, String> {
+    let transcriber = state.transcriber.lock().map_err(|e| e.to_string())?;
+    Ok(transcriber.is_some())
+}
+
+#[tauri::command]
 async fn get_dictionary(state: State<'_, AppState>) -> Result<dictionary::Dictionary, String> {
     let dict = state.dictionary.lock().map_err(|e| e.to_string())?;
     Ok(dict.clone())
@@ -249,6 +255,26 @@ pub fn run() {
     let settings = settings::load_settings().unwrap_or_default();
     let dictionary = dictionary::load_dictionary().unwrap_or_default();
 
+    // Auto-load the bundled model at startup so the user can dictate immediately
+    let initial_transcriber = if !settings.model_path.is_empty()
+        && std::path::Path::new(&settings.model_path).exists()
+    {
+        log::info!("Auto-loading model: {}", settings.model_path);
+        match transcriber::Transcriber::new(&settings.model_path, settings.use_gpu) {
+            Ok(t) => {
+                log::info!("Model loaded successfully");
+                Some(t)
+            }
+            Err(e) => {
+                log::warn!("Failed to auto-load model: {}", e);
+                None
+            }
+        }
+    } else {
+        log::info!("No bundled model found, user must download one");
+        None
+    };
+
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -256,7 +282,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
         .manage(AppState {
-            transcriber: Arc::new(Mutex::new(None)),
+            transcriber: Arc::new(Mutex::new(initial_transcriber)),
             recorder: Arc::new(Mutex::new(None)),
             settings: Arc::new(Mutex::new(settings)),
             dictionary: Arc::new(Mutex::new(dictionary)),
@@ -276,6 +302,7 @@ pub fn run() {
             add_dictionary_word,
             remove_dictionary_word,
             get_audio_devices,
+            is_model_loaded,
             type_text,
         ])
         .run(tauri::generate_context!())
