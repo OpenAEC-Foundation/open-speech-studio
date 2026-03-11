@@ -4,22 +4,32 @@
  * OpenAEC Foundation
  *
  * One script to install everything on Windows and Linux.
- * Usage: node setup.js [--cuda] [--dev]
+ * No C++ toolchain needed - uses pre-compiled whisper.cpp binary.
+ *
+ * Usage: node setup.js [--dev]
  */
 
-const { execSync, spawn } = require("child_process");
+const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
 const http = require("http");
+const { createUnzip } = require("zlib");
 
 const ROOT = __dirname;
 const MODELS_DIR = path.join(ROOT, "models");
+const BIN_DIR = path.join(ROOT, "bin");
 
 const ARGS = process.argv.slice(2);
-const WITH_CUDA = ARGS.includes("--cuda");
 const DEV_ONLY = ARGS.includes("--dev");
 const IS_WIN = process.platform === "win32";
+const ARCH = process.arch; // x64, arm64
+
+// whisper.cpp release version and URLs (from ggml-org/whisper.cpp)
+const WHISPER_VERSION = "v1.8.3";
+const WHISPER_RELEASES = {
+  "win32-x64": `https://github.com/ggml-org/whisper.cpp/releases/download/${WHISPER_VERSION}/whisper-bin-x64.zip`,
+};
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -62,9 +72,6 @@ function getVersion(cmd) {
   }
 }
 
-/**
- * Download a file with redirect support.
- */
 function download(url, dest) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
@@ -76,17 +83,16 @@ function download(url, dest) {
       const client = requestUrl.startsWith("https") ? https : http;
       client
         .get(requestUrl, { headers: { "User-Agent": "OpenSpeechStudio/0.1" } }, (res) => {
-          // Handle redirects
           if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
             file.close();
-            fs.unlinkSync(dest);
+            try { fs.unlinkSync(dest); } catch {}
             doRequest(res.headers.location);
             return;
           }
 
           if (res.statusCode !== 200) {
             file.close();
-            fs.unlinkSync(dest);
+            try { fs.unlinkSync(dest); } catch {}
             reject(new Error(`HTTP ${res.statusCode} for ${requestUrl}`));
             return;
           }
@@ -114,7 +120,7 @@ function download(url, dest) {
         })
         .on("error", (err) => {
           file.close();
-          if (fs.existsSync(dest)) fs.unlinkSync(dest);
+          try { fs.unlinkSync(dest); } catch {}
           reject(err);
         });
     };
@@ -123,15 +129,26 @@ function download(url, dest) {
   });
 }
 
+function extractZip(zipPath, destDir) {
+  log(`Uitpakken naar ${destDir}...`);
+  fs.mkdirSync(destDir, { recursive: true });
+
+  if (IS_WIN) {
+    // Use PowerShell to extract on Windows
+    run(`powershell.exe -NoProfile -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`);
+  } else {
+    run(`unzip -o "${zipPath}" -d "${destDir}"`);
+  }
+}
+
 // ─── Steps ──────────────────────────────────────────────────────
 
 async function checkNodejs() {
   log("Node.js controleren...");
   if (!hasCommand("node")) {
-    fail("Node.js is niet geïnstalleerd.");
+    fail("Node.js is niet geinstalleerd.");
     if (IS_WIN) {
       warn("Installeer Node.js: https://nodejs.org/");
-      warn("Of via winget: winget install OpenJS.NodeJS.LTS");
     } else {
       warn("Installeer via: curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs");
     }
@@ -160,40 +177,26 @@ async function checkSystemDeps() {
   log("Systeem-afhankelijkheden controleren...");
 
   if (IS_WIN) {
-    // Check for Visual Studio Build Tools
-    const vsWhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
-    if (fs.existsSync(vsWhere)) {
-      ok("Visual Studio Build Tools gevonden");
-    } else {
-      warn("Visual Studio Build Tools niet gevonden.");
-      warn("Installeer: https://visualstudio.microsoft.com/visual-cpp-build-tools/");
-      warn("Selecteer 'Desktop development with C++'");
-    }
-    // WebView2 is included in Windows 10/11
     ok("WebView2 (ingebouwd in Windows 10/11)");
   } else {
-    // Linux: install required packages
     if (hasCommand("apt-get")) {
-      log("APT packages installeren...");
       run(
         "sudo apt-get update && sudo apt-get install -y build-essential curl wget " +
           "libwebkit2gtk-4.1-dev libssl-dev libgtk-3-dev libayatana-appindicator3-dev " +
-          "librsvg2-dev libasound2-dev pkg-config cmake"
+          "librsvg2-dev libasound2-dev pkg-config"
       );
     } else if (hasCommand("dnf")) {
-      log("DNF packages installeren...");
       run(
         "sudo dnf install -y gcc gcc-c++ curl wget webkit2gtk4.1-devel openssl-devel " +
-          "gtk3-devel libappindicator-gtk3-devel librsvg2-devel alsa-lib-devel cmake"
+          "gtk3-devel libappindicator-gtk3-devel librsvg2-devel alsa-lib-devel"
       );
     } else if (hasCommand("pacman")) {
-      log("Pacman packages installeren...");
       run(
         "sudo pacman -S --needed --noconfirm base-devel curl wget webkit2gtk-4.1 openssl " +
-          "gtk3 libappindicator-gtk3 librsvg alsa-lib cmake"
+          "gtk3 libappindicator-gtk3 librsvg alsa-lib"
       );
     }
-    ok("Systeem-afhankelijkheden geïnstalleerd");
+    ok("Systeem-afhankelijkheden geinstalleerd");
   }
 }
 
@@ -203,16 +206,66 @@ async function installNpmDeps() {
     fail("npm install mislukt");
     process.exit(1);
   }
-  ok("NPM dependencies geïnstalleerd");
+  ok("NPM dependencies geinstalleerd");
 }
 
-async function installTauriCli() {
-  log("Tauri CLI controleren...");
-  if (!hasCommand("cargo-tauri")) {
-    log("Tauri CLI installeren (dit kan enkele minuten duren)...");
-    run('cargo install tauri-cli --version "^2.0"');
+async function downloadWhisperBinary() {
+  log("Whisper.cpp binary controleren...");
+  fs.mkdirSync(BIN_DIR, { recursive: true });
+
+  const binName = IS_WIN ? "whisper-cli.exe" : "whisper-cli";
+  const altName = IS_WIN ? "main.exe" : "main";
+  const binPath = path.join(BIN_DIR, binName);
+  const altPath = path.join(BIN_DIR, altName);
+
+  if (fs.existsSync(binPath) || fs.existsSync(altPath)) {
+    ok("Whisper binary al aanwezig");
+    return;
   }
-  ok("Tauri CLI beschikbaar");
+
+  const platform = `${process.platform}-${ARCH}`;
+  const url = WHISPER_RELEASES[platform];
+
+  if (!url) {
+    fail(`Geen pre-compiled whisper binary beschikbaar voor ${platform}`);
+    warn("Handmatig downloaden van: https://github.com/ggerganov/whisper.cpp/releases");
+    return;
+  }
+
+  const zipDest = path.join(BIN_DIR, "whisper.zip");
+
+  log(`Whisper.cpp ${WHISPER_VERSION} downloaden voor ${platform}...`);
+  try {
+    await download(url, zipDest);
+    extractZip(zipDest, BIN_DIR);
+    fs.unlinkSync(zipDest);
+
+    // Find the binary in extracted files (may be in a subdirectory)
+    const findBin = (dir) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          const found = findBin(fullPath);
+          if (found) return found;
+        } else if (entry.name === binName || entry.name === altName) {
+          return fullPath;
+        }
+      }
+      return null;
+    };
+
+    const foundBin = findBin(BIN_DIR);
+    if (foundBin && foundBin !== binPath) {
+      // Move binary to bin/ root
+      fs.copyFileSync(foundBin, binPath);
+      if (!IS_WIN) fs.chmodSync(binPath, 0o755);
+    }
+
+    ok(`Whisper binary geinstalleerd: ${binPath}`);
+  } catch (err) {
+    fail(`Download mislukt: ${err.message}`);
+    warn("Handmatig downloaden van: https://github.com/ggerganov/whisper.cpp/releases");
+  }
 }
 
 async function downloadModels() {
@@ -257,14 +310,11 @@ async function downloadModels() {
 async function updateSettings() {
   log("Standaard instellingen configureren...");
 
-  // Set the default model path to the bundled base model
   const basePath = path.join(MODELS_DIR, "ggml-base.bin");
   const tinyPath = path.join(MODELS_DIR, "ggml-tiny.bin");
-
   const defaultModel = fs.existsSync(basePath) ? basePath : tinyPath;
   const defaultName = fs.existsSync(basePath) ? "base" : "tiny";
 
-  // Write default settings that point to the bundled model
   const settingsContent = {
     language: "auto",
     model_name: defaultName,
@@ -276,7 +326,6 @@ async function updateSettings() {
     theme: "light",
   };
 
-  // Store as a project-level default config
   const configPath = path.join(ROOT, "config.default.json");
   fs.writeFileSync(configPath, JSON.stringify(settingsContent, null, 2));
 
@@ -290,15 +339,13 @@ async function buildApp() {
   }
 
   log("Applicatie bouwen...");
-  const features = WITH_CUDA ? " --features cuda" : "";
-  if (!run(`cargo tauri build${features}`)) {
+  if (!run("npx tauri build")) {
     fail("Build mislukt. Gebruik 'node setup.js --dev' om alleen dependencies te installeren.");
     process.exit(1);
   }
 
   ok("Build voltooid!");
 
-  // Show installer location
   const bundleDir = path.join(ROOT, "src-tauri", "target", "release", "bundle");
   if (fs.existsSync(bundleDir)) {
     log("Installers te vinden in:");
@@ -325,15 +372,13 @@ async function main() {
   console.log("╚══════════════════════════════════════════════╝");
   console.log("");
 
-  if (WITH_CUDA) log("CUDA ondersteuning: AAN");
-
   await checkNodejs();
   await checkRust();
   await checkSystemDeps();
   await installNpmDeps();
+  await downloadWhisperBinary();
   await downloadModels();
   await updateSettings();
-  await installTauriCli();
   await buildApp();
 
   console.log("");
@@ -344,7 +389,7 @@ async function main() {
 
   if (DEV_ONLY) {
     console.log("  Start development met:");
-    console.log("    cargo tauri dev");
+    console.log("    npx tauri dev");
   } else {
     console.log("  De applicatie is gebouwd en klaar voor gebruik.");
     console.log("  Installers staan in: src-tauri/target/release/bundle/");

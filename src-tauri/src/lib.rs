@@ -5,7 +5,7 @@ mod transcriber;
 
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use tauri::{Manager, State};
+use tauri::{Emitter, State};
 
 pub struct AppState {
     transcriber: Arc<Mutex<Option<transcriber::Transcriber>>>,
@@ -243,9 +243,9 @@ async fn get_audio_devices() -> Result<Vec<String>, String> {
 
 #[tauri::command]
 async fn type_text(text: String) -> Result<(), String> {
-    use enigo::{Enigo, KeyboardControllable};
-    let mut enigo = Enigo::new();
-    enigo.key_sequence(&text);
+    use enigo::{Enigo, Keyboard, Settings};
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+    enigo.text(&text).map_err(|e| e.to_string())?;
     Ok(())
 }
 

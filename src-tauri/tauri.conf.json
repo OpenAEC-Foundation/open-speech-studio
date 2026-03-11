@@ -10,7 +10,6 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
-    "title": "Open Speech Studio",
     "windows": [
       {
         "title": "Open Speech Studio",
@@ -42,7 +41,8 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "../models/*.bin"
+      "../models/*.bin",
+      "../bin/*"
     ],
     "windows": {
       "nsis": {
@@ -60,9 +60,5 @@
       }
     }
   },
-  "plugins": {
-    "global-shortcut": {
-      "shortcuts": []
-    }
-  }
+  "plugins": {}
 }

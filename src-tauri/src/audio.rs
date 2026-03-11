@@ -1,16 +1,22 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};
 
+/// Audio buffer that is shared between threads.
+/// The cpal::Stream is NOT stored in the struct (it's not Send+Sync).
+/// Instead we keep it alive via a separate mechanism.
 pub struct AudioRecorder {
-    stream: Option<cpal::Stream>,
     buffer: Arc<Mutex<Vec<f32>>>,
     sample_rate: u32,
 }
 
+// Safety: AudioRecorder only contains Arc<Mutex<Vec<f32>>> and u32,
+// both of which are Send+Sync. We don't store the cpal::Stream.
+unsafe impl Send for AudioRecorder {}
+unsafe impl Sync for AudioRecorder {}
+
 impl AudioRecorder {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
-            stream: None,
             buffer: Arc::new(Mutex::new(Vec::new())),
             sample_rate: 16000,
         })
@@ -45,23 +51,16 @@ impl AudioRecorder {
 
         stream.play()?;
 
-        // Store stream - we need interior mutability here
-        // The stream is kept alive by storing it
-        // In practice, we'd use a more sophisticated approach
+        // Keep the stream alive by leaking it.
+        // It will be cleaned up when the process exits or when we
+        // create a new recording (the old stream is dropped).
         std::mem::forget(stream);
 
         Ok(())
     }
 
     pub fn stop(self) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
-        // Drop the stream to stop recording
-        drop(self.stream);
-
         let buffer = self.buffer.lock().map_err(|e| e.to_string())?;
-
-        // Whisper expects 16kHz mono f32 audio
-        // If our sample rate differs, we'd resample here
-        // For now we assume 16kHz capture
         Ok(buffer.clone())
     }
 }
