@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Open Dictate Studio - Unified Installer
+ * Open Speech Studio - Unified Installer
  * OpenAEC Foundation
  *
  * One script to install everything on Windows and Linux.

@@ -1,5 +1,6 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import { api, type Settings, type TranscriptionResult } from "./lib/api";
+import { useI18n, type Locale } from "./lib/i18n";
 import Sidebar from "./components/Sidebar";
 import TranscriptionView from "./components/TranscriptionView";
 import SettingsPanel from "./components/SettingsPanel";
@@ -7,12 +8,24 @@ import DictionaryEditor from "./components/DictionaryEditor";
 import ModelManager from "./components/ModelManager";
 import MicTest from "./components/MicTest";
 import MeetingRecorder from "./components/MeetingRecorder";
+import TitleBar from "./components/TitleBar";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
+
+/** Convert Tauri hotkey format to human-readable label */
+function formatHotkey(raw: string): string {
+  const isMac = navigator.platform?.startsWith("Mac");
+  return raw
+    .replace(/CmdOrCtrl/gi, isMac ? "Cmd" : "Ctrl")
+    .replace(/Super/gi, isMac ? "Cmd" : "Win")
+    .replace(/Alt/gi, isMac ? "Option" : "Alt")
+    .replace(/\+/g, " + ");
+}
 
 type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting";
 
 export default function App() {
+  const { t, setLocale } = useI18n();
   const [view, setView] = createSignal<View>("home");
   const [settings, setSettings] = createSignal<Settings | null>(null);
   const [isRecording, setIsRecording] = createSignal(false);
@@ -26,7 +39,9 @@ export default function App() {
       await unregisterAll();
       await register(hotkey, (event) => {
         if (event.state === "Pressed") {
-          handleRecord();
+          handleStartRecording();
+        } else if (event.state === "Released") {
+          handleStopRecording();
         }
       });
       console.log(`Global hotkey registered: ${hotkey}`);
@@ -46,25 +61,39 @@ export default function App() {
   const [startupMsg, setStartupMsg] = createSignal<string | null>(null);
 
   onMount(async () => {
+    // Show the window once the frontend is rendered (avoids white flash)
+    if (isTauri) {
+      import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
+        getCurrentWindow().show();
+      });
+    }
+
     try {
       const s = await api.getSettings();
+      console.log("[startup] settings:", JSON.stringify(s));
+      if (s.ui_language) setLocale(s.ui_language as Locale);
       setSettings(s);
-      await registerHotkey(s.hotkey || "CmdOrCtrl+Super");
+      await registerHotkey(s.hotkey || "Alt+Space");
 
       const loaded = await api.isModelLoaded();
+      console.log("[startup] isModelLoaded:", loaded, "model_name:", s.model_name, "model_path:", s.model_path);
       if (loaded) {
         setIsModelLoaded(true);
-        setStartupMsg(`Open Dictate Studio is actief — druk ${s.hotkey || "Ctrl+Win"} om te dicteren`);
+        setStartupMsg(t("app.startupActive", { hotkey: formatHotkey(s.hotkey || "Alt+Space") }));
       } else if (s.model_path) {
+        console.log("[startup] backend didn't auto-load, trying from frontend...");
         try {
           await api.loadModel(s.model_path);
           setIsModelLoaded(true);
-          setStartupMsg(`Model geladen — druk ${s.hotkey || "Ctrl+Win"} om te dicteren`);
-        } catch {
-          setStartupMsg("Ga naar Modellen om een model te laden");
+          console.log("[startup] frontend load succeeded");
+          setStartupMsg(t("app.startupModelLoaded", { hotkey: formatHotkey(s.hotkey || "Alt+Space") }));
+        } catch (loadErr) {
+          console.error("[startup] frontend load failed:", loadErr);
+          setStartupMsg(t("app.startupLoadModel"));
         }
       } else {
-        setStartupMsg("Ga naar Modellen om een spraakmodel te downloaden");
+        console.log("[startup] no model_path in settings");
+        setStartupMsg(t("app.startupDownloadModel"));
       }
 
       // Auto-hide startup message after 5 seconds
@@ -74,34 +103,61 @@ export default function App() {
     }
   });
 
-  const handleRecord = async () => {
-    if (!isModelLoaded()) return;
+  const sendNotification = async (title: string, body?: string) => {
+    if (!isTauri) return;
+    try {
+      const { sendNotification: notify } = await import("@tauri-apps/plugin-notification");
+      notify({ title, body });
+    } catch (_) {}
+  };
 
+  const handleStartRecording = async () => {
+    if (!isModelLoaded()) {
+      sendNotification("Open Speech Studio", t("app.noModelNotification"));
+      return;
+    }
+    if (isRecording()) return;
+
+    try {
+      await api.startRecording();
+      setIsRecording(true);
+      sendNotification("Open Speech Studio", t("app.recordingStartedNotification"));
+    } catch (e) {
+      console.error("Recording error:", e);
+    }
+  };
+
+  const handleStopRecording = async () => {
+    if (!isRecording()) return;
+
+    try {
+      sendNotification("Open Speech Studio", t("app.transcribingNotification"));
+      const result = await api.stopRecording();
+      setIsRecording(false);
+      setTranscriptions((prev) => [result, ...prev]);
+      const s = settings();
+      if (s?.auto_paste && result.text) {
+        await api.typeText(result.text);
+      }
+    } catch (e) {
+      setIsRecording(false);
+      console.error("Transcription error:", e);
+    }
+  };
+
+  /** Toggle for UI buttons (click to start, click to stop) */
+  const handleRecord = async () => {
     if (isRecording()) {
-      try {
-        const result = await api.stopRecording();
-        setIsRecording(false);
-        setTranscriptions((prev) => [result, ...prev]);
-        const s = settings();
-        if (s?.auto_paste && result.text) {
-          await api.typeText(result.text);
-        }
-      } catch (e) {
-        setIsRecording(false);
-        console.error("Transcription error:", e);
-      }
+      await handleStopRecording();
     } else {
-      try {
-        await api.startRecording();
-        setIsRecording(true);
-      } catch (e) {
-        console.error("Recording error:", e);
-      }
+      await handleStartRecording();
     }
   };
 
   return (
     <div class="app">
+      <TitleBar />
+      <div class="app-main">
       <Sidebar
         currentView={view()}
         onViewChange={setView}
@@ -127,7 +183,7 @@ export default function App() {
             isRecording={isRecording()}
             isModelLoaded={isModelLoaded()}
             onRecord={handleRecord}
-            hotkey={settings()?.hotkey || "Ctrl+Win"}
+            hotkey={formatHotkey(settings()?.hotkey || "Ctrl+Win")}
             modelName={settings()?.model_name || ""}
           />
         </Show>
@@ -142,7 +198,7 @@ export default function App() {
             onSave={async (s) => {
               await api.saveSettings(s);
               setSettings(s);
-              await registerHotkey(s.hotkey || "CmdOrCtrl+Super");
+              await registerHotkey(s.hotkey || "Alt+Space");
             }}
           />
         </Show>
@@ -166,6 +222,7 @@ export default function App() {
                 api.saveSettings(updated);
               }
             }}
+            activeModel={settings()?.model_name || ""}
             language={settings()?.language || "auto"}
             onLanguageChange={(lang) => {
               const s = settings();
@@ -178,6 +235,7 @@ export default function App() {
           />
         </Show>
       </main>
+      </div>
       </div>
     </div>
   );

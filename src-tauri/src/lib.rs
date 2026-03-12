@@ -53,7 +53,6 @@ async fn save_settings(
 
 #[tauri::command]
 async fn get_available_models() -> Result<Vec<ModelInfo>, String> {
-    let models_dir = settings::get_models_dir().map_err(|e| e.to_string())?;
     let models = vec![
         ("tiny", "75 MB"),
         ("base", "142 MB"),
@@ -66,16 +65,14 @@ async fn get_available_models() -> Result<Vec<ModelInfo>, String> {
     Ok(models
         .into_iter()
         .map(|(name, size)| {
-            let path = models_dir.join(format!("ggml-{}.bin", name));
+            let filename = format!("ggml-{}.bin", name);
+            // Search ALL known directories for this model (config dir, bundled, dev)
+            let found = settings::find_model_file(&filename);
             ModelInfo {
                 name: name.to_string(),
                 size: size.to_string(),
-                downloaded: path.exists(),
-                path: if path.exists() {
-                    Some(path.to_string_lossy().to_string())
-                } else {
-                    None
-                },
+                downloaded: found.is_some(),
+                path: found.map(|p| p.to_string_lossy().to_string()),
             }
         })
         .collect())
@@ -86,12 +83,16 @@ async fn download_model(
     app: tauri::AppHandle,
     model_name: String,
 ) -> Result<String, String> {
-    let models_dir = settings::get_models_dir().map_err(|e| e.to_string())?;
-    let dest = models_dir.join(format!("ggml-{}.bin", model_name));
+    let filename = format!("ggml-{}.bin", model_name);
 
-    if dest.exists() {
-        return Ok(dest.to_string_lossy().to_string());
+    // Skip download if a real model already exists anywhere (config dir, bundled, etc.)
+    if let Some(existing) = settings::find_model_file(&filename) {
+        return Ok(existing.to_string_lossy().to_string());
     }
+
+    // Download to the stable config directory (not _up_/ which Tauri rebuilds overwrite)
+    let models_dir = settings::get_models_dir().map_err(|e| e.to_string())?;
+    let dest = models_dir.join(&filename);
 
     let url = format!(
         "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{}.bin",
@@ -101,9 +102,16 @@ async fn download_model(
     // Emit download start event
     let _ = app.emit("model-download-start", &model_name);
 
-    // Download using a simple HTTP client approach via shell
-    let output = std::process::Command::new("curl")
-        .args(["-L", "-o", &dest.to_string_lossy(), "--progress-bar", &url])
+    // Download using curl (hidden window on Windows)
+    let mut cmd = std::process::Command::new("curl");
+    cmd.args(["-L", "-o", &dest.to_string_lossy(), "--progress-bar", &url]);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let output = cmd
         .output()
         .map_err(|e| format!("Failed to download model: {}", e))?;
 
@@ -117,6 +125,29 @@ async fn download_model(
     let _ = app.emit("model-download-complete", &model_name);
 
     Ok(dest.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn delete_model(state: State<'_, AppState>, model_name: String) -> Result<(), String> {
+    let filename = format!("ggml-{}.bin", model_name);
+
+    // Find the model file
+    let path = settings::find_model_file(&filename)
+        .ok_or_else(|| format!("Model '{}' not found", model_name))?;
+
+    // If this model is currently active, unload it
+    {
+        let settings = state.settings.lock().map_err(|e| e.to_string())?;
+        if settings.model_name == model_name {
+            let mut transcriber = state.transcriber.lock().map_err(|e| e.to_string())?;
+            *transcriber = None;
+        }
+    }
+
+    // Delete the file
+    std::fs::remove_file(&path).map_err(|e| format!("Failed to delete model: {}", e))?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -246,6 +277,17 @@ async fn get_audio_devices() -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
+async fn get_audio_level(state: State<'_, AppState>) -> Result<f32, String> {
+    let rec = state.recorder.lock().map_err(|e| e.to_string())?;
+    if let Some(recorder) = rec.as_ref() {
+        let level = recorder.level.lock().map_err(|e| e.to_string())?;
+        Ok(*level)
+    } else {
+        Ok(0.0)
+    }
+}
+
+#[tauri::command]
 async fn type_text(text: String) -> Result<(), String> {
     use enigo::{Enigo, Keyboard, Settings};
     let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
@@ -296,10 +338,13 @@ pub fn run() {
     let settings = settings::load_settings().unwrap_or_default();
     let dictionary = dictionary::load_dictionary().unwrap_or_default();
 
-    // Auto-load the bundled model at startup so the user can dictate immediately
-    let initial_transcriber = if !settings.model_path.is_empty()
-        && std::path::Path::new(&settings.model_path).exists()
-    {
+    // Auto-load the model at startup so speech recognition is ready immediately.
+    // Check file size > 1 KB to skip Git LFS pointer files (~134 bytes).
+    let model_path = std::path::Path::new(&settings.model_path);
+    let is_real_model = !settings.model_path.is_empty()
+        && model_path.exists()
+        && model_path.metadata().map(|m| m.len() > 1024).unwrap_or(false);
+    let initial_transcriber = if is_real_model {
         log::info!("Auto-loading model: {}", settings.model_path);
         match transcriber::Transcriber::new(&settings.model_path, settings.use_gpu) {
             Ok(t) => {
@@ -334,6 +379,7 @@ pub fn run() {
             save_settings,
             get_available_models,
             download_model,
+            delete_model,
             load_model,
             start_recording,
             stop_recording,
@@ -343,6 +389,7 @@ pub fn run() {
             add_dictionary_word,
             remove_dictionary_word,
             get_audio_devices,
+            get_audio_level,
             is_model_loaded,
             type_text,
         ])
@@ -355,7 +402,7 @@ pub fn run() {
             // Build tray icon
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("Open Dictate Studio — Klaar voor dictatie")
+                .tooltip("Open Speech Studio")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
@@ -381,7 +428,7 @@ pub fn run() {
 
             // Emit startup-ready event so frontend can show notification
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.emit("app-ready", "Open Dictate Studio is actief");
+                let _ = window.emit("app-ready", "Open Speech Studio");
             }
 
             Ok(())
@@ -394,5 +441,5 @@ pub fn run() {
             }
         })
         .run(tauri::generate_context!())
-        .expect("error while running Open Dictate Studio");
+        .expect("error while running Open Speech Studio");
 }

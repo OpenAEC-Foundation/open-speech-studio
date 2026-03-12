@@ -25,3 +25,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Temp
+temp/
+
+# Claude Code
+.claude/

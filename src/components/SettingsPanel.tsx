@@ -1,5 +1,6 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { api, type Settings } from "../lib/api";
+import { useI18n, getLanguageOptions, type Locale } from "../lib/i18n";
 
 interface SettingsPanelProps {
   settings: Settings | null;
@@ -31,24 +32,25 @@ const MODIFIER_KEYS = [
 ];
 
 const ALL_KEYS = [
-  { group: "Modifiers", keys: [
+  { group: "settings.keyGroupModifiers", keys: [
     { value: "CmdOrCtrl", label: "Ctrl / Cmd" },
     { value: "Super", label: "Win / Super" },
     { value: "Alt", label: "Alt" },
     { value: "Shift", label: "Shift" },
   ]},
-  { group: "Speciale toetsen", keys: [
+  { group: "settings.keyGroupSpecial", keys: [
     { value: "Space", label: "Space" },
     { value: "Enter", label: "Enter" },
     { value: "Tab", label: "Tab" },
     { value: "Escape", label: "Escape" },
   ]},
-  { group: "Letters", keys: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => ({ value: l, label: l })) },
-  { group: "Cijfers", keys: "0123456789".split("").map((n) => ({ value: n, label: n })) },
-  { group: "Functietoetsen", keys: Array.from({ length: 12 }, (_, i) => ({ value: `F${i + 1}`, label: `F${i + 1}` })) },
+  { group: "settings.keyGroupLetters", keys: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => ({ value: l, label: l })) },
+  { group: "settings.keyGroupDigits", keys: "0123456789".split("").map((n) => ({ value: n, label: n })) },
+  { group: "settings.keyGroupFunction", keys: Array.from({ length: 12 }, (_, i) => ({ value: `F${i + 1}`, label: `F${i + 1}` })) },
 ];
 
 export default function SettingsPanel(props: SettingsPanelProps) {
+  const { t, locale, setLocale } = useI18n();
   const [language, setLanguage] = createSignal("auto");
   const [useGpu, setUseGpu] = createSignal(false);
   const [autoPaste, setAutoPaste] = createSignal(true);
@@ -69,7 +71,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setAutoPaste(props.settings.auto_paste);
       setAudioDevice(props.settings.audio_device);
 
-      const parsed = parseHotkey(props.settings.hotkey || "CmdOrCtrl+Super");
+      const parsed = parseHotkey(props.settings.hotkey || "Alt+Space");
       setKey1(parsed.key1);
       setKey2(parsed.key2);
       setKey3(parsed.key3);
@@ -88,6 +90,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     props.onSave({
       ...props.settings,
       language: language(),
+      ui_language: locale(),
       use_gpu: useGpu(),
       hotkey: hotkey(),
       auto_paste: autoPaste(),
@@ -97,30 +100,51 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
   return (
     <div class="settings-panel">
-      <h2>Instellingen</h2>
+      <h2>{t("settings.title")}</h2>
 
       <div class="settings-section">
-        <h3>Spraakherkenning</h3>
+        <h3>{t("settings.display")}</h3>
+        <div class="setting-row">
+          <label>{t("settings.uiLanguage")}</label>
+          <select
+            value={locale()}
+            onChange={(e) => {
+              const newLang = e.target.value as Locale;
+              setLocale(newLang);
+              if (props.settings) {
+                props.onSave({ ...props.settings, ui_language: newLang });
+              }
+            }}
+          >
+            <option value="nl">Nederlands</option>
+            <option value="en">English</option>
+          </select>
+          <span class="setting-hint">{t("settings.uiLanguageHint")}</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>{t("settings.speechRecognition")}</h3>
 
         <div class="setting-row">
-          <label>Taal</label>
+          <label>{t("settings.language")}</label>
           <select value={language()} onChange={(e) => setLanguage(e.target.value)}>
-            <option value="auto">Automatisch detecteren</option>
-            <option value="en">Engels (English)</option>
-            <option value="nl">Nederlands (Dutch)</option>
-            <option value="de">Duits (German)</option>
-            <option value="fr">Frans (French)</option>
-            <option value="es">Spaans (Spanish)</option>
-            <option value="it">Italiaans (Italian)</option>
-            <option value="pt">Portugees (Portuguese)</option>
-            <option value="pl">Pools (Polish)</option>
-            <option value="ja">Japans (Japanese)</option>
-            <option value="zh">Chinees (Chinese)</option>
+            <option value="auto">{t("languages.auto")}</option>
+            <option value="en">{t("languages.enFull")}</option>
+            <option value="nl">{t("languages.nlFull")}</option>
+            <option value="de">{t("languages.deFull")}</option>
+            <option value="fr">{t("languages.frFull")}</option>
+            <option value="es">{t("languages.esFull")}</option>
+            <option value="it">{t("languages.itFull")}</option>
+            <option value="pt">{t("languages.ptFull")}</option>
+            <option value="pl">{t("languages.plFull")}</option>
+            <option value="ja">{t("languages.jaFull")}</option>
+            <option value="zh">{t("languages.zhFull")}</option>
           </select>
         </div>
 
         <div class="setting-row">
-          <label>GPU Versnelling</label>
+          <label>{t("settings.gpuAcceleration")}</label>
           <div class="toggle-group">
             <label class="toggle">
               <input
@@ -132,23 +156,23 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </label>
             <span class="setting-hint">
               {useGpu()
-                ? "GPU wordt gebruikt (CUDA/Vulkan vereist)"
-                : "CPU modus - werkt overal, maar langzamer"}
+                ? t("settings.gpuEnabled")
+                : t("settings.gpuDisabled")}
             </span>
           </div>
         </div>
       </div>
 
       <div class="settings-section">
-        <h3>Bediening</h3>
+        <h3>{t("settings.controls")}</h3>
 
         <div class="setting-row">
-          <label>Sneltoets (2 of 3 toetsen)</label>
+          <label>{t("settings.hotkey")}</label>
           <div class="hotkey-builder">
             {/* Toets 1 — altijd verplicht */}
             <select value={key1()} onChange={(e) => setKey1(e.target.value)}>
               {ALL_KEYS.map((group) => (
-                <optgroup label={group.group}>
+                <optgroup label={t(group.group)}>
                   {group.keys.map((k) => (
                     <option value={k.value}>{k.label}</option>
                   ))}
@@ -159,7 +183,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             {/* Toets 2 — verplicht */}
             <select value={key2()} onChange={(e) => setKey2(e.target.value)}>
               {ALL_KEYS.map((group) => (
-                <optgroup label={group.group}>
+                <optgroup label={t(group.group)}>
                   {group.keys.map((k) => (
                     <option value={k.value}>{k.label}</option>
                   ))}
@@ -169,9 +193,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             <span class="hotkey-plus">+</span>
             {/* Toets 3 — optioneel */}
             <select value={key3()} onChange={(e) => setKey3(e.target.value)}>
-              <option value="none">Geen (2 toetsen)</option>
+              <option value="none">{t("settings.hotkeyNone2Keys")}</option>
               {ALL_KEYS.map((group) => (
-                <optgroup label={group.group}>
+                <optgroup label={t(group.group)}>
                   {group.keys.map((k) => (
                     <option value={k.value}>{k.label}</option>
                   ))}
@@ -179,11 +203,11 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               ))}
             </select>
           </div>
-          <span class="setting-hint">Huidige sneltoets: <kbd class="hotkey-preview">{hotkey()}</kbd></span>
+          <span class="setting-hint">{t("settings.hotkeyPreview")} <kbd class="hotkey-preview">{hotkey()}</kbd></span>
         </div>
 
         <div class="setting-row">
-          <label>Automatisch plakken</label>
+          <label>{t("settings.autoPaste")}</label>
           <div class="toggle-group">
             <label class="toggle">
               <input
@@ -194,19 +218,19 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               <span class="toggle-slider" />
             </label>
             <span class="setting-hint">
-              Tekst automatisch typen na transcriptie
+              {t("settings.autoPasteHint")}
             </span>
           </div>
         </div>
       </div>
 
       <div class="settings-section">
-        <h3>Audio</h3>
+        <h3>{t("settings.audio")}</h3>
 
         <div class="setting-row">
-          <label>Invoerapparaat</label>
+          <label>{t("settings.inputDevice")}</label>
           <select value={audioDevice()} onChange={(e) => setAudioDevice(e.target.value)}>
-            <option value="default">Standaard microfoon</option>
+            <option value="default">{t("settings.defaultMic")}</option>
             {devices().map((d) => (
               <option value={d}>{d}</option>
             ))}
@@ -216,7 +240,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
       <div class="settings-actions">
         <button class="btn btn-primary" onClick={handleSave}>
-          Opslaan
+          {t("settings.save")}
         </button>
       </div>
     </div>

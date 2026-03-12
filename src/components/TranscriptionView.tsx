@@ -1,5 +1,6 @@
 import type { TranscriptionResult } from "../lib/api";
 import { For, Show } from "solid-js";
+import { useI18n } from "../lib/i18n";
 
 interface TranscriptionViewProps {
   transcriptions: TranscriptionResult[];
@@ -11,6 +12,7 @@ interface TranscriptionViewProps {
 }
 
 export default function TranscriptionView(props: TranscriptionViewProps) {
+  const { t } = useI18n();
   return (
     <div class="home-view">
       <Show
@@ -25,20 +27,20 @@ export default function TranscriptionView(props: TranscriptionViewProps) {
                 <line x1="8" y1="23" x2="16" y2="23" />
               </svg>
             </div>
-            <h2>Klaar om te dicteren</h2>
+            <h2>{t("transcription.readyTitle")}</h2>
             <p>
               {props.isModelLoaded
-                ? "Druk op de sneltoets om te beginnen. Je stem wordt lokaal verwerkt — niets verlaat je computer."
-                : "Ga naar Modellen om een spraakherkenningsmodel te downloaden en te laden."}
+                ? t("transcription.readyDescription")
+                : t("transcription.noModelDescription")}
             </p>
             <Show when={props.isModelLoaded}>
               <div class="hotkey-badge">
-                Druk <kbd>{props.hotkey || "Ctrl+Win"}</kbd> om te starten
+                {t("transcription.hotkeyHint", { hotkey: props.hotkey || "Ctrl+Win" })}
               </div>
             </Show>
             <Show when={!props.isModelLoaded}>
               <button class="btn btn-primary btn-large" onClick={props.onRecord} disabled>
-                Model vereist
+                {t("transcription.modelRequired")}
               </button>
             </Show>
           </div>
@@ -56,7 +58,7 @@ export default function TranscriptionView(props: TranscriptionViewProps) {
                     class="btn btn-small"
                     onClick={() => navigator.clipboard.writeText(result.text)}
                   >
-                    Kopieer
+                    {t("transcription.copy")}
                   </button>
                 </div>
               </div>
@@ -68,11 +70,11 @@ export default function TranscriptionView(props: TranscriptionViewProps) {
       <Show when={props.isRecording}>
         <div class="recording-bar">
           <div class="rec-dot" />
-          <span>Luisteren...</span>
+          <span>{t("transcription.listening")}</span>
           <Show when={props.modelName}>
             <span class="recording-model">{props.modelName}</span>
           </Show>
-          <button onClick={props.onRecord}>Stop</button>
+          <button onClick={props.onRecord}>{t("transcription.stop")}</button>
         </div>
       </Show>
     </div>

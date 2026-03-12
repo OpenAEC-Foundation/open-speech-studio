@@ -1,7 +1,11 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
-import { api, type TranscriptionResult, getMicAnalyser } from "../lib/api";
+import { api, type TranscriptionResult } from "../lib/api";
+
+const isTauri = !!(window as any).__TAURI_INTERNALS__;
+import { useI18n } from "../lib/i18n";
 
 export default function MicTest() {
+  const { t } = useI18n();
   const [devices, setDevices] = createSignal<string[]>([]);
   const [selectedDevice, setSelectedDevice] = createSignal("default");
   const [isTesting, setIsTesting] = createSignal(false);
@@ -11,6 +15,9 @@ export default function MicTest() {
   const [status, setStatus] = createSignal<{ type: "info" | "success" | "error"; text: string } | null>(null);
   const [isModelLoaded, setIsModelLoaded] = createSignal(false);
   let animFrame: number | null = null;
+  let levelInterval: ReturnType<typeof setInterval> | null = null;
+  // Keep a short history of levels for the waveform bars
+  let levelHistory: number[] = new Array(40).fill(0);
 
   onMount(async () => {
     try {
@@ -28,49 +35,30 @@ export default function MicTest() {
 
   onCleanup(() => {
     if (animFrame) cancelAnimationFrame(animFrame);
+    if (levelInterval) clearInterval(levelInterval);
   });
 
-  // Real waveform animation using Web Audio API analyser
+  // Poll audio level from Rust backend and update waveform
   const startWaveformAnimation = () => {
-    const animate = () => {
-      if (!isTesting()) return;
-
-      const analyser = getMicAnalyser();
-      if (analyser) {
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(dataArray);
-
-        // Calculate RMS level
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          sum += dataArray[i];
-        }
-        const avg = sum / dataArray.length;
-        setMicLevel(Math.min(100, (avg / 128) * 100));
-
-        // Build waveform from frequency data
-        const bars = 40;
-        const step = Math.floor(dataArray.length / bars);
-        const newWaveform: number[] = [];
-        for (let i = 0; i < bars; i++) {
-          const value = dataArray[i * step] || 0;
-          newWaveform.push(4 + (value / 255) * 60);
-        }
-        setWaveform(newWaveform);
-      } else {
-        // Fallback: simulated animation
-        setWaveform((prev) => {
-          const next = [...prev];
-          next.shift();
-          next.push(4 + Math.random() * 40);
-          return next;
-        });
-        setMicLevel(20 + Math.random() * 60);
-      }
-
-      animFrame = requestAnimationFrame(animate);
-    };
-    animFrame = requestAnimationFrame(animate);
+    if (isTauri) {
+      // Poll the backend for RMS level every 50ms
+      levelInterval = setInterval(async () => {
+        if (!isTesting()) return;
+        try {
+          const rms = await api.getAudioLevel();
+          // Convert RMS (0.0–1.0) to percentage (amplify for visibility)
+          const pct = Math.min(100, rms * 500);
+          setMicLevel(pct);
+          // Push to history for waveform
+          levelHistory.shift();
+          levelHistory.push(pct);
+          setWaveform(levelHistory.map((v) => 4 + (v / 100) * 60));
+        } catch (_) {}
+      }, 50);
+    } else {
+      // Browser fallback: no visualization without mic permission
+      setMicLevel(0);
+    }
   };
 
   const stopWaveformAnimation = () => {
@@ -78,20 +66,25 @@ export default function MicTest() {
       cancelAnimationFrame(animFrame);
       animFrame = null;
     }
+    if (levelInterval) {
+      clearInterval(levelInterval);
+      levelInterval = null;
+    }
+    levelHistory = new Array(40).fill(0);
     setWaveform(new Array(40).fill(4));
     setMicLevel(0);
   };
 
   const startTest = async () => {
     setTestResult(null);
-    setStatus({ type: "info", text: "Microfoon test gestart — spreek iets in..." });
+    setStatus({ type: "info", text: t("micTest.started") });
 
     try {
       await api.startRecording();
       setIsTesting(true);
       startWaveformAnimation();
     } catch (e) {
-      setStatus({ type: "error", text: `Kan microfoon niet openen: ${e}` });
+      setStatus({ type: "error", text: t("micTest.micError", { error: String(e) }) });
     }
   };
 
@@ -100,25 +93,25 @@ export default function MicTest() {
     setIsTesting(false);
 
     if (!isModelLoaded()) {
-      setStatus({ type: "info", text: "Audio opgenomen. Laad een model om de transcriptie te testen." });
+      setStatus({ type: "info", text: t("micTest.noModel") });
       try {
         await api.stopRecording();
       } catch (_) {}
       return;
     }
 
-    setStatus({ type: "info", text: "Transcriberen..." });
+    setStatus({ type: "info", text: t("micTest.transcribing") });
     try {
       const result = await api.stopRecording();
       setTestResult(result);
 
       if (result.text && result.text.trim().length > 0) {
-        setStatus({ type: "success", text: `Microfoon werkt! Transcriptie in ${result.duration_ms}ms.` });
+        setStatus({ type: "success", text: t("micTest.success", { duration: result.duration_ms }) });
       } else {
-        setStatus({ type: "error", text: "Geen spraak gedetecteerd. Controleer je microfoon en spreek luider." });
+        setStatus({ type: "error", text: t("micTest.noSpeech") });
       }
     } catch (e) {
-      setStatus({ type: "error", text: `Test mislukt: ${e}` });
+      setStatus({ type: "error", text: t("micTest.failed", { error: String(e) }) });
     }
   };
 
@@ -131,10 +124,9 @@ export default function MicTest() {
 
   return (
     <div class="mic-test">
-      <h2>Microfoon Test</h2>
+      <h2>{t("micTest.title")}</h2>
       <p class="section-description">
-        Test je microfoon en controleer of de spraakherkenning correct werkt.
-        Spreek een zin in en bekijk het resultaat.
+        {t("micTest.description")}
       </p>
 
       <div class="mic-test-card">
@@ -143,7 +135,7 @@ export default function MicTest() {
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
           </svg>
-          Invoerapparaat
+          {t("micTest.inputDevice")}
         </h3>
 
         <select
@@ -151,7 +143,7 @@ export default function MicTest() {
           value={selectedDevice()}
           onChange={(e) => setSelectedDevice(e.target.value)}
         >
-          <option value="default">Standaard microfoon</option>
+          <option value="default">{t("micTest.defaultMic")}</option>
           {devices().map((d) => (
             <option value={d}>{d}</option>
           ))}
@@ -160,7 +152,7 @@ export default function MicTest() {
         {/* Level meter */}
         <div class="mic-level-container">
           <div class="mic-level-label">
-            <span>Niveau</span>
+            <span>{t("micTest.level")}</span>
             <span>{Math.round(micLevel())}%</span>
           </div>
           <div class="mic-level-bar">
@@ -184,12 +176,12 @@ export default function MicTest() {
             when={!isTesting()}
             fallback={
               <button class="btn btn-primary btn-large" onClick={stopTest}>
-                Stop Test
+                {t("micTest.stopTest")}
               </button>
             }
           >
             <button class="btn btn-primary btn-large" onClick={startTest}>
-              Start Microfoon Test
+              {t("micTest.startTest")}
             </button>
           </Show>
         </div>
@@ -231,15 +223,15 @@ export default function MicTest() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              Resultaat
+              {t("micTest.result")}
             </h3>
             <div class="mic-test-result">
-              <h4>Getranscribeerde tekst:</h4>
-              <p>{result().text || "(geen tekst gedetecteerd)"}</p>
+              <h4>{t("micTest.transcribedText")}</h4>
+              <p>{result().text || t("micTest.noTextDetected")}</p>
             </div>
             <div class="transcription-meta" style={{ "margin-top": "12px" }}>
-              <span class="meta-tag">Taal: {result().language || "auto"}</span>
-              <span class="meta-tag">Duur: {result().duration_ms}ms</span>
+              <span class="meta-tag">{t("micTest.resultLanguage")} {result().language || "auto"}</span>
+              <span class="meta-tag">{t("micTest.resultDuration")} {result().duration_ms}ms</span>
             </div>
           </div>
         )}

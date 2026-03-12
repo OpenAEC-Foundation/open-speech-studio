@@ -1,7 +1,7 @@
 [package]
 name = "open-speech-studio"
 version = "0.1.0"
-description = "Open source voice dictation - local AI speech-to-text"
+description = "Open source local AI speech-to-text"
 authors = ["OpenAEC Foundation"]
 license = "Apache-2.0"
 repository = "https://github.com/OpenAEC-Foundation/open-speech-studio"

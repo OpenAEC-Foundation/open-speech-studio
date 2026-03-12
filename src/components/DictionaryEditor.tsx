@@ -1,7 +1,9 @@
 import { createSignal, onMount, For } from "solid-js";
 import { api, type Dictionary } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 
 export default function DictionaryEditor() {
+  const { t } = useI18n();
   const [words, setWords] = createSignal<[string, string | null][]>([]);
   const [newWord, setNewWord] = createSignal("");
   const [newReplacement, setNewReplacement] = createSignal("");
@@ -27,10 +29,10 @@ export default function DictionaryEditor() {
       setWords((prev) => [...prev, [word, replacement]]);
       setNewWord("");
       setNewReplacement("");
-      setStatusMsg(`"${word}" toegevoegd`);
+      setStatusMsg(t("dictionary.wordAdded", { word }));
       setTimeout(() => setStatusMsg(""), 2000);
     } catch (e) {
-      setStatusMsg(`Fout: ${e}`);
+      setStatusMsg(t("dictionary.error", { error: String(e) }));
     }
   };
 
@@ -38,39 +40,38 @@ export default function DictionaryEditor() {
     try {
       await api.removeDictionaryWord(word);
       setWords((prev) => prev.filter(([w]) => w !== word));
-      setStatusMsg(`"${word}" verwijderd`);
+      setStatusMsg(t("dictionary.wordRemoved", { word }));
       setTimeout(() => setStatusMsg(""), 2000);
     } catch (e) {
-      setStatusMsg(`Fout: ${e}`);
+      setStatusMsg(t("dictionary.error", { error: String(e) }));
     }
   };
 
   return (
     <div class="dictionary-editor">
-      <h2>Woordenboek</h2>
+      <h2>{t("dictionary.title")}</h2>
       <p class="section-description">
-        Voeg woorden toe die het spraakmodel moet herkennen, zoals namen, afkortingen of
-        vakjargon. Optioneel kun je een vervanging opgeven.
+        {t("dictionary.description")}
       </p>
 
       <div class="dictionary-add">
         <div class="add-row">
           <input
             type="text"
-            placeholder="Woord (bijv. OpenAEC)"
+            placeholder={t("dictionary.wordPlaceholder")}
             value={newWord()}
             onInput={(e) => setNewWord(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addWord()}
           />
           <input
             type="text"
-            placeholder="Vervanging (optioneel)"
+            placeholder={t("dictionary.replacementPlaceholder")}
             value={newReplacement()}
             onInput={(e) => setNewReplacement(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addWord()}
           />
           <button class="btn btn-primary" onClick={addWord}>
-            Toevoegen
+            {t("dictionary.add")}
           </button>
         </div>
         {statusMsg() && <div class="status-msg">{statusMsg()}</div>}
@@ -78,17 +79,17 @@ export default function DictionaryEditor() {
 
       <div class="dictionary-list">
         <div class="dictionary-header">
-          <span>Woord</span>
-          <span>Vervanging</span>
+          <span>{t("dictionary.wordHeader")}</span>
+          <span>{t("dictionary.replacementHeader")}</span>
           <span></span>
         </div>
-        <For each={words()} fallback={<div class="empty-list">Nog geen woorden toegevoegd</div>}>
+        <For each={words()} fallback={<div class="empty-list">{t("dictionary.empty")}</div>}>
           {([word, replacement]) => (
             <div class="dictionary-row">
               <span class="dict-word">{word}</span>
               <span class="dict-replacement">{replacement || "—"}</span>
               <button class="btn btn-small btn-danger" onClick={() => removeWord(word)}>
-                Verwijder
+                {t("dictionary.remove")}
               </button>
             </div>
           )}

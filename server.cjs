@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Open Dictate Studio — Local Transcription Server
+ * Open Speech Studio — Local Transcription Server
  *
  * Wraps whisper-cli.exe so the browser frontend can use local Whisper models
  * instead of Web Speech API (which sends audio to Google/Microsoft).
@@ -255,7 +255,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`
 ╔══════════════════════════════════════════════════════╗
-║  Open Dictate Studio — Transcription Server          ║
+║  Open Speech Studio — Transcription Server            ║
 ╠══════════════════════════════════════════════════════╣
 ║  Server:  http://localhost:${PORT}                      ║
 ║  Model:   ${currentModel.padEnd(42)}║

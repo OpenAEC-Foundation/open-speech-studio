@@ -1,24 +1,12 @@
 import { createSignal, onCleanup, onMount, Show, For } from "solid-js";
 import { api, type TranscriptionResult, type ModelInfo, getMicAnalyser, isServerMode } from "../lib/api";
-
-const LANGUAGES = [
-  { value: "auto", label: "Auto" },
-  { value: "nl", label: "Nederlands" },
-  { value: "en", label: "Engels" },
-  { value: "de", label: "Duits" },
-  { value: "fr", label: "Frans" },
-  { value: "es", label: "Spaans" },
-  { value: "it", label: "Italiaans" },
-  { value: "pt", label: "Portugees" },
-  { value: "pl", label: "Pools" },
-  { value: "ja", label: "Japans" },
-  { value: "zh", label: "Chinees" },
-];
+import { useI18n, getLanguageOptions } from "../lib/i18n";
 
 export default function MeetingRecorder() {
+  const { t, locale } = useI18n();
   const [isRecording, setIsRecording] = createSignal(false);
   const [segments, setSegments] = createSignal<TranscriptionResult[]>([]);
-  const [status, setStatus] = createSignal("Klaar om op te nemen");
+  const [status, setStatus] = createSignal(t("meeting.statusReady"));
   const [activeModel, setActiveModel] = createSignal("");
   const [activeLang, setActiveLang] = createSignal("auto");
   const [models, setModels] = createSignal<ModelInfo[]>([]);
@@ -130,11 +118,11 @@ export default function MeetingRecorder() {
       await api.startRecording();
       setIsRecording(true);
       setStartTime(new Date());
-      setStatus("Opnemen... Spreek duidelijk.");
+      setStatus(t("meeting.statusRecording"));
       timerInterval = setInterval(updateElapsed, 1000);
       startMicMonitor();
     } catch (e) {
-      setStatus(`Fout: ${e}`);
+      setStatus(t("meeting.statusError", { error: String(e) }));
     }
   };
 
@@ -149,9 +137,9 @@ export default function MeetingRecorder() {
       }
       await api.startRecording();
       startMicMonitor();
-      setStatus(`${segments().length + 1} segmenten opgenomen`);
+      setStatus(t("meeting.statusSegments", { count: segments().length + 1 }));
     } catch (e) {
-      setStatus(`Fout bij segment: ${e}`);
+      setStatus(t("meeting.statusSegmentError", { error: String(e) }));
     }
   };
 
@@ -168,10 +156,10 @@ export default function MeetingRecorder() {
       if (result.text && result.text.trim().length > 0) {
         setSegments((prev) => [...prev, result]);
       }
-      setStatus(`Opname gestopt — ${segments().length + (result.text ? 1 : 0)} segmenten`);
+      setStatus(t("meeting.statusStopped", { count: segments().length + (result.text ? 1 : 0) }));
     } catch (e) {
       setIsRecording(false);
-      setStatus(`Fout: ${e}`);
+      setStatus(t("meeting.statusError", { error: String(e) }));
     }
   };
 
@@ -179,7 +167,7 @@ export default function MeetingRecorder() {
 
   const copyTranscript = () => {
     navigator.clipboard.writeText(getFullTranscript());
-    setStatus("Transcript gekopieerd naar klembord");
+    setStatus(t("meeting.statusCopied"));
   };
 
   const clearSegments = () => {
@@ -189,7 +177,7 @@ export default function MeetingRecorder() {
     setMicPeak(0);
     setMicAvg(0);
     avgSamples = [];
-    setStatus("Klaar om op te nemen");
+    setStatus(t("meeting.statusReady"));
   };
 
   const downloadBlob = (blob: Blob, filename: string) => {
@@ -206,32 +194,32 @@ export default function MeetingRecorder() {
   const exportTxt = () => {
     const blob = new Blob([getFullTranscript()], { type: "text/plain;charset=utf-8" });
     downloadBlob(blob, `transcript-${timestamp()}.txt`);
-    setStatus("Transcript geexporteerd als .txt");
+    setStatus(t("meeting.statusExportedTxt"));
   };
 
   const exportMarkdown = () => {
-    const lines = [`# Transcript — ${new Date().toLocaleString("nl-NL")}`, ""];
+    const lines = [`# Transcript — ${new Date().toLocaleString(locale() === "nl" ? "nl-NL" : "en-US")}`, ""];
     segments().forEach((s, i) => {
-      lines.push(`## Segment ${i + 1}`);
+      lines.push(`## ${t("meeting.exportSegment")} ${i + 1}`);
       lines.push("");
-      lines.push(`> **Taal:** ${s.language || "auto"} | **Duur:** ${s.duration_ms}ms`);
+      lines.push(`> **${t("meeting.exportLanguage")}** ${s.language || "auto"} | **${t("meeting.exportDuration")}** ${s.duration_ms}ms`);
       lines.push("");
       lines.push(s.text);
       lines.push("");
     });
     lines.push("---");
-    lines.push(`*${segments().length} segmenten — ${totalWords()} woorden — opnametijd ${elapsed()}*`);
+    lines.push(`*${t("meeting.exportSegmentsCount", { count: segments().length })} — ${t("meeting.exportWordsCount", { count: totalWords() })} — ${t("meeting.exportRecordingTime", { time: elapsed() })}*`);
     const blob = new Blob([lines.join("\n")], { type: "text/markdown;charset=utf-8" });
     downloadBlob(blob, `transcript-${timestamp()}.md`);
-    setStatus("Transcript geexporteerd als .md");
+    setStatus(t("meeting.statusExportedMd"));
   };
 
   const exportOdt = async () => {
     const segs = segments();
     const paragraphs = segs.map((s, i) =>
-      `<text:h text:style-name="Heading_20_2" text:outline-level="2">Segment ${i + 1}</text:h>
+      `<text:h text:style-name="Heading_20_2" text:outline-level="2">${escapeXml(t("meeting.exportSegment"))} ${i + 1}</text:h>
 <text:p text:style-name="Text_20_body">${escapeXml(s.text)}</text:p>
-<text:p text:style-name="Text_20_body"><text:span text:style-name="meta">Taal: ${s.language || "auto"} | Duur: ${s.duration_ms}ms</text:span></text:p>`
+<text:p text:style-name="Text_20_body"><text:span text:style-name="meta">${escapeXml(t("meeting.exportLanguage"))} ${s.language || "auto"} | ${escapeXml(t("meeting.exportDuration"))} ${s.duration_ms}ms</text:span></text:p>`
     ).join("\n");
 
     const contentXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -247,9 +235,9 @@ export default function MeetingRecorder() {
   </office:automatic-styles>
   <office:body>
     <office:text>
-      <text:h text:style-name="Heading_20_1" text:outline-level="1">Transcript — ${escapeXml(new Date().toLocaleString("nl-NL"))}</text:h>
+      <text:h text:style-name="Heading_20_1" text:outline-level="1">Transcript — ${escapeXml(new Date().toLocaleString(locale() === "nl" ? "nl-NL" : "en-US"))}</text:h>
 ${paragraphs}
-      <text:p text:style-name="Text_20_body">${segs.length} segmenten — ${totalWords()} woorden — opnametijd ${elapsed()}</text:p>
+      <text:p text:style-name="Text_20_body">${escapeXml(t("meeting.exportSegmentsCount", { count: segs.length }))} — ${escapeXml(t("meeting.exportWordsCount", { count: totalWords() }))} — ${escapeXml(t("meeting.exportRecordingTime", { time: elapsed() }))}</text:p>
     </office:text>
   </office:body>
 </office:document-content>`;
@@ -259,7 +247,7 @@ ${paragraphs}
   xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0"
   office:version="1.3">
   <office:meta>
-    <meta:generator>Open Dictate Studio</meta:generator>
+    <meta:generator>Open Speech Studio</meta:generator>
   </office:meta>
 </office:document-meta>`;
 
@@ -282,7 +270,7 @@ ${paragraphs}
 
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.oasis.opendocument.text" });
     downloadBlob(blob, `transcript-${timestamp()}.odt`);
-    setStatus("Transcript geexporteerd als .odt");
+    setStatus(t("meeting.statusExportedOdt"));
   };
 
   const escapeXml = (s: string) =>
@@ -313,9 +301,9 @@ ${paragraphs}
         setActiveModel(name);
         const s = await api.getSettings();
         await api.saveSettings({ ...s, model_name: name, model_path: model.path });
-        setStatus(`Model gewisseld naar ${name}`);
+        setStatus(t("meeting.statusModelChanged", { name }));
       } catch (e) {
-        setStatus(`Model wisselen mislukt: ${e}`);
+        setStatus(t("meeting.statusModelChangeFailed", { error: String(e) }));
       }
     }
   };
@@ -330,16 +318,15 @@ ${paragraphs}
 
   return (
     <div class="meeting-recorder">
-      <h2>Opnemen & Transcriberen</h2>
+      <h2>{t("meeting.title")}</h2>
       <p class="section-description">
-        Neem een vergadering of gesprek op. De audio wordt continu getranscribeerd
-        in segmenten. Alle verwerking gebeurt lokaal op je computer.
+        {t("meeting.description")}
       </p>
 
       {/* Model & language selection */}
       <div class="meeting-config">
         <div class="meeting-config-item">
-          <label>Model</label>
+          <label>{t("meeting.model")}</label>
           <select
             value={activeModel()}
             onChange={(e) => changeModel(e.currentTarget.value)}
@@ -351,21 +338,21 @@ ${paragraphs}
           </select>
         </div>
         <div class="meeting-config-item">
-          <label>Taal</label>
+          <label>{t("meeting.language")}</label>
           <select
             value={activeLang()}
             onChange={(e) => changeLang(e.currentTarget.value)}
             disabled={isRecording()}
           >
-            <For each={LANGUAGES}>
+            <For each={getLanguageOptions(t)}>
               {(l) => <option value={l.value}>{l.label}</option>}
             </For>
           </select>
         </div>
         <div class="meeting-config-item">
-          <label>Backend</label>
+          <label>{t("meeting.backend")}</label>
           <span class={`meeting-backend-badge ${useServer() ? "local" : "browser"}`}>
-            {useServer() ? "Lokaal (Whisper)" : "Browser fallback"}
+            {useServer() ? t("meeting.backendLocal") : t("meeting.backendBrowser")}
           </span>
         </div>
       </div>
@@ -381,25 +368,25 @@ ${paragraphs}
                 fallback={
                   <>
                     <button class="btn btn-danger" onClick={stopRecording}>
-                      Stop Opname
+                      {t("meeting.stopRecording")}
                     </button>
                     <button class="btn btn-primary" onClick={captureSegment}>
-                      Segment Opslaan
+                      {t("meeting.saveSegment")}
                     </button>
                   </>
                 }
               >
                 <button class="btn btn-primary" onClick={startRecording}>
-                  Start Opname
+                  {t("meeting.startRecording")}
                 </button>
               </Show>
 
               <Show when={segments().length > 0 && !isRecording()}>
-                <button class="btn" onClick={copyTranscript}>Kopieer Alles</button>
-                <button class="btn" onClick={exportTxt}>Exporteer .txt</button>
-                <button class="btn" onClick={exportMarkdown}>Exporteer .md</button>
-                <button class="btn" onClick={exportOdt}>Exporteer .odt</button>
-                <button class="btn btn-danger btn-small" onClick={clearSegments}>Wissen</button>
+                <button class="btn" onClick={copyTranscript}>{t("meeting.copyAll")}</button>
+                <button class="btn" onClick={exportTxt}>{t("meeting.exportTxt")}</button>
+                <button class="btn" onClick={exportMarkdown}>{t("meeting.exportMd")}</button>
+                <button class="btn" onClick={exportOdt}>{t("meeting.exportOdt")}</button>
+                <button class="btn btn-danger btn-small" onClick={clearSegments}>{t("meeting.clear")}</button>
               </Show>
             </div>
 
@@ -427,10 +414,9 @@ ${paragraphs}
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" y1="19" x2="12" y2="23" />
                   </svg>
-                  <p>Start een opname om het transcript hier te zien.</p>
+                  <p>{t("meeting.emptyTranscript")}</p>
                   <p class="meeting-tip">
-                    Tip: Klik "Segment Opslaan" tijdens de opname om tussendoor te transcriberen
-                    zonder de opname te stoppen.
+                    {t("meeting.tip")}
                   </p>
                 </div>
               }
@@ -453,7 +439,7 @@ ${paragraphs}
 
         {/* Right: mic stats panel */}
         <div class="mic-stats-panel">
-          <div class="mic-stats-title">Microfoon</div>
+          <div class="mic-stats-title">{t("meeting.mic")}</div>
 
           {/* Waveform */}
           <div class="mic-stats-waveform">
@@ -465,7 +451,7 @@ ${paragraphs}
           {/* Level meter */}
           <div class="mic-stats-meter">
             <div class="mic-stats-meter-label">
-              <span>Niveau</span>
+              <span>{t("meeting.micLevel")}</span>
               <span>{Math.round(micLevel())}%</span>
             </div>
             <div class="mic-stats-meter-track">
@@ -477,46 +463,46 @@ ${paragraphs}
           <div class="mic-stats-grid">
             <div class="mic-stat">
               <div class="mic-stat-value">{Math.round(micPeak())}%</div>
-              <div class="mic-stat-label">Piek</div>
+              <div class="mic-stat-label">{t("meeting.micPeak")}</div>
             </div>
             <div class="mic-stat">
               <div class="mic-stat-value">{Math.round(micAvg())}%</div>
-              <div class="mic-stat-label">Gemiddeld</div>
+              <div class="mic-stat-label">{t("meeting.micAvg")}</div>
             </div>
             <div class="mic-stat">
               <div class={`mic-stat-value ${micClipping() ? "mic-stat-warning" : ""}`}>
-                {micClipping() ? "Ja" : "Nee"}
+                {micClipping() ? t("common.yes") : t("common.no")}
               </div>
-              <div class="mic-stat-label">Clipping</div>
+              <div class="mic-stat-label">{t("meeting.micClipping")}</div>
             </div>
             <div class="mic-stat">
               <div class="mic-stat-value">
-                {isRecording() ? "Actief" : "Uit"}
+                {isRecording() ? t("meeting.micActive") : t("meeting.micOff")}
               </div>
-              <div class="mic-stat-label">Status</div>
+              <div class="mic-stat-label">{t("meeting.micStatus")}</div>
             </div>
           </div>
 
           {/* Session stats */}
           <Show when={segments().length > 0 || isRecording()}>
             <div class="mic-stats-divider" />
-            <div class="mic-stats-title">Sessie</div>
+            <div class="mic-stats-title">{t("meeting.session")}</div>
             <div class="mic-stats-grid">
               <div class="mic-stat">
                 <div class="mic-stat-value">{segments().length}</div>
-                <div class="mic-stat-label">Segmenten</div>
+                <div class="mic-stat-label">{t("meeting.sessionSegments")}</div>
               </div>
               <div class="mic-stat">
                 <div class="mic-stat-value">{totalWords()}</div>
-                <div class="mic-stat-label">Woorden</div>
+                <div class="mic-stat-label">{t("meeting.sessionWords")}</div>
               </div>
               <div class="mic-stat">
                 <div class="mic-stat-value">{(totalDuration() / 1000).toFixed(1)}s</div>
-                <div class="mic-stat-label">Verwerkingstijd</div>
+                <div class="mic-stat-label">{t("meeting.sessionProcessingTime")}</div>
               </div>
               <div class="mic-stat">
                 <div class="mic-stat-value">{elapsed()}</div>
-                <div class="mic-stat-label">Opnametijd</div>
+                <div class="mic-stat-label">{t("meeting.sessionRecordingTime")}</div>
               </div>
             </div>
           </Show>

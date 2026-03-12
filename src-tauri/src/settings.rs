@@ -4,6 +4,8 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
     pub language: String,
+    #[serde(default = "default_ui_language")]
+    pub ui_language: String,
     pub model_name: String,
     pub model_path: String,
     pub use_gpu: bool,
@@ -20,10 +22,11 @@ impl Default for Settings {
 
         Self {
             language: "nl".to_string(),
+            ui_language: "en".to_string(),
             model_name,
             model_path,
             use_gpu: false,
-            hotkey: "CmdOrCtrl+Super".to_string(),
+            hotkey: "Alt+Space".to_string(),
             auto_paste: true,
             audio_device: "default".to_string(),
             theme: "light".to_string(),
@@ -31,23 +34,22 @@ impl Default for Settings {
     }
 }
 
-/// Find a bundled model in the models/ directory next to the executable or in the project root.
-fn find_bundled_model() -> (String, String) {
-    let search_dirs = get_model_search_dirs();
+fn default_ui_language() -> String {
+    "en".to_string()
+}
 
+/// Find the best available model, checking config dir (user downloads) first, then bundled dirs.
+fn find_bundled_model() -> (String, String) {
     // Prefer small, fallback to base, then tiny
     let preferences = ["small", "base", "tiny", "medium", "large-v3-turbo", "large-v3"];
 
     for model_name in preferences {
         let filename = format!("ggml-{}.bin", model_name);
-        for dir in &search_dirs {
-            let path = dir.join(&filename);
-            if path.exists() {
-                return (
-                    model_name.to_string(),
-                    path.to_string_lossy().to_string(),
-                );
-            }
+        if let Some(path) = find_model_file(&filename) {
+            return (
+                model_name.to_string(),
+                path.to_string_lossy().to_string(),
+            );
         }
     }
 
@@ -92,19 +94,32 @@ pub fn get_config_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
     Ok(dir)
 }
 
+/// Returns the stable directory for downloading/storing models.
+/// Always uses the user config directory so Tauri rebuilds don't overwrite downloaded models.
 pub fn get_models_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
-    // First check for bundled models directory
-    let search_dirs = get_model_search_dirs();
-    for dir in &search_dirs {
-        if dir.exists() {
-            return Ok(dir.clone());
-        }
-    }
-
-    // Fallback to config directory
     let dir = get_config_dir()?.join("models");
     std::fs::create_dir_all(&dir)?;
     Ok(dir)
+}
+
+/// Search ALL known directories for a specific model file, returning the first real one found.
+pub fn find_model_file(filename: &str) -> Option<PathBuf> {
+    // Check config dir first (user downloads), then bundled/dev dirs
+    let mut dirs = Vec::new();
+
+    if let Some(config) = dirs::config_dir() {
+        dirs.push(config.join("open-speech-studio").join("models"));
+    }
+
+    dirs.extend(get_model_search_dirs());
+
+    for dir in &dirs {
+        let path = dir.join(filename);
+        if path.exists() && path.metadata().map(|m| m.len() > 1024).unwrap_or(false) {
+            return Some(path);
+        }
+    }
+    None
 }
 
 pub fn load_settings() -> Result<Settings, Box<dyn std::error::Error>> {
@@ -118,12 +133,21 @@ pub fn load_settings() -> Result<Settings, Box<dyn std::error::Error>> {
     let content = std::fs::read_to_string(path)?;
     let mut settings: Settings = serde_json::from_str(&content)?;
 
-    // If saved model_path doesn't exist, try to find a bundled model
-    if settings.model_path.is_empty() || !PathBuf::from(&settings.model_path).exists() {
+    // If saved model_path doesn't exist or is a Git LFS pointer (<1 KB), try to find a bundled model
+    let model_ok = if settings.model_path.is_empty() {
+        false
+    } else {
+        let p = PathBuf::from(&settings.model_path);
+        p.exists() && p.metadata().map(|m| m.len() > 1024).unwrap_or(false)
+    };
+    if !model_ok {
         let (name, path) = find_bundled_model();
         if !path.is_empty() {
             settings.model_name = name;
             settings.model_path = path;
+        } else {
+            // No valid model found — clear the stale path so frontend doesn't try to load it
+            settings.model_path = String::new();
         }
     }
 

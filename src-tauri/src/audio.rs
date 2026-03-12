@@ -6,6 +6,8 @@ use std::sync::{Arc, Mutex};
 /// Instead we keep it alive via a separate mechanism.
 pub struct AudioRecorder {
     buffer: Arc<Mutex<Vec<f32>>>,
+    /// Current RMS audio level (0.0–1.0), updated by the recording callback.
+    pub level: Arc<Mutex<f32>>,
     sample_rate: u32,
 }
 
@@ -18,6 +20,7 @@ impl AudioRecorder {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
             buffer: Arc::new(Mutex::new(Vec::new())),
+            level: Arc::new(Mutex::new(0.0)),
             sample_rate: 16000,
         })
     }
@@ -46,11 +49,21 @@ impl AudioRecorder {
         };
 
         let buffer = self.buffer.clone();
+        let level = self.level.clone();
         let target_rate = self.sample_rate;
 
         let stream = device.build_input_stream(
             &config,
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                // Compute RMS level from raw input data
+                if data.len() > 0 {
+                    let sum_sq: f32 = data.iter().map(|s| s * s).sum();
+                    let rms = (sum_sq / data.len() as f32).sqrt();
+                    if let Ok(mut lvl) = level.lock() {
+                        *lvl = rms.min(1.0);
+                    }
+                }
+
                 if let Ok(mut buf) = buffer.lock() {
                     // Mix to mono if needed, then resample to 16kHz
                     let mono: Vec<f32> = if device_channels > 1 {

@@ -1,6 +1,6 @@
 # Open Speech Studio
 
-**Open source spraakherkenning en dictatie voor iedereen** - een lokaal AI-alternatief voor Wispr Flow.
+**Open source spraakherkenning voor iedereen** - een lokaal AI-alternatief voor Wispr Flow.
 
 Onderdeel van de [OpenAEC Foundation](https://github.com/OpenAEC-Foundation).
 
@@ -10,7 +10,7 @@ Onderdeel van de [OpenAEC Foundation](https://github.com/OpenAEC-Foundation).
 - **GPU & CPU** - Werkt op zowel GPU (CUDA/Vulkan) als CPU. Kies het model dat past bij uw hardware.
 - **Meertalig** - Ondersteunt 99+ talen waaronder Nederlands en Engels met automatische taaldetectie.
 - **Woordenboek** - Voeg eigen woorden, namen en vakjargon toe voor betere herkenning.
-- **Universele dictatie** - Dicteert in elke applicatie via een globale sneltoets.
+- **Universele spraak** - Werkt in elke applicatie via een globale sneltoets.
 - **Spraakmodellen inbegrepen** - Tiny en base model worden automatisch meegeleverd en geladen.
 - **Open source** - Apache 2.0 licentie. Vrij te gebruiken, aan te passen en te verspreiden.
 
@@ -50,7 +50,7 @@ npm run setup:cuda         # Met CUDA
 Na installatie werkt de app direct - het spraakmodel wordt automatisch geladen bij het opstarten.
 
 1. Start **Open Speech Studio**
-2. Druk op **Ctrl+Shift+Space** om te beginnen met dicteren
+2. Druk op **Ctrl+Shift+Space** om te beginnen met spreken
 3. Spreek uw tekst in
 4. Druk nogmaals om te stoppen - tekst wordt automatisch ingevoegd
 

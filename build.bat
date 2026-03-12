@@ -25,7 +25,7 @@ for /f "tokens=1* delims=;" %%a in ("!OLDPATH!") do (
 set "PATH=!NEWPATH!"
 set "LIBCLANG_PATH=C:\Program Files\LLVM\bin"
 
-echo === Open Dictate Studio Build ===
+echo === Open Speech Studio Build ===
 echo.
 where link.exe 2>nul || echo No link.exe found (OK if no MSVC)
 echo.

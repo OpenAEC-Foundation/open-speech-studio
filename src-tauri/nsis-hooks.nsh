@@ -1,10 +1,17 @@
 !macro NSIS_HOOK_POSTINSTALL
-  ; Copy WebView2Loader.dll next to the exe so the app can find it
+  ; Copy runtime DLLs next to the exe so the app can find them
   SetOutPath $INSTDIR
-  File /a "C:\Users\rickd\Documents\GitHub\open-speech-studio\bin\WebView2Loader.dll"
-  File /a "C:\Users\rickd\Documents\GitHub\open-speech-studio\bin\vcruntime140.dll"
-  File /a "C:\Users\rickd\Documents\GitHub\open-speech-studio\bin\vcruntime140_1.dll"
-  File /a "C:\Users\rickd\Documents\GitHub\open-speech-studio\bin\msvcp140.dll"
+  ; These DLLs are bundled via tauri.conf.json resources ("../bin/*")
+  ; and placed in the _up_/bin/ resource directory by Tauri.
+  ; Copy them to $INSTDIR so Windows can locate them at runtime.
+  IfFileExists "$INSTDIR\_up_\bin\WebView2Loader.dll" 0 +2
+    CopyFiles /SILENT "$INSTDIR\_up_\bin\WebView2Loader.dll" "$INSTDIR\WebView2Loader.dll"
+  IfFileExists "$INSTDIR\_up_\bin\vcruntime140.dll" 0 +2
+    CopyFiles /SILENT "$INSTDIR\_up_\bin\vcruntime140.dll" "$INSTDIR\vcruntime140.dll"
+  IfFileExists "$INSTDIR\_up_\bin\vcruntime140_1.dll" 0 +2
+    CopyFiles /SILENT "$INSTDIR\_up_\bin\vcruntime140_1.dll" "$INSTDIR\vcruntime140_1.dll"
+  IfFileExists "$INSTDIR\_up_\bin\msvcp140.dll" 0 +2
+    CopyFiles /SILENT "$INSTDIR\_up_\bin\msvcp140.dll" "$INSTDIR\msvcp140.dll"
 !macroend
 
 !macro NSIS_HOOK_POSTUNINSTALL

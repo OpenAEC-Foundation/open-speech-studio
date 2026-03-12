@@ -1,5 +1,6 @@
 export interface Settings {
   language: string;
+  ui_language: string;
   model_name: string;
   model_path: string;
   use_gpu: boolean;
@@ -33,13 +34,14 @@ const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
 let invoke: (<T>(cmd: string, args?: Record<string, unknown>) => Promise<T>) | null = null;
 
-if (isTauri) {
-  import("@tauri-apps/api/core").then((mod) => {
-    invoke = mod.invoke;
-  });
-}
+const invokeReady: Promise<void> = isTauri
+  ? import("@tauri-apps/api/core").then((mod) => {
+      invoke = mod.invoke;
+    })
+  : Promise.resolve();
 
-function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  await invokeReady;
   if (invoke) return invoke<T>(cmd, args);
   return Promise.reject(new Error(`Tauri not available — "${cmd}" cannot be called`));
 }
@@ -49,6 +51,7 @@ const tauriApi = {
   saveSettings: (settings: Settings) => tauriInvoke<void>("save_settings", { newSettings: settings }),
   getAvailableModels: () => tauriInvoke<ModelInfo[]>("get_available_models"),
   downloadModel: (modelName: string) => tauriInvoke<string>("download_model", { modelName }),
+  deleteModel: (modelName: string) => tauriInvoke<void>("delete_model", { modelName }),
   loadModel: (modelPath: string) => tauriInvoke<void>("load_model", { modelPath }),
   startRecording: () => tauriInvoke<void>("start_recording"),
   stopRecording: () => tauriInvoke<TranscriptionResult>("stop_recording"),
@@ -59,6 +62,7 @@ const tauriApi = {
     tauriInvoke<void>("add_dictionary_word", { word, replacement }),
   removeDictionaryWord: (word: string) => tauriInvoke<void>("remove_dictionary_word", { word }),
   getAudioDevices: () => tauriInvoke<string[]>("get_audio_devices"),
+  getAudioLevel: () => tauriInvoke<number>("get_audio_level"),
   isModelLoaded: () => tauriInvoke<boolean>("is_model_loaded"),
   typeText: (text: string) => tauriInvoke<void>("type_text", { text }),
 };
@@ -98,10 +102,11 @@ function loadLocalSettings(): Settings {
   } catch (_) {}
   return {
     language: "nl",
+    ui_language: "en",
     model_name: "base",
     model_path: "",
     use_gpu: false,
-    hotkey: "CmdOrCtrl+Super",
+    hotkey: "Alt+Space",
     auto_paste: true,
     audio_device: "default",
     theme: "dark",
@@ -465,6 +470,8 @@ const browserApi = {
     saveLocalDictionary(currentDict);
     return Promise.resolve();
   },
+
+  getAudioLevel: () => Promise.resolve(0),
 
   getAudioDevices: async () => {
     try {

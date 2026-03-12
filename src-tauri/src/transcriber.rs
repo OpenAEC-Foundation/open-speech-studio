@@ -15,6 +15,16 @@ impl Transcriber {
             return Err(format!("Model not found: {}", model_path).into());
         }
 
+        // Reject files smaller than 1 KB (likely Git LFS pointer files, ~134 bytes)
+        let file_size = model.metadata()?.len();
+        if file_size < 1024 {
+            return Err(format!(
+                "Model file is too small ({} bytes). Please download the model first.",
+                file_size
+            )
+            .into());
+        }
+
         let whisper_bin = find_whisper_binary()?;
         log::info!("Using whisper binary: {}", whisper_bin.display());
 
@@ -47,6 +57,14 @@ impl Transcriber {
         // Set language
         if !language.is_empty() && language != "auto" {
             cmd.arg("-l").arg(language);
+        }
+
+        // Hide the console window on Windows
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
         }
 
         log::info!("Running whisper: {:?}", cmd);
@@ -119,6 +137,8 @@ fn find_whisper_binary() -> Result<PathBuf, Box<dyn std::error::Error>> {
         if let Some(dir) = exe.parent() {
             search_dirs.push(dir.to_path_buf());
             search_dirs.push(dir.join("bin"));
+            // Tauri bundles resources into _up_/ directory
+            search_dirs.push(dir.join("_up_/bin"));
         }
     }
 
