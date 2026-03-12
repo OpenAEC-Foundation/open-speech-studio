@@ -7,19 +7,21 @@
     "setup": "node setup.js",
     "setup:dev": "node setup.js --dev",
     "setup:cuda": "node setup.js --cuda",
+    "server": "node server.cjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri"
   },
   "dependencies": {
-    "solid-js": "^1.9.3",
     "@tauri-apps/api": "^2.2.0",
-    "@tauri-apps/plugin-global-shortcut": "^2.2.0",
     "@tauri-apps/plugin-clipboard-manager": "^2.2.0",
+    "@tauri-apps/plugin-global-shortcut": "^2.2.0",
     "@tauri-apps/plugin-notification": "^2.2.0",
+    "@tauri-apps/plugin-shell": "^2.2.0",
     "@tauri-apps/plugin-store": "^2.2.0",
-    "@tauri-apps/plugin-shell": "^2.2.0"
+    "jszip": "^3.10.1",
+    "solid-js": "^1.9.3"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.2.0",

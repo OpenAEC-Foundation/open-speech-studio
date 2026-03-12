@@ -1,0 +1,13 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for Open Dictate Studio",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "global-shortcut:default",
+    "clipboard-manager:default",
+    "notification:default",
+    "store:default",
+    "shell:default"
+  ]
+}

@@ -6,21 +6,73 @@ interface SettingsPanelProps {
   onSave: (settings: Settings) => void;
 }
 
+// Parse a hotkey string into up to 3 parts
+function parseHotkey(hotkey: string): { key1: string; key2: string; key3: string } {
+  const parts = hotkey.split("+");
+  return {
+    key1: parts[0] || "CmdOrCtrl",
+    key2: parts.length > 1 ? parts[1] : "none",
+    key3: parts.length > 2 ? parts[2] : "none",
+  };
+}
+
+function buildHotkey(key1: string, key2: string, key3: string): string {
+  const parts = [key1, key2, key3].filter((k) => k !== "none");
+  return parts.join("+");
+}
+
+// All available keys for the builder
+const MODIFIER_KEYS = [
+  { value: "none", label: "Geen" },
+  { value: "CmdOrCtrl", label: "Ctrl / Cmd" },
+  { value: "Super", label: "Win / Super" },
+  { value: "Alt", label: "Alt" },
+  { value: "Shift", label: "Shift" },
+];
+
+const ALL_KEYS = [
+  { group: "Modifiers", keys: [
+    { value: "CmdOrCtrl", label: "Ctrl / Cmd" },
+    { value: "Super", label: "Win / Super" },
+    { value: "Alt", label: "Alt" },
+    { value: "Shift", label: "Shift" },
+  ]},
+  { group: "Speciale toetsen", keys: [
+    { value: "Space", label: "Space" },
+    { value: "Enter", label: "Enter" },
+    { value: "Tab", label: "Tab" },
+    { value: "Escape", label: "Escape" },
+  ]},
+  { group: "Letters", keys: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => ({ value: l, label: l })) },
+  { group: "Cijfers", keys: "0123456789".split("").map((n) => ({ value: n, label: n })) },
+  { group: "Functietoetsen", keys: Array.from({ length: 12 }, (_, i) => ({ value: `F${i + 1}`, label: `F${i + 1}` })) },
+];
+
 export default function SettingsPanel(props: SettingsPanelProps) {
   const [language, setLanguage] = createSignal("auto");
   const [useGpu, setUseGpu] = createSignal(false);
-  const [hotkey, setHotkey] = createSignal("CmdOrCtrl+Shift+Space");
   const [autoPaste, setAutoPaste] = createSignal(true);
   const [audioDevice, setAudioDevice] = createSignal("default");
   const [devices, setDevices] = createSignal<string[]>([]);
+
+  // Hotkey builder — supports 2 or 3 key combos
+  const [key1, setKey1] = createSignal("CmdOrCtrl");
+  const [key2, setKey2] = createSignal("Super");
+  const [key3, setKey3] = createSignal("none");
+
+  const hotkey = () => buildHotkey(key1(), key2(), key3());
 
   onMount(async () => {
     if (props.settings) {
       setLanguage(props.settings.language);
       setUseGpu(props.settings.use_gpu);
-      setHotkey(props.settings.hotkey);
       setAutoPaste(props.settings.auto_paste);
       setAudioDevice(props.settings.audio_device);
+
+      const parsed = parseHotkey(props.settings.hotkey || "CmdOrCtrl+Super");
+      setKey1(parsed.key1);
+      setKey2(parsed.key2);
+      setKey3(parsed.key3);
     }
 
     try {
@@ -91,13 +143,43 @@ export default function SettingsPanel(props: SettingsPanelProps) {
         <h3>Bediening</h3>
 
         <div class="setting-row">
-          <label>Sneltoets</label>
-          <input
-            type="text"
-            value={hotkey()}
-            onInput={(e) => setHotkey(e.target.value)}
-            placeholder="bijv. CmdOrCtrl+Shift+Space"
-          />
+          <label>Sneltoets (2 of 3 toetsen)</label>
+          <div class="hotkey-builder">
+            {/* Toets 1 — altijd verplicht */}
+            <select value={key1()} onChange={(e) => setKey1(e.target.value)}>
+              {ALL_KEYS.map((group) => (
+                <optgroup label={group.group}>
+                  {group.keys.map((k) => (
+                    <option value={k.value}>{k.label}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <span class="hotkey-plus">+</span>
+            {/* Toets 2 — verplicht */}
+            <select value={key2()} onChange={(e) => setKey2(e.target.value)}>
+              {ALL_KEYS.map((group) => (
+                <optgroup label={group.group}>
+                  {group.keys.map((k) => (
+                    <option value={k.value}>{k.label}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <span class="hotkey-plus">+</span>
+            {/* Toets 3 — optioneel */}
+            <select value={key3()} onChange={(e) => setKey3(e.target.value)}>
+              <option value="none">Geen (2 toetsen)</option>
+              {ALL_KEYS.map((group) => (
+                <optgroup label={group.group}>
+                  {group.keys.map((k) => (
+                    <option value={k.value}>{k.label}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <span class="setting-hint">Huidige sneltoets: <kbd class="hotkey-preview">{hotkey()}</kbd></span>
         </div>
 
         <div class="setting-row">

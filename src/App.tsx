@@ -1,13 +1,16 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import { api, type Settings, type TranscriptionResult } from "./lib/api";
-import Ribbon from "./components/Ribbon";
+import Sidebar from "./components/Sidebar";
 import TranscriptionView from "./components/TranscriptionView";
 import SettingsPanel from "./components/SettingsPanel";
 import DictionaryEditor from "./components/DictionaryEditor";
 import ModelManager from "./components/ModelManager";
-import StatusBar from "./components/StatusBar";
+import MicTest from "./components/MicTest";
+import MeetingRecorder from "./components/MeetingRecorder";
 
-type View = "home" | "settings" | "dictionary" | "models";
+const isTauri = !!(window as any).__TAURI_INTERNALS__;
+
+type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting";
 
 export default function App() {
   const [view, setView] = createSignal<View>("home");
@@ -15,93 +18,122 @@ export default function App() {
   const [isRecording, setIsRecording] = createSignal(false);
   const [isModelLoaded, setIsModelLoaded] = createSignal(false);
   const [transcriptions, setTranscriptions] = createSignal<TranscriptionResult[]>([]);
-  const [statusMessage, setStatusMessage] = createSignal("Welkom bij Open Speech Studio");
+
+  const registerHotkey = async (hotkey: string) => {
+    if (!isTauri) return;
+    try {
+      const { register, unregisterAll } = await import("@tauri-apps/plugin-global-shortcut");
+      await unregisterAll();
+      await register(hotkey, (event) => {
+        if (event.state === "Pressed") {
+          handleRecord();
+        }
+      });
+      console.log(`Global hotkey registered: ${hotkey}`);
+    } catch (e) {
+      console.error("Failed to register hotkey:", e);
+    }
+  };
+
+  onCleanup(async () => {
+    if (!isTauri) return;
+    try {
+      const { unregisterAll } = await import("@tauri-apps/plugin-global-shortcut");
+      await unregisterAll();
+    } catch (_) {}
+  });
+
+  const [startupMsg, setStartupMsg] = createSignal<string | null>(null);
 
   onMount(async () => {
     try {
       const s = await api.getSettings();
       setSettings(s);
+      await registerHotkey(s.hotkey || "CmdOrCtrl+Super");
 
-      // Check if the backend already auto-loaded a bundled model
       const loaded = await api.isModelLoaded();
       if (loaded) {
         setIsModelLoaded(true);
-        setStatusMessage(`Model "${s.model_name}" geladen - Klaar voor dictatie (Ctrl+Shift+Space)`);
+        setStartupMsg(`Open Dictate Studio is actief — druk ${s.hotkey || "Ctrl+Win"} om te dicteren`);
       } else if (s.model_path) {
-        // Model path exists but wasn't auto-loaded, try loading
-        setStatusMessage("Model laden...");
         try {
           await api.loadModel(s.model_path);
           setIsModelLoaded(true);
-          setStatusMessage(`Model "${s.model_name}" geladen - Klaar voor dictatie`);
+          setStartupMsg(`Model geladen — druk ${s.hotkey || "Ctrl+Win"} om te dicteren`);
         } catch {
-          setStatusMessage("Model laden mislukt - Ga naar Modellen om een model te selecteren");
+          setStartupMsg("Ga naar Modellen om een model te laden");
         }
       } else {
-        setStatusMessage("Geen model gevonden - Ga naar Modellen om een model te downloaden");
+        setStartupMsg("Ga naar Modellen om een spraakmodel te downloaden");
       }
+
+      // Auto-hide startup message after 5 seconds
+      setTimeout(() => setStartupMsg(null), 5000);
     } catch (e) {
       console.error("Init error:", e);
-      setStatusMessage("Configuratie laden mislukt");
     }
   });
 
   const handleRecord = async () => {
-    if (!isModelLoaded()) {
-      setStatusMessage("Laad eerst een model via het Modellen tabblad");
-      return;
-    }
+    if (!isModelLoaded()) return;
 
     if (isRecording()) {
-      // Stop recording and transcribe
-      setStatusMessage("Transcriberen...");
       try {
         const result = await api.stopRecording();
         setIsRecording(false);
         setTranscriptions((prev) => [result, ...prev]);
-        setStatusMessage(
-          `Getranscribeerd in ${result.duration_ms}ms - ${result.text.length} tekens`
-        );
-
-        // Auto-paste if enabled
         const s = settings();
         if (s?.auto_paste && result.text) {
           await api.typeText(result.text);
         }
       } catch (e) {
         setIsRecording(false);
-        setStatusMessage(`Fout: ${e}`);
+        console.error("Transcription error:", e);
       }
     } else {
-      // Start recording
       try {
         await api.startRecording();
         setIsRecording(true);
-        setStatusMessage("Opnemen... Druk nogmaals om te stoppen");
       } catch (e) {
-        setStatusMessage(`Fout bij opnemen: ${e}`);
+        console.error("Recording error:", e);
       }
     }
   };
 
   return (
     <div class="app">
-      <Ribbon
+      <Sidebar
         currentView={view()}
         onViewChange={setView}
         isRecording={isRecording()}
         isModelLoaded={isModelLoaded()}
+        modelName={settings()?.model_name || ""}
         onRecord={handleRecord}
       />
 
-      <main class="main-content">
+      <div class="app-body">
+        {/* Startup notification bar */}
+        <Show when={startupMsg()}>
+          <div class="startup-bar">
+            <span>{startupMsg()}</span>
+            <button onClick={() => setStartupMsg(null)}>✕</button>
+          </div>
+        </Show>
+
+        <main class="main-content">
         <Show when={view() === "home"}>
           <TranscriptionView
             transcriptions={transcriptions()}
             isRecording={isRecording()}
             isModelLoaded={isModelLoaded()}
             onRecord={handleRecord}
+            hotkey={settings()?.hotkey || "Ctrl+Win"}
+            modelName={settings()?.model_name || ""}
           />
+        </Show>
+
+        <Show when={view() === "mic-test"}>
+          <MicTest />
         </Show>
 
         <Show when={view() === "settings"}>
@@ -110,7 +142,7 @@ export default function App() {
             onSave={async (s) => {
               await api.saveSettings(s);
               setSettings(s);
-              setStatusMessage("Instellingen opgeslagen");
+              await registerHotkey(s.hotkey || "CmdOrCtrl+Super");
             }}
           />
         </Show>
@@ -118,6 +150,10 @@ export default function App() {
         <Show when={view() === "dictionary"}>
           <DictionaryEditor />
         </Show>
+
+        <div style={{ display: view() === "meeting" ? "block" : "none" }}>
+          <MeetingRecorder />
+        </div>
 
         <Show when={view() === "models"}>
           <ModelManager
@@ -129,13 +165,20 @@ export default function App() {
                 setSettings(updated);
                 api.saveSettings(updated);
               }
-              setStatusMessage(`Model "${name}" geladen - Klaar voor dictatie`);
+            }}
+            language={settings()?.language || "auto"}
+            onLanguageChange={(lang) => {
+              const s = settings();
+              if (s) {
+                const updated = { ...s, language: lang };
+                setSettings(updated);
+                api.saveSettings(updated);
+              }
             }}
           />
         </Show>
       </main>
-
-      <StatusBar message={statusMessage()} isRecording={isRecording()} />
+      </div>
     </div>
   );
 }

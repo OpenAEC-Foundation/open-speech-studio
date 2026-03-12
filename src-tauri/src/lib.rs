@@ -5,7 +5,11 @@ mod transcriber;
 
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use tauri::{Emitter, State};
+use tauri::{
+    Emitter, Manager, State,
+    menu::{Menu, MenuItem},
+    tray::TrayIconBuilder,
+};
 
 pub struct AppState {
     transcriber: Arc<Mutex<Option<transcriber::Transcriber>>>,
@@ -252,6 +256,43 @@ async fn type_text(text: String) -> Result<(), String> {
 pub fn run() {
     env_logger::init();
 
+    // Add the bundled bin/ resource directory to the DLL search path
+    // so Windows can find WebView2Loader.dll, vcruntime140.dll, etc.
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let bin_dir = exe_dir.join("_up_").join("bin");
+            if bin_dir.exists() {
+                if let Ok(current_path) = std::env::var("PATH") {
+                    std::env::set_var(
+                        "PATH",
+                        format!("{};{}", bin_dir.to_string_lossy(), current_path),
+                    );
+                }
+                // Also call SetDllDirectoryW to ensure DLL loader finds them
+                #[cfg(target_os = "windows")]
+                {
+                    use std::os::windows::ffi::OsStrExt;
+                    let wide: Vec<u16> = bin_dir
+                        .as_os_str()
+                        .encode_wide()
+                        .chain(std::iter::once(0))
+                        .collect();
+                    unsafe {
+                        #[link(name = "kernel32")]
+                        extern "system" {
+                            fn AddDllDirectory(path: *const u16) -> *mut std::ffi::c_void;
+                            fn SetDefaultDllDirectories(flags: u32) -> i32;
+                        }
+                        // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS = 0x00001000
+                        SetDefaultDllDirectories(0x00001000);
+                        AddDllDirectory(wide.as_ptr());
+                    }
+                }
+                log::info!("Added DLL search path: {}", bin_dir.display());
+            }
+        }
+    }
+
     let settings = settings::load_settings().unwrap_or_default();
     let dictionary = dictionary::load_dictionary().unwrap_or_default();
 
@@ -305,6 +346,53 @@ pub fn run() {
             is_model_loaded,
             type_text,
         ])
+        .setup(|app| {
+            // Build system tray menu
+            let show_i = MenuItem::with_id(app, "show", "Tonen", true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "Afsluiten", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+
+            // Build tray icon
+            TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("Open Dictate Studio — Klaar voor dictatie")
+                .menu(&menu)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
+                        if let Some(window) = tray.app_handle().get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
+            // Emit startup-ready event so frontend can show notification
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.emit("app-ready", "Open Dictate Studio is actief");
+            }
+
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Minimize to tray on close instead of quitting
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
+                api.prevent_close();
+            }
+        })
         .run(tauri::generate_context!())
-        .expect("error while running Open Speech Studio");
+        .expect("error while running Open Dictate Studio");
 }

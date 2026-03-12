@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Open Speech Studio - Unified Installer
+ * Open Dictate Studio - Unified Installer
  * OpenAEC Foundation
  *
  * One script to install everything on Windows and Linux.
@@ -285,6 +285,12 @@ async function downloadModels() {
       size: "142 MB",
       url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
     },
+    {
+      name: "small",
+      file: "ggml-small.bin",
+      size: "466 MB",
+      url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
+    },
   ];
 
   for (const model of models) {
@@ -310,13 +316,14 @@ async function downloadModels() {
 async function updateSettings() {
   log("Standaard instellingen configureren...");
 
+  const smallPath = path.join(MODELS_DIR, "ggml-small.bin");
   const basePath = path.join(MODELS_DIR, "ggml-base.bin");
   const tinyPath = path.join(MODELS_DIR, "ggml-tiny.bin");
-  const defaultModel = fs.existsSync(basePath) ? basePath : tinyPath;
-  const defaultName = fs.existsSync(basePath) ? "base" : "tiny";
+  const defaultModel = fs.existsSync(smallPath) ? smallPath : fs.existsSync(basePath) ? basePath : tinyPath;
+  const defaultName = fs.existsSync(smallPath) ? "small" : fs.existsSync(basePath) ? "base" : "tiny";
 
   const settingsContent = {
-    language: "auto",
+    language: "nl",
     model_name: defaultName,
     model_path: defaultModel.replace(/\\/g, "/"),
     use_gpu: false,

@@ -19,11 +19,11 @@ impl Default for Settings {
         let (model_name, model_path) = find_bundled_model();
 
         Self {
-            language: "auto".to_string(),
+            language: "nl".to_string(),
             model_name,
             model_path,
             use_gpu: false,
-            hotkey: "CmdOrCtrl+Shift+Space".to_string(),
+            hotkey: "CmdOrCtrl+Super".to_string(),
             auto_paste: true,
             audio_device: "default".to_string(),
             theme: "light".to_string(),
@@ -35,8 +35,8 @@ impl Default for Settings {
 fn find_bundled_model() -> (String, String) {
     let search_dirs = get_model_search_dirs();
 
-    // Prefer base, fallback to tiny
-    let preferences = ["base", "tiny", "small", "medium", "large-v3-turbo", "large-v3"];
+    // Prefer small, fallback to base, then tiny
+    let preferences = ["small", "base", "tiny", "medium", "large-v3-turbo", "large-v3"];
 
     for model_name in preferences {
         let filename = format!("ggml-{}.bin", model_name);
@@ -62,6 +62,8 @@ fn get_model_search_dirs() -> Vec<PathBuf> {
     if let Ok(exe) = std::env::current_exe() {
         if let Some(exe_dir) = exe.parent() {
             dirs.push(exe_dir.join("models"));
+            // Tauri bundles resources into _up_/ directory
+            dirs.push(exe_dir.join("_up_/models"));
             // On some platforms, resources are in a sibling directory
             dirs.push(exe_dir.join("../models"));
             dirs.push(exe_dir.join("../Resources/models"));
