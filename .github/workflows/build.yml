@@ -181,6 +181,16 @@ jobs:
         with:
           path: artifacts
 
+      - name: Collect installer files
+        run: |
+          mkdir -p release
+          find artifacts -name '*-setup.exe' -exec cp {} release/ \;
+          find artifacts -name '*.msi' -exec cp {} release/ \;
+          find artifacts -name '*.dmg' -exec cp {} release/ \;
+          find artifacts -name '*.AppImage' -exec cp {} release/ \;
+          find artifacts -name '*.deb' -exec cp {} release/ \;
+          ls -la release/
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
@@ -194,10 +204,4 @@ jobs:
             - **Windows:** `.exe` (NSIS installer) / `.msi`
             - **macOS:** `.dmg` (Apple Silicon & Intel)
             - **Linux:** `.AppImage` / `.deb`
-          files: |
-            artifacts/**/*.exe
-            artifacts/**/*.msi
-            artifacts/**/*.dmg
-            artifacts/**/*.app
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
+          files: release/*

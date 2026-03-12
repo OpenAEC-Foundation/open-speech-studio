@@ -15,8 +15,9 @@ export default function TitleBar() {
 
   return (
     <div class="titlebar" data-tauri-drag-region>
+      <span class="titlebar-brand" data-tauri-drag-region>Open AEC Foundation</span>
       <div class="titlebar-title" data-tauri-drag-region>
-        Open Speech Studio
+        Open Speech Studio <span class="titlebar-version">v0.2.0</span>
       </div>
       <div class="titlebar-buttons">
         <button class="titlebar-btn" onClick={minimize} aria-label="Minimize">

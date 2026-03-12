@@ -232,7 +232,7 @@ const en: Record<string, string> = {
   "micTest.resultDuration": "Duration:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.1.0-alpha | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.2.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Auto-detect",
