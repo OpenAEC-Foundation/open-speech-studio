@@ -85,6 +85,7 @@ jobs:
             libssl-dev \
             libgtk-3-dev \
             libasound2-dev \
+            libxdo-dev \
             patchelf
 
       - name: Install npm dependencies
