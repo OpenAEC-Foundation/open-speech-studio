@@ -109,7 +109,7 @@ jobs:
 
       # ── Sign Windows binaries with Azure Trusted Signing ────
       - name: Sign Windows binaries
-        if: runner.os == 'Windows' && secrets.AZURE_CLIENT_SECRET != ''
+        if: runner.os == 'Windows'
         uses: azure/trusted-signing-action@v0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -125,7 +125,7 @@ jobs:
           timestamp-digest: SHA256
 
       - name: Sign Windows installers
-        if: runner.os == 'Windows' && secrets.AZURE_CLIENT_SECRET != ''
+        if: runner.os == 'Windows'
         uses: azure/trusted-signing-action@v0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -141,7 +141,7 @@ jobs:
           timestamp-digest: SHA256
 
       - name: Sign Windows MSI
-        if: runner.os == 'Windows' && secrets.AZURE_CLIENT_SECRET != ''
+        if: runner.os == 'Windows'
         uses: azure/trusted-signing-action@v0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
