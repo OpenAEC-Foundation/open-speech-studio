@@ -16,7 +16,57 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # ── 1. Test ────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libgtk-3-dev \
+            libasound2-dev \
+            patchelf
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Create bin directory
+        run: mkdir -p bin
+
+      - name: Check Rust
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: Build frontend
+        run: npm run build
+
+  # ── 2. Build installers ───────────────────────────────────
   build:
+    needs: test
     strategy:
       fail-fast: false
       matrix:
@@ -34,7 +84,7 @@ jobs:
             rust-target: x86_64-apple-darwin
             label: macOS (Intel)
 
-    name: ${{ matrix.label }}
+    name: Build – ${{ matrix.label }}
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -59,7 +109,6 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
-      # ── Linux dependencies ──────────────────────────────────
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -73,20 +122,16 @@ jobs:
             libasound2-dev \
             patchelf
 
-      # ── Install frontend dependencies ───────────────────────
       - name: Install npm dependencies
         run: npm ci
 
-      # ── Ensure bin/ directory exists (DLLs only needed on Windows) ──
       - name: Create bin directory
         run: mkdir -p bin
 
-      # ── Build Tauri app ─────────────────────────────────────
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS code signing (optional — set secrets in repo settings)
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -94,20 +139,9 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-          releaseName: ${{ github.ref_type == 'tag' && format('Open Speech Studio {0}', github.ref_name) || '' }}
-          releaseBody: |
-            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
-
-            **Downloads:**
-            - **Windows:** `.exe` (NSIS installer — signed)
-            - **macOS:** `.dmg` (Apple Silicon & Intel)
-            - **Linux:** `.AppImage` / `.deb`
-          releaseDraft: true
-          prerelease: false
           args: --target ${{ matrix.rust-target }}
 
-      # ── Sign Windows binaries with Azure Trusted Signing ────
+      # ── Sign Windows binaries ──────────────────────────────
       - name: Sign Windows binaries
         if: runner.os == 'Windows'
         uses: azure/trusted-signing-action@v0
@@ -156,9 +190,8 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
-      # ── Upload artifacts (available on PRs and non-tag pushes) ──
+      # ── Upload artifacts ───────────────────────────────────
       - name: Upload build artifacts
-        if: github.ref_type != 'tag'
         uses: actions/upload-artifact@v4
         with:
           name: open-speech-studio-${{ matrix.label }}
@@ -171,3 +204,38 @@ jobs:
             src-tauri/target/${{ matrix.rust-target }}/release/bundle/deb/*.deb
           if-no-files-found: ignore
           retention-days: 14
+
+  # ── 3. Publish release ────────────────────────────────────
+  publish:
+    name: Publish Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          body: |
+            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+
+            **Downloads:**
+            - **Windows:** `.exe` (NSIS installer — signed) / `.msi`
+            - **macOS:** `.dmg` (Apple Silicon & Intel)
+            - **Linux:** `.AppImage` / `.deb`
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.dmg
+            artifacts/**/*.app
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
