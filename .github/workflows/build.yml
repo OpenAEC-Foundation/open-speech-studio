@@ -170,7 +170,7 @@ jobs:
   publish:
     name: Publish Release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -181,16 +181,17 @@ jobs:
         with:
           path: artifacts
 
-      - name: Create GitHub Release
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('dev-{0}', github.sha) }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && format('Open Speech Studio {0}', github.ref_name) || format('Dev Build {0}', github.sha) }}
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          draft: false
           generate_release_notes: true
           body: |
-            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
-
             **Downloads:**
-            - **Windows:** `.exe` (NSIS installer — signed) / `.msi`
+            - **Windows:** `.exe` (NSIS installer) / `.msi`
             - **macOS:** `.dmg` (Apple Silicon & Intel)
             - **Linux:** `.AppImage` / `.deb`
           files: |
