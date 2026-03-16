@@ -1,7 +1,7 @@
 import { Show } from "solid-js";
 import { useI18n } from "../lib/i18n";
 
-type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting";
+type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "about";
 
 interface SidebarProps {
   currentView: View;
@@ -16,20 +16,6 @@ export default function Sidebar(props: SidebarProps) {
   const { t } = useI18n();
   return (
     <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="sidebar-brand-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-            <line x1="12" y1="19" x2="12" y2="23" />
-          </svg>
-        </div>
-        <div>
-          <div class="sidebar-brand-name">Open Speech</div>
-          <div class="sidebar-brand-sub">Studio</div>
-        </div>
-      </div>
-
       <nav class="sidebar-nav">
         <button
           class={`sidebar-item ${props.currentView === "home" ? "active" : ""}`}
@@ -99,38 +85,20 @@ export default function Sidebar(props: SidebarProps) {
           </svg>
           <span>{t("sidebar.settings")}</span>
         </button>
-      </nav>
 
-      <div class="sidebar-footer">
-        <div class="sidebar-status">
-          <div
-            class={`sidebar-dot ${
-              props.isRecording ? "recording" : props.isModelLoaded ? "ready" : "inactive"
-            }`}
-          />
-          <span>
-            {props.isRecording
-              ? t("sidebar.statusRecording")
-              : props.isModelLoaded
-              ? t("sidebar.statusReady")
-              : t("sidebar.statusNoModel")}
-          </span>
-        </div>
-        <Show when={props.isModelLoaded && props.modelName}>
-          <div class="sidebar-model">{props.modelName}</div>
-        </Show>
-        <a
-          class="sidebar-feedback"
-          href="https://github.com/OpenAEC-Foundation/open-speech-studio/issues"
-          target="_blank"
-          rel="noopener"
+        <button
+          class={`sidebar-item ${props.currentView === "about" ? "active" : ""}`}
+          onClick={() => props.onViewChange("about")}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
-          <span>{t("sidebar.feedback")}</span>
-        </a>
-      </div>
+          <span>{t("sidebar.about")}</span>
+        </button>
+      </nav>
+
     </aside>
   );
 }

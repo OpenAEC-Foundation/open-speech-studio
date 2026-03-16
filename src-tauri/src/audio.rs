@@ -2,17 +2,18 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};
 
 /// Audio buffer that is shared between threads.
-/// The cpal::Stream is NOT stored in the struct (it's not Send+Sync).
-/// Instead we keep it alive via a separate mechanism.
+/// The cpal::Stream is stored so it is dropped (and the mic released) on stop.
 pub struct AudioRecorder {
     buffer: Arc<Mutex<Vec<f32>>>,
     /// Current RMS audio level (0.0–1.0), updated by the recording callback.
     pub level: Arc<Mutex<f32>>,
     sample_rate: u32,
+    stream: Option<cpal::Stream>,
 }
 
-// Safety: AudioRecorder only contains Arc<Mutex<Vec<f32>>> and u32,
-// both of which are Send+Sync. We don't store the cpal::Stream.
+// Safety: the other fields are Send+Sync. cpal::Stream is !Send on some
+// platforms, but we never move it across threads — it stays in AudioRecorder
+// which is behind Arc<Mutex<>> and only accessed from the main thread.
 unsafe impl Send for AudioRecorder {}
 unsafe impl Sync for AudioRecorder {}
 
@@ -22,10 +23,11 @@ impl AudioRecorder {
             buffer: Arc::new(Mutex::new(Vec::new())),
             level: Arc::new(Mutex::new(0.0)),
             sample_rate: 16000,
+            stream: None,
         })
     }
 
-    pub fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let host = cpal::default_host();
         let device = host
             .default_input_device()
@@ -104,13 +106,16 @@ impl AudioRecorder {
 
         stream.play()?;
 
-        // Keep the stream alive by leaking it.
-        std::mem::forget(stream);
+        // Store the stream so it stays alive while recording
+        self.stream = Some(stream);
 
         Ok(())
     }
 
-    pub fn stop(self) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+    pub fn stop(mut self) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+        // Drop the stream to release the microphone
+        self.stream.take();
+
         let buffer = self.buffer.lock().map_err(|e| e.to_string())?;
         Ok(buffer.clone())
     }

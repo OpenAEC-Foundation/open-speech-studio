@@ -5,6 +5,7 @@ export interface Settings {
   model_path: string;
   use_gpu: boolean;
   hotkey: string;
+  hotkey_mode: string;
   auto_paste: boolean;
   audio_device: string;
   theme: string;
@@ -107,6 +108,7 @@ function loadLocalSettings(): Settings {
     model_path: "",
     use_gpu: false,
     hotkey: "Alt+Space",
+    hotkey_mode: "hold",
     auto_paste: true,
     audio_device: "default",
     theme: "dark",
@@ -411,7 +413,10 @@ const browserApi = {
   },
 
   downloadModel: (_modelName: string) =>
-    Promise.reject(new Error("Modellen downloaden is nog niet beschikbaar via de browser. Plaats .bin bestanden handmatig in de models/ map.")),
+    Promise.reject(new Error("Model download is not available in browser mode. Place .bin files manually in the models/ folder.")),
+
+  deleteModel: (_modelName: string) =>
+    Promise.reject(new Error("Model deletion is not available in browser mode.")),
 
   loadModel: async (modelPath: string) => {
     if (await checkServer()) {

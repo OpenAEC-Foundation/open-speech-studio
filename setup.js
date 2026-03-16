@@ -26,10 +26,13 @@ const IS_WIN = process.platform === "win32";
 const ARCH = process.arch; // x64, arm64
 
 // whisper.cpp release version and URLs (from ggml-org/whisper.cpp)
+// Note: official releases only provide Windows binaries.
+// Linux and macOS are compiled from source during setup.
 const WHISPER_VERSION = "v1.8.3";
 const WHISPER_RELEASES = {
   "win32-x64": `https://github.com/ggml-org/whisper.cpp/releases/download/${WHISPER_VERSION}/whisper-bin-x64.zip`,
 };
+const WHISPER_SOURCE = `https://github.com/ggml-org/whisper.cpp/archive/refs/tags/${WHISPER_VERSION}.tar.gz`;
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -181,22 +184,27 @@ async function checkSystemDeps() {
   } else {
     if (hasCommand("apt-get")) {
       run(
-        "sudo apt-get update && sudo apt-get install -y build-essential curl wget " +
+        "sudo apt-get update && sudo apt-get install -y build-essential curl wget cmake " +
           "libwebkit2gtk-4.1-dev libssl-dev libgtk-3-dev libayatana-appindicator3-dev " +
-          "librsvg2-dev libasound2-dev pkg-config"
+          "librsvg2-dev libasound2-dev libxdo-dev pkg-config"
       );
     } else if (hasCommand("dnf")) {
       run(
-        "sudo dnf install -y gcc gcc-c++ curl wget webkit2gtk4.1-devel openssl-devel " +
-          "gtk3-devel libappindicator-gtk3-devel librsvg2-devel alsa-lib-devel"
+        "sudo dnf install -y gcc gcc-c++ curl wget cmake xdotool-devel " +
+          "webkit2gtk4.1-devel openssl-devel gtk3-devel libappindicator-gtk3-devel " +
+          "librsvg2-devel alsa-lib-devel"
       );
     } else if (hasCommand("pacman")) {
       run(
         "sudo pacman -S --needed --noconfirm base-devel curl wget webkit2gtk-4.1 openssl " +
-          "gtk3 libappindicator-gtk3 librsvg alsa-lib"
+          "gtk3 libappindicator-gtk3 librsvg alsa-lib cmake xdotool"
       );
+    } else if (hasCommand("brew")) {
+      // macOS
+      run("brew install cmake");
+      ok("macOS: Xcode Command Line Tools required (xcode-select --install)");
     }
-    ok("Systeem-afhankelijkheden geinstalleerd");
+    ok("System dependencies installed");
   }
 }
 
@@ -226,45 +234,109 @@ async function downloadWhisperBinary() {
   const platform = `${process.platform}-${ARCH}`;
   const url = WHISPER_RELEASES[platform];
 
-  if (!url) {
-    fail(`Geen pre-compiled whisper binary beschikbaar voor ${platform}`);
-    warn("Handmatig downloaden van: https://github.com/ggerganov/whisper.cpp/releases");
-    return;
-  }
+  if (url) {
+    // Windows: download pre-compiled binary
+    const zipDest = path.join(BIN_DIR, "whisper.zip");
+    log(`Whisper.cpp ${WHISPER_VERSION} downloading for ${platform}...`);
+    try {
+      await download(url, zipDest);
+      extractZip(zipDest, BIN_DIR);
+      fs.unlinkSync(zipDest);
 
-  const zipDest = path.join(BIN_DIR, "whisper.zip");
-
-  log(`Whisper.cpp ${WHISPER_VERSION} downloaden voor ${platform}...`);
-  try {
-    await download(url, zipDest);
-    extractZip(zipDest, BIN_DIR);
-    fs.unlinkSync(zipDest);
-
-    // Find the binary in extracted files (may be in a subdirectory)
-    const findBin = (dir) => {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          const found = findBin(fullPath);
-          if (found) return found;
-        } else if (entry.name === binName || entry.name === altName) {
-          return fullPath;
+      const findBin = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            const found = findBin(fullPath);
+            if (found) return found;
+          } else if (entry.name === binName || entry.name === altName) {
+            return fullPath;
+          }
         }
-      }
-      return null;
-    };
+        return null;
+      };
 
-    const foundBin = findBin(BIN_DIR);
-    if (foundBin && foundBin !== binPath) {
-      // Move binary to bin/ root
-      fs.copyFileSync(foundBin, binPath);
-      if (!IS_WIN) fs.chmodSync(binPath, 0o755);
+      const foundBin = findBin(BIN_DIR);
+      if (foundBin && foundBin !== binPath) {
+        fs.copyFileSync(foundBin, binPath);
+      }
+      ok(`Whisper binary installed: ${binPath}`);
+    } catch (err) {
+      fail(`Download failed: ${err.message}`);
+    }
+  } else {
+    // Linux/macOS: compile from source
+    log(`No pre-compiled binary for ${platform}. Building whisper.cpp from source...`);
+
+    if (!hasCommand("cmake")) {
+      fail("cmake is required to build whisper.cpp.");
+      warn("Install cmake: sudo apt-get install cmake (Linux) or brew install cmake (macOS)");
+      return;
+    }
+    if (!hasCommand("make") && !hasCommand("ninja")) {
+      fail("make or ninja is required to build whisper.cpp.");
+      return;
     }
 
-    ok(`Whisper binary geinstalleerd: ${binPath}`);
-  } catch (err) {
-    fail(`Download mislukt: ${err.message}`);
-    warn("Handmatig downloaden van: https://github.com/ggerganov/whisper.cpp/releases");
+    const buildDir = path.join(ROOT, "_whisper_build");
+    const tarDest = path.join(ROOT, "whisper-src.tar.gz");
+
+    try {
+      await download(WHISPER_SOURCE, tarDest);
+      fs.mkdirSync(buildDir, { recursive: true });
+      run(`tar -xzf "${tarDest}" -C "${buildDir}" --strip-components=1`);
+      fs.unlinkSync(tarDest);
+
+      const cmakeBuildDir = path.join(buildDir, "build");
+      fs.mkdirSync(cmakeBuildDir, { recursive: true });
+      log("Running cmake...");
+      run(`cmake -S "${buildDir}" -B "${cmakeBuildDir}" -DCMAKE_BUILD_TYPE=Release`);
+      log("Compiling (this may take a few minutes)...");
+      run(`cmake --build "${cmakeBuildDir}" --config Release -j`);
+
+      // Find the built binary
+      const builtBin = path.join(cmakeBuildDir, "bin", "whisper-cli");
+      const builtBinAlt = path.join(cmakeBuildDir, "bin", "main");
+      const srcBin = fs.existsSync(builtBin) ? builtBin : fs.existsSync(builtBinAlt) ? builtBinAlt : null;
+
+      if (srcBin) {
+        fs.copyFileSync(srcBin, binPath);
+        fs.chmodSync(binPath, 0o755);
+
+        // Also copy shared libraries if present
+        const libDir = path.join(cmakeBuildDir, "lib");
+        if (fs.existsSync(libDir)) {
+          for (const f of fs.readdirSync(libDir)) {
+            if (f.endsWith(".so") || f.endsWith(".dylib")) {
+              fs.copyFileSync(path.join(libDir, f), path.join(BIN_DIR, f));
+            }
+          }
+        }
+        // Check build/src for libs too
+        const srcDir = path.join(cmakeBuildDir, "src");
+        if (fs.existsSync(srcDir)) {
+          for (const f of fs.readdirSync(srcDir)) {
+            if (f.endsWith(".so") || f.endsWith(".dylib")) {
+              fs.copyFileSync(path.join(srcDir, f), path.join(BIN_DIR, f));
+            }
+          }
+        }
+
+        ok(`Whisper binary built and installed: ${binPath}`);
+      } else {
+        fail("Build succeeded but could not find whisper-cli binary.");
+        warn("Check " + cmakeBuildDir + " for the built files.");
+      }
+
+      // Clean up build directory
+      fs.rmSync(buildDir, { recursive: true, force: true });
+    } catch (err) {
+      fail(`Build failed: ${err.message}`);
+      warn("You can build whisper.cpp manually: https://github.com/ggml-org/whisper.cpp#build");
+      // Clean up on failure
+      try { fs.unlinkSync(tarDest); } catch {}
+      try { fs.rmSync(buildDir, { recursive: true, force: true }); } catch {}
+    }
   }
 }
 

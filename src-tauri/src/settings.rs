@@ -10,6 +10,8 @@ pub struct Settings {
     pub model_path: String,
     pub use_gpu: bool,
     pub hotkey: String,
+    #[serde(default = "default_hotkey_mode")]
+    pub hotkey_mode: String,
     pub auto_paste: bool,
     pub audio_device: String,
     pub theme: String,
@@ -27,6 +29,7 @@ impl Default for Settings {
             model_path,
             use_gpu: false,
             hotkey: "Alt+Space".to_string(),
+            hotkey_mode: "hold".to_string(),
             auto_paste: true,
             audio_device: "default".to_string(),
             theme: "light".to_string(),
@@ -36,6 +39,10 @@ impl Default for Settings {
 
 fn default_ui_language() -> String {
     "en".to_string()
+}
+
+fn default_hotkey_mode() -> String {
+    "hold".to_string()
 }
 
 /// Find the best available model, checking config dir (user downloads) first, then bundled dirs.

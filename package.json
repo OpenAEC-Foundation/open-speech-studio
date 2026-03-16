@@ -1,6 +1,6 @@
 {
   "name": "open-speech-studio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Open source local AI speech-to-text for every app",
   "type": "module",
   "scripts": {
@@ -14,19 +14,19 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.2.0",
-    "@tauri-apps/plugin-clipboard-manager": "^2.2.0",
-    "@tauri-apps/plugin-global-shortcut": "^2.2.0",
-    "@tauri-apps/plugin-notification": "^2.2.0",
-    "@tauri-apps/plugin-shell": "^2.2.0",
-    "@tauri-apps/plugin-store": "^2.2.0",
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
+    "@tauri-apps/plugin-global-shortcut": "^2.3.1",
+    "@tauri-apps/plugin-notification": "^2.3.3",
+    "@tauri-apps/plugin-shell": "^2.3.5",
+    "@tauri-apps/plugin-store": "^2.4.2",
     "jszip": "^3.10.1",
     "solid-js": "^1.9.3"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.2.0",
-    "typescript": "^5.7.0",
-    "vite": "^7.3.1",
-    "vite-plugin-solid": "^2.10.0"
+    "@tauri-apps/cli": "^2.10.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0",
+    "vite-plugin-solid": "^2.11.11"
   }
 }

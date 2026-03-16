@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build
@@ -45,7 +45,7 @@ jobs:
           - platform: macos-latest
             rust-target: aarch64-apple-darwin
             label: macOS (ARM)
-          - platform: macos-15-intel
+          - platform: macos-13
             rust-target: x86_64-apple-darwin
             label: macOS (Intel)
 
@@ -61,7 +61,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install Rust
@@ -86,7 +86,8 @@ jobs:
             libgtk-3-dev \
             libasound2-dev \
             libxdo-dev \
-            patchelf
+            patchelf \
+            cmake
 
       - name: Install npm dependencies
         run: npm ci
@@ -94,6 +95,21 @@ jobs:
       - name: Create bin directory
         shell: bash
         run: mkdir -p bin
+
+      - name: Build whisper.cpp (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          git clone --depth 1 --branch v1.8.3 https://github.com/ggml-org/whisper.cpp.git _whisper_build
+          cmake -S _whisper_build -B _whisper_build/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build _whisper_build/build --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
+          cp _whisper_build/build/bin/whisper-cli bin/ || cp _whisper_build/build/bin/main bin/whisper-cli
+          chmod +x bin/whisper-cli
+          # Copy shared libraries
+          find _whisper_build/build -name '*.so' -exec cp {} bin/ \; 2>/dev/null || true
+          find _whisper_build/build -name '*.dylib' -exec cp {} bin/ \; 2>/dev/null || true
+          rm -rf _whisper_build
+          ls -la bin/
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0

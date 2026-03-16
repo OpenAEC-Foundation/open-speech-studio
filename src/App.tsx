@@ -9,6 +9,8 @@ import ModelManager from "./components/ModelManager";
 import MicTest from "./components/MicTest";
 import MeetingRecorder from "./components/MeetingRecorder";
 import TitleBar from "./components/TitleBar";
+import About from "./components/About";
+import StatusBar from "./components/StatusBar";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
@@ -22,7 +24,7 @@ function formatHotkey(raw: string): string {
     .replace(/\+/g, " + ");
 }
 
-type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting";
+type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "about";
 
 export default function App() {
   const { t, setLocale } = useI18n();
@@ -38,10 +40,22 @@ export default function App() {
       const { register, unregisterAll } = await import("@tauri-apps/plugin-global-shortcut");
       await unregisterAll();
       await register(hotkey, (event) => {
-        if (event.state === "Pressed") {
-          handleStartRecording();
-        } else if (event.state === "Released") {
-          handleStopRecording();
+        const mode = settings()?.hotkey_mode || "hold";
+        if (mode === "hold") {
+          if (event.state === "Pressed") {
+            handleStartRecording();
+          } else if (event.state === "Released") {
+            handleStopRecording();
+          }
+        } else {
+          // Toggle mode: press once to start, press again to stop
+          if (event.state === "Pressed") {
+            if (isRecording()) {
+              handleStopRecording();
+            } else {
+              handleStartRecording();
+            }
+          }
         }
       });
       console.log(`Global hotkey registered: ${hotkey}`);
@@ -65,6 +79,19 @@ export default function App() {
     if (isTauri) {
       import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
         getCurrentWindow().show();
+      });
+
+      // Toggle hotkey when enabled/disabled via tray menu
+      import("@tauri-apps/api/event").then(({ listen }) => {
+        listen<boolean>("app-enabled-changed", async (event) => {
+          if (event.payload) {
+            const s = settings();
+            await registerHotkey(s?.hotkey || "Alt+Space");
+          } else {
+            const { unregisterAll } = await import("@tauri-apps/plugin-global-shortcut");
+            await unregisterAll();
+          }
+        });
       });
     }
 
@@ -121,7 +148,6 @@ export default function App() {
     try {
       await api.startRecording();
       setIsRecording(true);
-      sendNotification("Open Speech Studio", t("app.recordingStartedNotification"));
     } catch (e) {
       console.error("Recording error:", e);
     }
@@ -131,7 +157,6 @@ export default function App() {
     if (!isRecording()) return;
 
     try {
-      sendNotification("Open Speech Studio", t("app.transcribingNotification"));
       const result = await api.stopRecording();
       setIsRecording(false);
       setTranscriptions((prev) => [result, ...prev]);
@@ -211,6 +236,10 @@ export default function App() {
           <MeetingRecorder />
         </div>
 
+        <Show when={view() === "about"}>
+          <About />
+        </Show>
+
         <Show when={view() === "models"}>
           <ModelManager
             onModelLoaded={(path, name) => {
@@ -237,6 +266,11 @@ export default function App() {
       </main>
       </div>
       </div>
+      <StatusBar
+        isRecording={isRecording()}
+        isModelLoaded={isModelLoaded()}
+        modelName={settings()?.model_name || ""}
+      />
     </div>
   );
 }

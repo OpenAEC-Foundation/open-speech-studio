@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use tauri::{
     Emitter, Manager, State,
-    menu::{Menu, MenuItem},
+    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
 };
 
@@ -171,7 +171,7 @@ async fn start_recording(state: State<'_, AppState>) -> Result<(), String> {
         return Ok(());
     }
 
-    let recorder = audio::AudioRecorder::new().map_err(|e| e.to_string())?;
+    let mut recorder = audio::AudioRecorder::new().map_err(|e| e.to_string())?;
     recorder.start().map_err(|e| e.to_string())?;
 
     let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
@@ -290,7 +290,18 @@ async fn get_audio_level(state: State<'_, AppState>) -> Result<f32, String> {
 #[tauri::command]
 async fn type_text(text: String) -> Result<(), String> {
     use enigo::{Enigo, Keyboard, Settings};
-    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| e.to_string())?;
+    let mut enigo = Enigo::new(&Settings::default()).map_err(|e| {
+        #[cfg(target_os = "macos")]
+        {
+            return format!(
+                "Cannot simulate keyboard input. Please grant Accessibility permissions: \
+                 System Settings > Privacy & Security > Accessibility. Error: {}",
+                e
+            );
+        }
+        #[cfg(not(target_os = "macos"))]
+        e.to_string()
+    })?;
     enigo.text(&text).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -298,19 +309,18 @@ async fn type_text(text: String) -> Result<(), String> {
 pub fn run() {
     env_logger::init();
 
-    // Add the bundled bin/ resource directory to the DLL search path
-    // so Windows can find WebView2Loader.dll, vcruntime140.dll, etc.
+    // Add the bundled bin/ resource directory to the library search path
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let bin_dir = exe_dir.join("_up_").join("bin");
             if bin_dir.exists() {
+                let sep = if cfg!(windows) { ";" } else { ":" };
                 if let Ok(current_path) = std::env::var("PATH") {
                     std::env::set_var(
                         "PATH",
-                        format!("{};{}", bin_dir.to_string_lossy(), current_path),
+                        format!("{}{}{}", bin_dir.to_string_lossy(), sep, current_path),
                     );
                 }
-                // Also call SetDllDirectoryW to ensure DLL loader finds them
                 #[cfg(target_os = "windows")]
                 {
                     use std::os::windows::ffi::OsStrExt;
@@ -325,18 +335,19 @@ pub fn run() {
                             fn AddDllDirectory(path: *const u16) -> *mut std::ffi::c_void;
                             fn SetDefaultDllDirectories(flags: u32) -> i32;
                         }
-                        // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS = 0x00001000
                         SetDefaultDllDirectories(0x00001000);
                         AddDllDirectory(wide.as_ptr());
                     }
                 }
-                log::info!("Added DLL search path: {}", bin_dir.display());
+                log::info!("Added library search path: {}", bin_dir.display());
             }
         }
     }
 
     let settings = settings::load_settings().unwrap_or_default();
     let dictionary = dictionary::load_dictionary().unwrap_or_default();
+
+    let ui_language = settings.ui_language.clone();
 
     // Auto-load the model at startup so speech recognition is ready immediately.
     // Check file size > 1 KB to skip Git LFS pointer files (~134 bytes).
@@ -367,6 +378,13 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // Focus the existing window when a second instance is launched
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .manage(AppState {
             transcriber: Arc::new(Mutex::new(initial_transcriber)),
             recorder: Arc::new(Mutex::new(None)),
@@ -393,11 +411,55 @@ pub fn run() {
             is_model_loaded,
             type_text,
         ])
-        .setup(|app| {
-            // Build system tray menu
-            let show_i = MenuItem::with_id(app, "show", "Tonen", true, None::<&str>)?;
-            let quit_i = MenuItem::with_id(app, "quit", "Afsluiten", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+        .setup(move |app| {
+            // Config has decorations:true + titleBarStyle:overlay for macOS traffic lights.
+            // On Windows/Linux, disable decorations at runtime for our custom titlebar.
+            #[cfg(not(target_os = "macos"))]
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_decorations(false);
+                }
+            }
+
+            // Build system tray menu with localised labels
+            let (show_l, enabled_l, quit_l) = match ui_language.as_str() {
+                "nl" => ("Tonen", "Ingeschakeld", "Afsluiten"),
+                "de" => ("Anzeigen", "Aktiviert", "Beenden"),
+                "fr" => ("Afficher", "Activ\u{00e9}", "Quitter"),
+                "es" => ("Mostrar", "Activado", "Salir"),
+                "pt" => ("Mostrar", "Ativado", "Sair"),
+                "it" => ("Mostra", "Attivato", "Esci"),
+                "pl" => ("Poka\u{017c}", "W\u{0142}\u{0105}czony", "Zako\u{0144}cz"),
+                "ru" => ("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{0430}\u{0442}\u{044c}", "\u{0412}\u{043a}\u{043b}\u{044e}\u{0447}\u{0435}\u{043d}\u{043e}", "\u{0412}\u{044b}\u{0445}\u{043e}\u{0434}"),
+                "tr" => ("G\u{00f6}ster", "Etkin", "\u{00c7}\u{0131}k\u{0131}\u{015f}"),
+                "zh" => ("\u{663e}\u{793a}", "\u{5df2}\u{542f}\u{7528}", "\u{9000}\u{51fa}"),
+                "ja" => ("\u{8868}\u{793a}", "\u{6709}\u{52b9}", "\u{7d42}\u{4e86}"),
+                "ko" => ("\u{d45c}\u{c2dc}", "\u{d65c}\u{c131}\u{d654}", "\u{c885}\u{b8cc}"),
+                "uk" => ("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{0430}\u{0442}\u{0438}", "\u{0423}\u{0432}\u{0456}\u{043c}\u{043a}\u{043d}\u{0435}\u{043d}\u{043e}", "\u{0412}\u{0438}\u{0445}\u{0456}\u{0434}"),
+                "cs" => ("Zobrazit", "Povoleno", "Ukon\u{010d}it"),
+                "ro" => ("Afi\u{0219}are", "Activat", "Ie\u{0219}ire"),
+                "hu" => ("Megjelen\u{00ed}t\u{00e9}s", "Enged\u{00e9}lyezve", "Kil\u{00e9}p\u{00e9}s"),
+                "sv" => ("Visa", "Aktiverad", "Avsluta"),
+                "da" => ("Vis", "Aktiveret", "Afslut"),
+                "no" => ("Vis", "Aktivert", "Avslutt"),
+                "fi" => ("N\u{00e4}yt\u{00e4}", "K\u{00e4}yt\u{00f6}ss\u{00e4}", "Lopeta"),
+                "el" => ("\u{0395}\u{03bc}\u{03c6}\u{03ac}\u{03bd}\u{03b9}\u{03c3}\u{03b7}", "\u{0395}\u{03bd}\u{03b5}\u{03c1}\u{03b3}\u{03bf}\u{03c0}\u{03bf}\u{03b9}\u{03b7}\u{03bc}\u{03ad}\u{03bd}\u{03bf}", "\u{0388}\u{03be}\u{03bf}\u{03b4}\u{03bf}\u{03c2}"),
+                "bg" => ("\u{041f}\u{043e}\u{043a}\u{0430}\u{0436}\u{0438}", "\u{0412}\u{043a}\u{043b}\u{044e}\u{0447}\u{0435}\u{043d}\u{043e}", "\u{0418}\u{0437}\u{0445}\u{043e}\u{0434}"),
+                "hr" => ("Prika\u{017e}i", "Omogu\u{0107}eno", "Iza\u{0111}i"),
+                "sk" => ("Zobrazi\u{0165}", "Povolen\u{00e9}", "Ukon\u{010d}i\u{0165}"),
+                _    => ("Show", "Enabled", "Quit"),
+            };
+
+            let title_i   = MenuItem::with_id(app, "title", "Open Speech Studio", false, None::<&str>)?;
+            let sep1      = PredefinedMenuItem::separator(app)?;
+            let show_i    = MenuItem::with_id(app, "show", show_l, true, None::<&str>)?;
+            let enabled_i = CheckMenuItem::with_id(app, "enabled", enabled_l, true, true, None::<&str>)?;
+            let sep2      = PredefinedMenuItem::separator(app)?;
+            let quit_i    = MenuItem::with_id(app, "quit", quit_l, true, None::<&str>)?;
+
+            let menu = Menu::with_items(app, &[
+                &title_i, &sep1, &show_i, &enabled_i, &sep2, &quit_i,
+            ])?;
 
             // Build tray icon
             TrayIconBuilder::new()
@@ -411,13 +473,25 @@ pub fn run() {
                             let _ = window.set_focus();
                         }
                     }
+                    "enabled" => {
+                        // CheckMenuItem toggles automatically; read current state and notify frontend
+                        if let Some(window) = app.get_webview_window("main") {
+                            if let Some(item) = app.menu().and_then(|m| m.get("enabled")) {
+                                if let Some(check) = item.as_check_menuitem() {
+                                    if let Ok(checked) = check.is_checked() {
+                                        let _ = window.emit("app-enabled-changed", checked);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     "quit" => {
                         app.exit(0);
                     }
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
-                    if let tauri::tray::TrayIconEvent::DoubleClick { .. } = event {
+                    if let tauri::tray::TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, .. } = event {
                         if let Some(window) = tray.app_handle().get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();
