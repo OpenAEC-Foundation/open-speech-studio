@@ -59,7 +59,7 @@
         "depends": ["libasound2-dev", "libxdo-dev"]
       },
       "appimage": {
-        "bundleMediaFramework": true
+        "bundleMediaFramework": false
       }
     }
   },
