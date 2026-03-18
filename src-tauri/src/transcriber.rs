@@ -4,8 +4,8 @@ use std::process::Command;
 /// Transcriber that calls the pre-compiled whisper.cpp binary as a subprocess.
 /// No C++ toolchain needed - we ship the binary.
 pub struct Transcriber {
-    whisper_bin: PathBuf,
-    model_path: PathBuf,
+    pub(crate) whisper_bin: PathBuf,
+    pub(crate) model_path: PathBuf,
 }
 
 impl Transcriber {
@@ -34,6 +34,61 @@ impl Transcriber {
         })
     }
 
+    /// Transcribe an audio/video file directly via whisper.cpp CLI.
+    pub fn transcribe_file(
+        &self,
+        file_path: &str,
+        language: &str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let path = std::path::Path::new(file_path);
+        if !path.exists() {
+            return Err(format!("File not found: {}", file_path).into());
+        }
+
+        let mut cmd = Command::new(&self.whisper_bin);
+        cmd.arg("-m").arg(&self.model_path);
+        cmd.arg("-f").arg(file_path);
+        cmd.arg("--no-timestamps");
+        cmd.arg("-t").arg("4");
+        // No --output-txt: we read from stdout, don't create files next to the input
+
+        if !language.is_empty() && language != "auto" {
+            cmd.arg("-l").arg(language);
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+
+        log::info!("Running whisper on file: {:?}", cmd);
+
+        let output = cmd.output()?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Whisper failed: {}", stderr).into());
+        }
+
+        let text = String::from_utf8_lossy(&output.stdout)
+            .trim()
+            .to_string();
+
+        // Also check for .txt output file
+        let txt_path = format!("{}.txt", file_path);
+        let result = if text.is_empty() && std::path::Path::new(&txt_path).exists() {
+            let file_text = std::fs::read_to_string(&txt_path)?;
+            let _ = std::fs::remove_file(&txt_path);
+            file_text.trim().to_string()
+        } else {
+            text
+        };
+
+        Ok(result)
+    }
+
     /// Transcribe audio samples (f32 mono 16kHz) by writing to a temp WAV file
     /// and calling whisper.cpp CLI.
     pub fn transcribe(
@@ -52,7 +107,7 @@ impl Transcriber {
         cmd.arg("-f").arg(&wav_path);
         cmd.arg("--no-timestamps");
         cmd.arg("-t").arg("4"); // threads
-        cmd.arg("--output-txt"); // plain text output
+        // No --output-txt: we read from stdout, don't create files next to the input // plain text output
 
         // Set language
         if !language.is_empty() && language != "auto" {

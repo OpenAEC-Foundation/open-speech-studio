@@ -40,7 +40,7 @@ const ALL_KEYS = [
   { group: "settings.keyGroupFunction", keys: Array.from({ length: 12 }, (_, i) => ({ value: `F${i + 1}`, label: `F${i + 1}` })) },
 ];
 
-type SettingsTab = "general" | "speech" | "controls" | "audio";
+type SettingsTab = "general" | "speech" | "controls" | "audio" | "files";
 
 export default function SettingsPanel(props: SettingsPanelProps) {
   const { t, locale, setLocale } = useI18n();
@@ -50,6 +50,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [autoPaste, setAutoPaste] = createSignal(true);
   const [audioDevice, setAudioDevice] = createSignal("default");
   const [devices, setDevices] = createSignal<string[]>([]);
+  const [fileAutoSave, setFileAutoSave] = createSignal(false);
+  const [fileSaveDir, setFileSaveDir] = createSignal("");
+  const [fileConfirmActions, setFileConfirmActions] = createSignal(true);
 
   const [key1, setKey1] = createSignal("CmdOrCtrl");
   const [key2, setKey2] = createSignal("Super");
@@ -65,6 +68,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setUseGpu(props.settings.use_gpu);
       setAutoPaste(props.settings.auto_paste);
       setAudioDevice(props.settings.audio_device);
+      setFileAutoSave(props.settings.file_auto_save ?? false);
+      setFileSaveDir(props.settings.file_save_directory ?? "");
+      setFileConfirmActions(props.settings.file_confirm_actions ?? true);
       const parsed = parseHotkey(props.settings.hotkey || "Alt+Space");
       setKey1(parsed.key1);
       setKey2(parsed.key2);
@@ -110,6 +116,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
         </button>
         <button class={`settings-tab ${tab() === "audio" ? "active" : ""}`} onClick={() => setTab("audio")}>
           {t("settings.tabAudio")}
+        </button>
+        <button class={`settings-tab ${tab() === "files" ? "active" : ""}`} onClick={() => setTab("files")}>
+          {t("settings.tabFiles")}
         </button>
       </div>
 
@@ -273,6 +282,75 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 <option value={d}>{d}</option>
               ))}
             </select>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Files ── */}
+      <div class="settings-tab-content" style={{ display: tab() === "files" ? "block" : "none" }}>
+        <div class="settings-section">
+          <div class="setting-row">
+            <label>{t("settings.fileAutoSave")}</label>
+            <div class="toggle-group">
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  checked={fileAutoSave()}
+                  onChange={(e) => { setFileAutoSave(e.target.checked); autoSave({ file_auto_save: e.target.checked }); }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <span class="setting-hint">
+                {fileAutoSave() ? t("settings.fileAutoSaveEnabled") : t("settings.fileAutoSaveDisabled")}
+              </span>
+            </div>
+          </div>
+
+          <div class="setting-row" style={{ opacity: fileAutoSave() ? 1 : 0.4 }}>
+            <label>{t("settings.fileSaveDirectory")}</label>
+            <div class="file-dir-picker">
+              <input
+                type="text"
+                value={fileSaveDir()}
+                placeholder={t("settings.fileSaveDirPlaceholder")}
+                readOnly
+                disabled={!fileAutoSave()}
+              />
+              <button
+                class="btn btn-small"
+                disabled={!fileAutoSave()}
+                onClick={async () => {
+                  try {
+                    const { open } = await import("@tauri-apps/plugin-dialog");
+                    const dir = await open({ directory: true });
+                    if (dir) {
+                      setFileSaveDir(dir as string);
+                      autoSave({ file_save_directory: dir as string });
+                    }
+                  } catch (_) {}
+                }}
+              >
+                {t("settings.fileSaveDirBrowse")}
+              </button>
+            </div>
+            <span class="setting-hint">{t("settings.fileSaveDirHint")}</span>
+          </div>
+
+          <div class="setting-row">
+            <label>{t("settings.fileConfirmActions")}</label>
+            <div class="toggle-group">
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  checked={fileConfirmActions()}
+                  onChange={(e) => { setFileConfirmActions(e.target.checked); autoSave({ file_confirm_actions: e.target.checked }); }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <span class="setting-hint">
+                {fileConfirmActions() ? t("settings.fileConfirmEnabled") : t("settings.fileConfirmDisabled")}
+              </span>
+            </div>
           </div>
         </div>
       </div>

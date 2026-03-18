@@ -15,6 +15,12 @@ pub struct Settings {
     pub auto_paste: bool,
     pub audio_device: String,
     pub theme: String,
+    #[serde(default = "default_false")]
+    pub file_auto_save: bool,
+    #[serde(default)]
+    pub file_save_directory: String,
+    #[serde(default = "default_true")]
+    pub file_confirm_actions: bool,
 }
 
 impl Default for Settings {
@@ -33,6 +39,9 @@ impl Default for Settings {
             auto_paste: true,
             audio_device: "default".to_string(),
             theme: "light".to_string(),
+            file_auto_save: false,
+            file_save_directory: String::new(),
+            file_confirm_actions: true,
         }
     }
 }
@@ -43,6 +52,14 @@ fn default_ui_language() -> String {
 
 fn default_hotkey_mode() -> String {
     "hold".to_string()
+}
+
+fn default_false() -> bool {
+    false
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// Find the best available model, checking config dir (user downloads) first, then bundled dirs.

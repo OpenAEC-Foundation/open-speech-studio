@@ -1,6 +1,6 @@
 {
   "name": "open-speech-studio",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Open source local AI speech-to-text for every app",
   "type": "module",
   "scripts": {
@@ -16,6 +16,8 @@
   "dependencies": {
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
+    "@tauri-apps/plugin-dialog": "^2.6.0",
+    "@tauri-apps/plugin-fs": "^2.4.5",
     "@tauri-apps/plugin-global-shortcut": "^2.3.1",
     "@tauri-apps/plugin-notification": "^2.3.3",
     "@tauri-apps/plugin-shell": "^2.3.5",

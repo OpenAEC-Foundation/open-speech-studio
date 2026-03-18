@@ -9,6 +9,9 @@ export interface Settings {
   auto_paste: boolean;
   audio_device: string;
   theme: string;
+  file_auto_save: boolean;
+  file_save_directory: string;
+  file_confirm_actions: boolean;
 }
 
 export interface ModelInfo {
@@ -66,6 +69,10 @@ const tauriApi = {
   getAudioLevel: () => tauriInvoke<number>("get_audio_level"),
   isModelLoaded: () => tauriInvoke<boolean>("is_model_loaded"),
   typeText: (text: string) => tauriInvoke<void>("type_text", { text }),
+  startFileJob: (jobId: string, filePath: string) =>
+    tauriInvoke<void>("start_file_job", { jobId, filePath }),
+  cancelFileJob: (jobId: string) =>
+    tauriInvoke<void>("cancel_file_job", { jobId }),
 };
 
 // ─── Local server detection ──────────────────────────────────
@@ -112,6 +119,9 @@ function loadLocalSettings(): Settings {
     auto_paste: true,
     audio_device: "default",
     theme: "dark",
+    file_auto_save: false,
+    file_save_directory: "",
+    file_confirm_actions: true,
   };
 }
 
@@ -505,6 +515,10 @@ const browserApi = {
   },
 
   typeText: (_text: string) => Promise.resolve(),
+  startFileJob: (_jobId: string, _filePath: string) =>
+    Promise.reject(new Error("File transcription is not available in browser mode.")),
+  cancelFileJob: (_jobId: string) =>
+    Promise.reject(new Error("File transcription is not available in browser mode.")),
 };
 
 export const api = isTauri ? tauriApi : browserApi;

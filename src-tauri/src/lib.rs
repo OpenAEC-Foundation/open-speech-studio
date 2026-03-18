@@ -4,6 +4,7 @@ mod settings;
 mod transcriber;
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tauri::{
     Emitter, Manager, State,
@@ -17,6 +18,8 @@ pub struct AppState {
     settings: Arc<Mutex<settings::Settings>>,
     dictionary: Arc<Mutex<dictionary::Dictionary>>,
     is_recording: Arc<Mutex<bool>>,
+    /// Active file transcription jobs: job_id -> child PID (for cancellation)
+    file_jobs: Arc<Mutex<HashMap<String, u32>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -271,6 +274,200 @@ async fn remove_dictionary_word(
     Ok(())
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FileJobProgress {
+    pub job_id: String,
+    pub progress: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FileJobResult {
+    pub job_id: String,
+    pub text: String,
+    pub language: String,
+    pub duration_ms: u64,
+    pub error: Option<String>,
+}
+
+/// Start a file transcription as a background job. Returns immediately.
+/// Emits `file-job-progress` and `file-job-done` events.
+#[tauri::command]
+async fn start_file_job(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    job_id: String,
+    file_path: String,
+) -> Result<(), String> {
+    use std::process::{Command, Stdio};
+    use std::io::{BufRead, BufReader};
+
+    // Gather what we need without holding locks long
+    let (whisper_bin, model_path, language, dict) = {
+        let settings = state.settings.lock().map_err(|e| e.to_string())?;
+        let transcriber_guard = state.transcriber.lock().map_err(|e| e.to_string())?;
+        let t = transcriber_guard
+            .as_ref()
+            .ok_or("Model not loaded. Go to Models to load one.")?;
+        let d = state.dictionary.lock().map_err(|e| e.to_string())?.clone();
+        (
+            t.whisper_bin.clone(),
+            t.model_path.clone(),
+            settings.language.clone(),
+            d,
+        )
+    };
+
+    let mut cmd = Command::new(&whisper_bin);
+    cmd.arg("-m").arg(&model_path);
+    cmd.arg("-f").arg(&file_path);
+    cmd.arg("--no-timestamps");
+    cmd.arg("-t").arg("4");
+    // No --output-txt: we read from stdout, don't create files next to the input
+    cmd.stderr(Stdio::piped());
+    cmd.stdout(Stdio::piped());
+
+    if !language.is_empty() && language != "auto" {
+        cmd.arg("-l").arg(&language);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let mut child = cmd.spawn().map_err(|e| format!("Failed to start whisper: {}", e))?;
+
+    // Store PID for cancellation
+    let pid = child.id();
+    {
+        let mut jobs = state.file_jobs.lock().map_err(|e| e.to_string())?;
+        jobs.insert(job_id.clone(), pid);
+    }
+
+    let file_jobs = state.file_jobs.clone();
+    let job_id_clone = job_id.clone();
+    let language_clone = language.clone();
+    let file_path_clone = file_path.clone();
+
+    // Spawn a thread to read stderr for progress and wait for completion
+    std::thread::spawn(move || {
+        let start = std::time::Instant::now();
+
+        // Read stderr for progress lines: "whisper_full_with_state: progress = XX%"
+        if let Some(stderr) = child.stderr.take() {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                if let Ok(line) = line {
+                    if let Some(pct) = parse_progress(&line) {
+                        let _ = app.emit(
+                            "file-job-progress",
+                            FileJobProgress {
+                                job_id: job_id_clone.clone(),
+                                progress: pct,
+                            },
+                        );
+                    }
+                }
+            }
+        }
+
+        let status = child.wait();
+        let duration_ms = start.elapsed().as_millis() as u64;
+
+        // Remove from active jobs
+        if let Ok(mut jobs) = file_jobs.lock() {
+            jobs.remove(&job_id_clone);
+        }
+
+        let (text, error) = match status {
+            Ok(exit) if exit.success() => {
+                // Read stdout
+                let mut text = String::new();
+                if let Some(mut stdout) = child.stdout.take() {
+                    use std::io::Read;
+                    let _ = stdout.read_to_string(&mut text);
+                }
+                let text = text.trim().to_string();
+
+                // Fallback: check for .txt output file
+                let txt_path = format!("{}.txt", file_path_clone);
+                let text = if text.is_empty() && std::path::Path::new(&txt_path).exists() {
+                    let file_text =
+                        std::fs::read_to_string(&txt_path).unwrap_or_default();
+                    let _ = std::fs::remove_file(&txt_path);
+                    file_text.trim().to_string()
+                } else {
+                    text
+                };
+
+                // Apply dictionary
+                let text = dict.apply_corrections(&text);
+                (text, None)
+            }
+            Ok(_) => (String::new(), Some("Whisper exited with error".to_string())),
+            Err(e) => (String::new(), Some(format!("Process error: {}", e))),
+        };
+
+        let _ = app.emit(
+            "file-job-done",
+            FileJobResult {
+                job_id: job_id_clone,
+                text,
+                language: language_clone,
+                duration_ms,
+                error,
+            },
+        );
+    });
+
+    Ok(())
+}
+
+/// Cancel a running file transcription job.
+#[tauri::command]
+async fn cancel_file_job(
+    state: State<'_, AppState>,
+    job_id: String,
+) -> Result<(), String> {
+    let pid = {
+        let mut jobs = state.file_jobs.lock().map_err(|e| e.to_string())?;
+        jobs.remove(&job_id)
+    };
+
+    if let Some(pid) = pid {
+        // Kill the whisper process
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/PID", &pid.to_string()])
+                .creation_flags(0x08000000u32)
+                .output();
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            unsafe {
+                libc::kill(pid as i32, libc::SIGTERM);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn parse_progress(line: &str) -> Option<u32> {
+    // whisper.cpp outputs: "whisper_full_with_state: progress = XX%"
+    if line.contains("progress =") {
+        let parts: Vec<&str> = line.split("progress =").collect();
+        if parts.len() > 1 {
+            let pct_str = parts[1].trim().trim_end_matches('%').trim();
+            return pct_str.parse::<u32>().ok();
+        }
+    }
+    None
+}
+
 #[tauri::command]
 async fn get_audio_devices() -> Result<Vec<String>, String> {
     audio::list_input_devices().map_err(|e| e.to_string())
@@ -285,6 +482,12 @@ async fn get_audio_level(state: State<'_, AppState>) -> Result<f32, String> {
     } else {
         Ok(0.0)
     }
+}
+
+#[tauri::command]
+async fn save_text_file(path: String, content: String) -> Result<(), String> {
+    std::fs::write(&path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -378,6 +581,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // Focus the existing window when a second instance is launched
             if let Some(window) = app.get_webview_window("main") {
@@ -391,6 +595,7 @@ pub fn run() {
             settings: Arc::new(Mutex::new(settings)),
             dictionary: Arc::new(Mutex::new(dictionary)),
             is_recording: Arc::new(Mutex::new(false)),
+            file_jobs: Arc::new(Mutex::new(HashMap::new())),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -406,9 +611,12 @@ pub fn run() {
             save_dictionary,
             add_dictionary_word,
             remove_dictionary_word,
+            start_file_job,
+            cancel_file_job,
             get_audio_devices,
             get_audio_level,
             is_model_loaded,
+            save_text_file,
             type_text,
         ])
         .setup(move |app| {

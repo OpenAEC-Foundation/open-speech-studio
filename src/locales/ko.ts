@@ -237,7 +237,7 @@ const ko: Record<string, string> = {
   "micTest.resultDuration": "길이:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.3.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.4.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "자동 감지",

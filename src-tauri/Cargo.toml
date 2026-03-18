@@ -1,6 +1,6 @@
 [package]
 name = "open-speech-studio"
-version = "0.3.0"
+version = "0.4.0"
 description = "Open source local AI speech-to-text"
 authors = ["OpenAEC Foundation"]
 license = "Apache-2.0"
@@ -22,6 +22,7 @@ tauri-plugin-notification = "2"
 tauri-plugin-store = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 cpal = "0.15"

@@ -10,6 +10,7 @@ import MicTest from "./components/MicTest";
 import MeetingRecorder from "./components/MeetingRecorder";
 import TitleBar from "./components/TitleBar";
 import About from "./components/About";
+import FileTranscriber from "./components/FileTranscriber";
 import StatusBar from "./components/StatusBar";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
@@ -24,7 +25,7 @@ function formatHotkey(raw: string): string {
     .replace(/\+/g, " + ");
 }
 
-type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "about";
+type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "transcribe" | "about";
 
 export default function App() {
   const { t, setLocale } = useI18n();
@@ -212,6 +213,10 @@ export default function App() {
             modelName={settings()?.model_name || ""}
           />
         </Show>
+
+        <div style={{ display: view() === "transcribe" ? "block" : "none" }}>
+          <FileTranscriber />
+        </div>
 
         <Show when={view() === "mic-test"}>
           <MicTest />
