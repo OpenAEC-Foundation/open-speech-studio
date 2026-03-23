@@ -41,7 +41,8 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "../bin/*"
+      "../bin/*",
+      "../models/ggml-small.bin"
     ],
     "windows": {
       "webviewInstallMode": {
