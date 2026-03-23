@@ -21,6 +21,8 @@ pub struct Settings {
     pub file_save_directory: String,
     #[serde(default = "default_true")]
     pub file_confirm_actions: bool,
+    #[serde(default = "default_true")]
+    pub spell_check: bool,
 }
 
 impl Default for Settings {
@@ -34,7 +36,7 @@ impl Default for Settings {
             model_name,
             model_path,
             use_gpu: false,
-            hotkey: "Alt+Space".to_string(),
+            hotkey: "Ctrl+Super".to_string(),
             hotkey_mode: "hold".to_string(),
             auto_paste: true,
             audio_device: "default".to_string(),
@@ -42,6 +44,7 @@ impl Default for Settings {
             file_auto_save: false,
             file_save_directory: String::new(),
             file_confirm_actions: true,
+            spell_check: true,
         }
     }
 }

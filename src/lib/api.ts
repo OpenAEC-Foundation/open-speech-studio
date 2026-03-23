@@ -12,6 +12,7 @@ export interface Settings {
   file_auto_save: boolean;
   file_save_directory: string;
   file_confirm_actions: boolean;
+  spell_check: boolean;
 }
 
 export interface ModelInfo {
@@ -23,6 +24,7 @@ export interface ModelInfo {
 
 export interface TranscriptionResult {
   text: string;
+  original_text?: string;
   language: string;
   duration_ms: number;
 }
@@ -68,6 +70,7 @@ const tauriApi = {
   getAudioDevices: () => tauriInvoke<string[]>("get_audio_devices"),
   getAudioLevel: () => tauriInvoke<number>("get_audio_level"),
   isModelLoaded: () => tauriInvoke<boolean>("is_model_loaded"),
+  getGpuInfo: () => tauriInvoke<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string }>("get_gpu_info"),
   typeText: (text: string) => tauriInvoke<void>("type_text", { text }),
   startFileJob: (jobId: string, filePath: string) =>
     tauriInvoke<void>("start_file_job", { jobId, filePath }),
@@ -114,7 +117,7 @@ function loadLocalSettings(): Settings {
     model_name: "base",
     model_path: "",
     use_gpu: false,
-    hotkey: "Alt+Space",
+    hotkey: "Ctrl+Super",
     hotkey_mode: "hold",
     auto_paste: true,
     audio_device: "default",
@@ -122,6 +125,7 @@ function loadLocalSettings(): Settings {
     file_auto_save: false,
     file_save_directory: "",
     file_confirm_actions: true,
+    spell_check: true,
   };
 }
 
@@ -515,6 +519,7 @@ const browserApi = {
   },
 
   typeText: (_text: string) => Promise.resolve(),
+  getGpuInfo: () => Promise.resolve({ available: false, name: "Not available in browser mode", vram_mb: 0, driver: "", recommendation: "GPU detection requires the desktop app" }),
   startFileJob: (_jobId: string, _filePath: string) =>
     Promise.reject(new Error("File transcription is not available in browser mode.")),
   cancelFileJob: (_jobId: string) =>

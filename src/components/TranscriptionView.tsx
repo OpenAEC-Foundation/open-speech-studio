@@ -35,7 +35,7 @@ export default function TranscriptionView(props: TranscriptionViewProps) {
             </p>
             <Show when={props.isModelLoaded}>
               <div class="hotkey-badge">
-                {t("transcription.hotkeyHint", { hotkey: props.hotkey || "Ctrl+Win" })}
+                {t("transcription.hotkeyHint", { hotkey: props.hotkey || "Ctrl + Win  /  Ctrl + Shift + Space" })}
               </div>
             </Show>
             <Show when={!props.isModelLoaded}>
@@ -51,9 +51,18 @@ export default function TranscriptionView(props: TranscriptionViewProps) {
             {(result) => (
               <div class="transcription-item">
                 <div class="transcription-text">{result.text}</div>
+                <Show when={result.original_text}>
+                  <div class="transcription-original">
+                    <span class="original-label">{t("transcription.original")}:</span>
+                    <span class="original-text">{result.original_text}</span>
+                  </div>
+                </Show>
                 <div class="transcription-meta">
                   <span class="meta-tag">{result.language || "auto"}</span>
                   <span class="meta-tag">{result.duration_ms}ms</span>
+                  <Show when={result.original_text}>
+                    <span class="meta-tag spellcheck-tag">{t("transcription.spellChecked")}</span>
+                  </Show>
                   <button
                     class="btn btn-small"
                     onClick={() => navigator.clipboard.writeText(result.text)}

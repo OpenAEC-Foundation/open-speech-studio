@@ -1,6 +1,6 @@
 [package]
 name = "open-speech-studio"
-version = "0.4.0"
+version = "0.5.0"
 description = "Open source local AI speech-to-text"
 authors = ["OpenAEC Foundation"]
 license = "Apache-2.0"
@@ -33,6 +33,9 @@ dirs = "5"
 log = "0.4"
 env_logger = "0.11"
 regex-lite = "0.1"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.60", features = ["Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Foundation"] }
 
 [features]
 default = ["custom-protocol"]

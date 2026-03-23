@@ -483,6 +483,31 @@ body {
   margin-bottom: 8px;
 }
 
+.transcription-original {
+  font-size: 11px;
+  color: var(--theme-text-muted);
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  border-left: 2px solid var(--theme-border-light);
+}
+
+.original-label {
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.original-text {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.spellcheck-tag {
+  background: rgba(34, 197, 94, 0.1) !important;
+  color: #16a34a !important;
+}
+
 .transcription-meta {
   display: flex;
   align-items: center;
@@ -861,6 +886,53 @@ body {
 .setting-hint {
   font-size: 11px;
   color: var(--theme-text-muted);
+}
+
+/* GPU info card */
+.gpu-info-card {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  border: 1px solid var(--theme-border-light);
+}
+
+.gpu-info-card.gpu-available {
+  background: rgba(34, 197, 94, 0.05);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.gpu-info-card.gpu-unavailable {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.gpu-info-name {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.gpu-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gpu-dot.green { background: #22c55e; }
+.gpu-dot.gray { background: #9ca3af; }
+
+.gpu-info-detail {
+  color: var(--theme-text-muted);
+  margin-bottom: 2px;
+}
+
+.gpu-info-recommendation {
+  margin-top: 4px;
+  font-style: italic;
+  color: var(--theme-text-dim);
 }
 
 .hotkey-builder {
@@ -2089,4 +2161,156 @@ optgroup {
 
 .statusbar-model {
   opacity: 0.7;
+}
+
+/* ============================================
+   Dictation Overlay
+   ============================================ */
+
+/* Make the overlay webview fully transparent — every layer */
+html:has(.dictation-overlay),
+html:has(.dictation-overlay) body,
+html:has(.dictation-overlay) #app {
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.dictation-overlay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: overlaySlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+  margin: 0;
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+}
+
+@keyframes overlaySlideIn {
+  from { transform: translateY(12px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Icons */
+.overlay-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.overlay-icon.recording {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.overlay-icon.transcribing {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.overlay-icon.done {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.overlay-icon.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+/* Recording pulse ring */
+.overlay-mic-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  border: 2px solid rgba(239, 68, 68, 0.4);
+  animation: micRing 1.5s ease-out infinite;
+}
+
+@keyframes micRing {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+/* Transcribing spinner */
+.overlay-spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(96, 165, 250, 0.2);
+  border-top-color: #60a5fa;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Content wrapper */
+.overlay-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Label */
+.overlay-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Audio level bar */
+.overlay-level-bar {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.overlay-level-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #4ade80, #22d3ee);
+  transition: width 0.08s ease-out;
+  min-width: 2px;
+}
+
+/* State-specific bottom border accent */
+.dictation-overlay.state-recording {
+  border-bottom: 2px solid rgba(239, 68, 68, 0.6);
+}
+
+.dictation-overlay.state-transcribing {
+  border-bottom: 2px solid rgba(59, 130, 246, 0.6);
+}
+
+.dictation-overlay.state-done {
+  border-bottom: 2px solid rgba(34, 197, 94, 0.6);
+}
+
+.dictation-overlay.state-error {
+  border-bottom: 2px solid rgba(239, 68, 68, 0.6);
 }

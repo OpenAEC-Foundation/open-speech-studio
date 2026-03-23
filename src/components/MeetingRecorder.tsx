@@ -1,8 +1,15 @@
-import { createSignal, onCleanup, onMount, Show, For } from "solid-js";
+import { createSignal, createEffect, onCleanup, onMount, Show, For } from "solid-js";
 import { api, type TranscriptionResult, type ModelInfo, getMicAnalyser, isServerMode } from "../lib/api";
 import { useI18n, getLanguageOptions } from "../lib/i18n";
+import { soundRecordStart, soundRecordStop, soundTranscriptionDone, soundError } from "../lib/sounds";
 
-export default function MeetingRecorder() {
+const isTauri = !!(window as any).__TAURI_INTERNALS__;
+
+interface MeetingRecorderProps {
+  activeModelName?: string;
+}
+
+export default function MeetingRecorder(props: MeetingRecorderProps) {
   const { t, locale } = useI18n();
   const [isRecording, setIsRecording] = createSignal(false);
   const [segments, setSegments] = createSignal<TranscriptionResult[]>([]);
@@ -13,6 +20,10 @@ export default function MeetingRecorder() {
   const [useServer, setUseServer] = createSignal(false);
   const [startTime, setStartTime] = createSignal<Date | null>(null);
   const [elapsed, setElapsed] = createSignal("00:00:00");
+
+  // Auto-transcribe interval (minutes)
+  const [autoInterval, setAutoInterval] = createSignal(5);
+  let autoTranscribeTimer: ReturnType<typeof setInterval> | null = null;
 
   // Mic stats
   const [micLevel, setMicLevel] = createSignal(0);
@@ -25,10 +36,18 @@ export default function MeetingRecorder() {
   let animFrame: number | null = null;
   let avgSamples: number[] = [];
 
+  // Keep model in sync with the global model selection (from Models page)
+  createEffect(() => {
+    const fromProps = props.activeModelName;
+    if (fromProps && fromProps !== activeModel()) {
+      setActiveModel(fromProps);
+    }
+  });
+
   onMount(async () => {
     try {
       const s = await api.getSettings();
-      setActiveModel(s.model_name || "");
+      if (!props.activeModelName) setActiveModel(s.model_name || "");
       setActiveLang(s.language || "auto");
     } catch (_) {}
     try {
@@ -41,7 +60,58 @@ export default function MeetingRecorder() {
   onCleanup(() => {
     if (timerInterval) clearInterval(timerInterval);
     if (animFrame) cancelAnimationFrame(animFrame);
+    if (autoTranscribeTimer) clearInterval(autoTranscribeTimer);
+    closeMeetingOverlay();
   });
+
+  // ─── Overlay for meeting recording ──────────────
+  async function showMeetingOverlay() {
+    if (!isTauri) return;
+    try {
+      const { emit } = await import("@tauri-apps/api/event");
+      const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+      const { currentMonitor } = await import("@tauri-apps/api/window");
+
+      // Reuse existing overlay or create a new one
+      const existing = await WebviewWindow.getByLabel("dictation-overlay");
+      if (!existing) {
+        const monitor = await currentMonitor();
+        const screenW = monitor?.size?.width ?? 1920;
+        const screenH = monitor?.size?.height ?? 1080;
+        const scale = monitor?.scaleFactor ?? 1;
+        const overlayW = 280;
+        const overlayH = 64;
+        const margin = 16;
+
+        new WebviewWindow("dictation-overlay", {
+          url: "/?overlay=true",
+          title: "Meeting",
+          width: overlayW,
+          height: overlayH,
+          x: Math.round(screenW / scale) - overlayW - margin,
+          y: Math.round(screenH / scale) - overlayH - margin - 48,
+          decorations: false,
+          alwaysOnTop: true,
+          skipTaskbar: true,
+          resizable: false,
+          transparent: true,
+          focus: false,
+        });
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      await emit("overlay-state", "recording");
+    } catch (e) {
+      console.error("Meeting overlay error:", e);
+    }
+  }
+
+  async function closeMeetingOverlay() {
+    if (!isTauri) return;
+    try {
+      const { emit } = await import("@tauri-apps/api/event");
+      await emit("overlay-close");
+    } catch (_) {}
+  }
 
   const updateElapsed = () => {
     const start = startTime();
@@ -115,13 +185,24 @@ export default function MeetingRecorder() {
 
   const startRecording = async () => {
     try {
+      soundRecordStart();
       await api.startRecording();
       setIsRecording(true);
       setStartTime(new Date());
       setStatus(t("meeting.statusRecording"));
       timerInterval = setInterval(updateElapsed, 1000);
       startMicMonitor();
+      showMeetingOverlay();
+
+      // Start auto-transcribe interval
+      const intervalMs = autoInterval() * 60 * 1000;
+      autoTranscribeTimer = setInterval(() => {
+        if (isRecording()) {
+          captureSegment();
+        }
+      }, intervalMs);
     } catch (e) {
+      soundError();
       setStatus(t("meeting.statusError", { error: String(e) }));
     }
   };
@@ -129,16 +210,20 @@ export default function MeetingRecorder() {
   const captureSegment = async () => {
     if (!isRecording()) return;
     stopMicMonitor();
+    soundRecordStop();
 
     try {
       const result = await api.stopRecording();
       if (result.text && result.text.trim().length > 0) {
         setSegments((prev) => [...prev, result]);
+        soundTranscriptionDone();
       }
+      soundRecordStart();
       await api.startRecording();
       startMicMonitor();
       setStatus(t("meeting.statusSegments", { count: segments().length + 1 }));
     } catch (e) {
+      soundError();
       setStatus(t("meeting.statusSegmentError", { error: String(e) }));
     }
   };
@@ -148,17 +233,25 @@ export default function MeetingRecorder() {
       clearInterval(timerInterval);
       timerInterval = null;
     }
+    if (autoTranscribeTimer) {
+      clearInterval(autoTranscribeTimer);
+      autoTranscribeTimer = null;
+    }
     stopMicMonitor();
+    closeMeetingOverlay();
 
     try {
+      soundRecordStop();
       const result = await api.stopRecording();
       setIsRecording(false);
       if (result.text && result.text.trim().length > 0) {
         setSegments((prev) => [...prev, result]);
+        soundTranscriptionDone();
       }
       setStatus(t("meeting.statusStopped", { count: segments().length + (result.text ? 1 : 0) }));
     } catch (e) {
       setIsRecording(false);
+      soundError();
       setStatus(t("meeting.statusError", { error: String(e) }));
     }
   };
@@ -347,6 +440,22 @@ ${paragraphs}
             <For each={getLanguageOptions(t)}>
               {(l) => <option value={l.value}>{l.label}</option>}
             </For>
+          </select>
+        </div>
+        <div class="meeting-config-item">
+          <label>{t("meeting.autoInterval")}</label>
+          <select
+            value={autoInterval()}
+            onChange={(e) => setAutoInterval(parseInt(e.currentTarget.value, 10))}
+            disabled={isRecording()}
+          >
+            <option value="1">1 min</option>
+            <option value="2">2 min</option>
+            <option value="3">3 min</option>
+            <option value="5">5 min</option>
+            <option value="10">10 min</option>
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
           </select>
         </div>
         <div class="meeting-config-item">

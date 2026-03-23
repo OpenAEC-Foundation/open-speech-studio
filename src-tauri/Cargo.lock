@@ -2977,7 +2977,7 @@ dependencies = [
 
 [[package]]
 name = "open-speech-studio"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "cpal",
  "dirs 5.0.1",
@@ -2998,6 +2998,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-store",
  "tokio",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]

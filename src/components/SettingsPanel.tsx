@@ -53,6 +53,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [fileAutoSave, setFileAutoSave] = createSignal(false);
   const [fileSaveDir, setFileSaveDir] = createSignal("");
   const [fileConfirmActions, setFileConfirmActions] = createSignal(true);
+  const [spellCheck, setSpellCheck] = createSignal(true);
+
+  const [gpuInfo, setGpuInfo] = createSignal<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string } | null>(null);
 
   const [key1, setKey1] = createSignal("CmdOrCtrl");
   const [key2, setKey2] = createSignal("Super");
@@ -71,7 +74,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setFileAutoSave(props.settings.file_auto_save ?? false);
       setFileSaveDir(props.settings.file_save_directory ?? "");
       setFileConfirmActions(props.settings.file_confirm_actions ?? true);
-      const parsed = parseHotkey(props.settings.hotkey || "Alt+Space");
+      setSpellCheck(props.settings.spell_check ?? true);
+      const parsed = parseHotkey(props.settings.hotkey || "Ctrl+Super");
       setKey1(parsed.key1);
       setKey2(parsed.key2);
       setKey3(parsed.key3);
@@ -83,6 +87,10 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     } catch (e) {
       console.error("Failed to get audio devices:", e);
     }
+    try {
+      const gpu = await api.getGpuInfo();
+      setGpuInfo(gpu);
+    } catch (_) {}
   });
 
   const autoSave = (partial: Partial<Settings>) => {
@@ -195,6 +203,21 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 {useGpu() ? t("settings.gpuEnabled") : t("settings.gpuDisabled")}
               </span>
             </div>
+            <Show when={gpuInfo()}>
+              <div class={`gpu-info-card ${gpuInfo()!.available ? "gpu-available" : "gpu-unavailable"}`}>
+                <div class="gpu-info-name">
+                  <span class={`gpu-dot ${gpuInfo()!.available ? "green" : "gray"}`} />
+                  {gpuInfo()!.name}
+                </div>
+                <Show when={gpuInfo()!.vram_mb > 0}>
+                  <div class="gpu-info-detail">VRAM: {gpuInfo()!.vram_mb >= 1024 ? `${(gpuInfo()!.vram_mb / 1024).toFixed(1)} GB` : `${gpuInfo()!.vram_mb} MB`}</div>
+                </Show>
+                <Show when={gpuInfo()!.driver}>
+                  <div class="gpu-info-detail">{t("settings.gpuDriver")}: {gpuInfo()!.driver}</div>
+                </Show>
+                <div class="gpu-info-recommendation">{gpuInfo()!.recommendation}</div>
+              </div>
+            </Show>
           </div>
 
           <div class="setting-row">
@@ -209,6 +232,23 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 <span class="toggle-slider" />
               </label>
               <span class="setting-hint">{t("settings.autoPasteHint")}</span>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <label>{t("settings.spellCheck")}</label>
+            <div class="toggle-group">
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  checked={spellCheck()}
+                  onChange={(e) => { setSpellCheck(e.target.checked); autoSave({ spell_check: e.target.checked }); }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <span class="setting-hint">
+                {spellCheck() ? t("settings.spellCheckEnabled") : t("settings.spellCheckDisabled")}
+              </span>
             </div>
           </div>
         </div>

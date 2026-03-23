@@ -1,6 +1,7 @@
 mod audio;
 mod dictionary;
 mod settings;
+mod spellcheck;
 mod transcriber;
 
 use serde::{Deserialize, Serialize};
@@ -20,11 +21,17 @@ pub struct AppState {
     is_recording: Arc<Mutex<bool>>,
     /// Active file transcription jobs: job_id -> child PID (for cancellation)
     file_jobs: Arc<Mutex<HashMap<String, u32>>>,
+    /// The window handle (HWND) that was focused when recording started.
+    /// Text will be typed back into this window after transcription completes.
+    source_window: Arc<Mutex<usize>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TranscriptionResult {
     pub text: String,
+    /// The raw text before spell-check corrections (None if spell-check is off)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_text: Option<String>,
     pub language: String,
     pub duration_ms: u64,
 }
@@ -174,6 +181,18 @@ async fn start_recording(state: State<'_, AppState>) -> Result<(), String> {
         return Ok(());
     }
 
+    // Capture the currently focused window so we can restore it after transcription
+    #[cfg(target_os = "windows")]
+    {
+        #[link(name = "user32")]
+        extern "system" {
+            fn GetForegroundWindow() -> usize;
+        }
+        let hwnd = unsafe { GetForegroundWindow() };
+        let mut sw = state.source_window.lock().map_err(|e| e.to_string())?;
+        *sw = hwnd;
+    }
+
     let mut recorder = audio::AudioRecorder::new().map_err(|e| e.to_string())?;
     recorder.start().map_err(|e| e.to_string())?;
 
@@ -215,8 +234,18 @@ async fn stop_recording(state: State<'_, AppState>) -> Result<TranscriptionResul
     let dict = state.dictionary.lock().map_err(|e| e.to_string())?;
     text = dict.apply_corrections(&text);
 
+    // Apply spell-check if enabled
+    let original_text = if settings.spell_check {
+        let before = text.clone();
+        text = spellcheck::correct(&text, &settings.language);
+        if text != before { Some(before) } else { None }
+    } else {
+        None
+    };
+
     Ok(TranscriptionResult {
         text,
+        original_text,
         language: settings.language.clone(),
         duration_ms,
     })
@@ -317,9 +346,42 @@ async fn start_file_job(
         )
     };
 
+    // Whisper.cpp only reads WAV 16kHz mono. Convert other formats via ffmpeg.
+    let actual_file = if file_path.to_lowercase().ends_with(".wav") {
+        file_path.clone()
+    } else {
+        let temp_wav = std::env::temp_dir()
+            .join(format!("oss_convert_{}.wav", &job_id));
+        let temp_path = temp_wav.to_string_lossy().to_string();
+
+        let mut ffmpeg = Command::new("ffmpeg");
+        ffmpeg.args([
+            "-y", "-i", &file_path,
+            "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le",
+            &temp_path,
+        ]);
+        ffmpeg.stdout(Stdio::null());
+        ffmpeg.stderr(Stdio::piped());
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            ffmpeg.creation_flags(CREATE_NO_WINDOW);
+        }
+        let ff_out = ffmpeg.output()
+            .map_err(|e| format!("ffmpeg not found — install ffmpeg to transcribe non-WAV files: {}", e))?;
+        if !ff_out.status.success() {
+            return Err(format!(
+                "ffmpeg conversion failed: {}",
+                String::from_utf8_lossy(&ff_out.stderr)
+            ));
+        }
+        temp_path
+    };
+
     let mut cmd = Command::new(&whisper_bin);
     cmd.arg("-m").arg(&model_path);
-    cmd.arg("-f").arg(&file_path);
+    cmd.arg("-f").arg(&actual_file);
     cmd.arg("--no-timestamps");
     cmd.arg("-t").arg("4");
     // No --output-txt: we read from stdout, don't create files next to the input
@@ -350,6 +412,8 @@ async fn start_file_job(
     let job_id_clone = job_id.clone();
     let language_clone = language.clone();
     let file_path_clone = file_path.clone();
+    let actual_file_clone = actual_file.clone();
+    let is_temp_file = actual_file != file_path;
 
     // Spawn a thread to read stderr for progress and wait for completion
     std::thread::spawn(move || {
@@ -379,6 +443,11 @@ async fn start_file_job(
         // Remove from active jobs
         if let Ok(mut jobs) = file_jobs.lock() {
             jobs.remove(&job_id_clone);
+        }
+
+        // Clean up temporary WAV conversion
+        if is_temp_file {
+            let _ = std::fs::remove_file(&actual_file_clone);
         }
 
         let (text, error) = match status {
@@ -484,6 +553,113 @@ async fn get_audio_level(state: State<'_, AppState>) -> Result<f32, String> {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GpuInfo {
+    pub available: bool,
+    pub name: String,
+    pub vram_mb: u64,
+    pub driver: String,
+    pub recommendation: String,
+}
+
+#[tauri::command]
+async fn get_gpu_info() -> Result<GpuInfo, String> {
+    // Try to detect GPU via system commands
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        // Try nvidia-smi first (NVIDIA GPUs)
+        if let Ok(output) = Command::new("nvidia-smi")
+            .args(["--query-gpu=name,memory.total,driver_version", "--format=csv,noheader,nounits"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
+            if output.status.success() {
+                let text = String::from_utf8_lossy(&output.stdout);
+                let parts: Vec<&str> = text.trim().split(", ").collect();
+                if parts.len() >= 3 {
+                    let name = parts[0].trim().to_string();
+                    let vram_mb: u64 = parts[1].trim().parse().unwrap_or(0);
+                    let driver = parts[2].trim().to_string();
+                    let recommendation = if vram_mb >= 4096 {
+                        "GPU acceleration recommended — enough VRAM for all models".to_string()
+                    } else if vram_mb >= 2048 {
+                        "GPU acceleration useful for small/base models".to_string()
+                    } else {
+                        "Limited VRAM — CPU may be faster for larger models".to_string()
+                    };
+                    return Ok(GpuInfo { available: true, name, vram_mb, driver, recommendation });
+                }
+            }
+        }
+
+        // Fallback: WMIC for any GPU
+        if let Ok(output) = Command::new("wmic")
+            .args(["path", "win32_VideoController", "get", "Name,AdapterRAM,DriverVersion", "/format:csv"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
+            if output.status.success() {
+                let text = String::from_utf8_lossy(&output.stdout);
+                for line in text.lines().skip(1) {
+                    let parts: Vec<&str> = line.split(',').collect();
+                    if parts.len() >= 4 {
+                        let vram_bytes: u64 = parts[1].trim().parse().unwrap_or(0);
+                        let vram_mb = vram_bytes / (1024 * 1024);
+                        let driver = parts[2].trim().to_string();
+                        let name = parts[3].trim().to_string();
+                        if name.is_empty() { continue; }
+                        let is_dedicated = name.to_lowercase().contains("nvidia")
+                            || name.to_lowercase().contains("radeon")
+                            || name.to_lowercase().contains("geforce")
+                            || name.to_lowercase().contains("arc");
+                        let recommendation = if !is_dedicated {
+                            "Integrated GPU detected — CPU mode is recommended".to_string()
+                        } else if vram_mb >= 4096 {
+                            "Dedicated GPU with enough VRAM — GPU acceleration recommended".to_string()
+                        } else if vram_mb >= 2048 {
+                            "GPU acceleration may help for smaller models".to_string()
+                        } else {
+                            "Limited VRAM — CPU mode may be faster".to_string()
+                        };
+                        return Ok(GpuInfo { available: is_dedicated, name, vram_mb, driver, recommendation });
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // macOS/Linux: basic detection
+        if let Ok(output) = std::process::Command::new("lspci").output() {
+            let text = String::from_utf8_lossy(&output.stdout);
+            for line in text.lines() {
+                let lower = line.to_lowercase();
+                if lower.contains("vga") || lower.contains("3d") || lower.contains("display") {
+                    let name = line.split(':').last().unwrap_or("Unknown GPU").trim().to_string();
+                    return Ok(GpuInfo {
+                        available: true, name, vram_mb: 0,
+                        driver: String::new(),
+                        recommendation: "GPU detected — try enabling GPU acceleration".to_string(),
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(GpuInfo {
+        available: false,
+        name: "No dedicated GPU detected".to_string(),
+        vram_mb: 0,
+        driver: String::new(),
+        recommendation: "No dedicated GPU found — CPU mode is the best option".to_string(),
+    })
+}
+
 #[tauri::command]
 async fn save_text_file(path: String, content: String) -> Result<(), String> {
     std::fs::write(&path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
@@ -491,7 +667,22 @@ async fn save_text_file(path: String, content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn type_text(text: String) -> Result<(), String> {
+async fn type_text(state: State<'_, AppState>, text: String) -> Result<(), String> {
+    // Restore focus to the window that was active when recording started
+    #[cfg(target_os = "windows")]
+    {
+        #[link(name = "user32")]
+        extern "system" {
+            fn SetForegroundWindow(hwnd: usize) -> i32;
+        }
+        let hwnd = *state.source_window.lock().map_err(|e| e.to_string())?;
+        if hwnd != 0 {
+            unsafe { SetForegroundWindow(hwnd); }
+            // Brief pause to let the OS complete the focus switch
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+    }
+
     use enigo::{Enigo, Keyboard, Settings};
     let mut enigo = Enigo::new(&Settings::default()).map_err(|e| {
         #[cfg(target_os = "macos")]
@@ -596,6 +787,7 @@ pub fn run() {
             dictionary: Arc::new(Mutex::new(dictionary)),
             is_recording: Arc::new(Mutex::new(false)),
             file_jobs: Arc::new(Mutex::new(HashMap::new())),
+            source_window: Arc::new(Mutex::new(0)),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -615,6 +807,7 @@ pub fn run() {
             cancel_file_job,
             get_audio_devices,
             get_audio_level,
+            get_gpu_info,
             is_model_loaded,
             save_text_file,
             type_text,
@@ -711,6 +904,101 @@ pub fn run() {
             // Emit startup-ready event so frontend can show notification
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.emit("app-ready", "Open Speech Studio");
+            }
+
+            // Windows low-level keyboard hook for Ctrl+Win (OS intercepts this before
+            // the global-shortcut plugin sees it, so we need our own hook).
+            #[cfg(target_os = "windows")]
+            {
+                let app_handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    use std::sync::atomic::{AtomicBool, Ordering};
+                    use windows_sys::Win32::UI::WindowsAndMessaging::*;
+                    use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
+                    use windows_sys::Win32::Foundation::*;
+
+                    static CTRL_DOWN: AtomicBool = AtomicBool::new(false);
+                    static WIN_DOWN: AtomicBool = AtomicBool::new(false);
+                    static COMBO_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+                    // We store the app handle in a thread-local so the hook callback can reach it
+                    thread_local! {
+                        static APP: std::cell::RefCell<Option<tauri::AppHandle>> = std::cell::RefCell::new(None);
+                    }
+                    APP.with(|a| *a.borrow_mut() = Some(app_handle));
+
+                    unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+                        if code >= 0 {
+                            let kb = &*(lparam as *const KBDLLHOOKSTRUCT);
+                            let vk = kb.vkCode;
+                            let is_down = wparam == WM_KEYDOWN as usize || wparam == WM_SYSKEYDOWN as usize;
+                            let is_up = wparam == WM_KEYUP as usize || wparam == WM_SYSKEYUP as usize;
+
+                            // Track Ctrl state
+                            if vk == VK_LCONTROL as u32 || vk == VK_RCONTROL as u32 {
+                                if is_down { CTRL_DOWN.store(true, Ordering::SeqCst); }
+                                if is_up {
+                                    CTRL_DOWN.store(false, Ordering::SeqCst);
+                                    if COMBO_ACTIVE.swap(false, Ordering::SeqCst) {
+                                        APP.with(|a| {
+                                            if let Some(ref handle) = *a.borrow() {
+                                                let _ = handle.emit("ctrl-win-released", ());
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                            // Track Win state
+                            if vk == VK_LWIN as u32 || vk == VK_RWIN as u32 {
+                                if is_down {
+                                    WIN_DOWN.store(true, Ordering::SeqCst);
+                                    if CTRL_DOWN.load(Ordering::SeqCst) && !COMBO_ACTIVE.load(Ordering::SeqCst) {
+                                        COMBO_ACTIVE.store(true, Ordering::SeqCst);
+                                        APP.with(|a| {
+                                            if let Some(ref handle) = *a.borrow() {
+                                                let _ = handle.emit("ctrl-win-pressed", ());
+                                            }
+                                        });
+                                        // Suppress the Win key so the Start menu doesn't open
+                                        return 1;
+                                    }
+                                }
+                                if is_up {
+                                    WIN_DOWN.store(false, Ordering::SeqCst);
+                                    if COMBO_ACTIVE.swap(false, Ordering::SeqCst) {
+                                        APP.with(|a| {
+                                            if let Some(ref handle) = *a.borrow() {
+                                                let _ = handle.emit("ctrl-win-released", ());
+                                            }
+                                        });
+                                        return 1;
+                                    }
+                                }
+                            }
+                            // Also suppress Win key while combo is active
+                            if COMBO_ACTIVE.load(Ordering::SeqCst) && (vk == VK_LWIN as u32 || vk == VK_RWIN as u32) {
+                                return 1;
+                            }
+                        }
+                        CallNextHookEx(std::ptr::null_mut(), code, wparam, lparam)
+                    }
+
+                    unsafe {
+                        let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(hook_proc), std::ptr::null_mut(), 0);
+                        if !hook.is_null() {
+                            log::info!("Low-level keyboard hook installed for Ctrl+Win");
+                            let mut msg: MSG = std::mem::zeroed();
+                            // Message pump (required for LL hooks)
+                            while GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) != 0 {
+                                TranslateMessage(&msg);
+                                DispatchMessageW(&msg);
+                            }
+                            UnhookWindowsHookEx(hook);
+                        } else {
+                            log::error!("Failed to install keyboard hook");
+                        }
+                    }
+                });
             }
 
             Ok(())
