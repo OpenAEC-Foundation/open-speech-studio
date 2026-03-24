@@ -38,6 +38,9 @@ symphonia = { version = "0.5", features = ["mp3", "aac", "ogg", "flac", "wav", "
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.60", features = ["Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Foundation"] }
 
+[target.'cfg(not(windows))'.dependencies]
+libc = "0.2"
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
