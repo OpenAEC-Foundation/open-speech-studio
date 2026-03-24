@@ -71,6 +71,7 @@ const tauriApi = {
   getAudioLevel: () => tauriInvoke<number>("get_audio_level"),
   isModelLoaded: () => tauriInvoke<boolean>("is_model_loaded"),
   getGpuInfo: () => tauriInvoke<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string }>("get_gpu_info"),
+  getGpuStatus: () => tauriInvoke<{ enabled: boolean; cuda_available: boolean; active: boolean; device_name: string }>("get_gpu_status"),
   typeText: (text: string) => tauriInvoke<void>("type_text", { text }),
   startFileJob: (jobId: string, filePath: string) =>
     tauriInvoke<void>("start_file_job", { jobId, filePath }),
@@ -520,6 +521,7 @@ const browserApi = {
 
   typeText: (_text: string) => Promise.resolve(),
   getGpuInfo: () => Promise.resolve({ available: false, name: "Not available in browser mode", vram_mb: 0, driver: "", recommendation: "GPU detection requires the desktop app" }),
+  getGpuStatus: () => Promise.resolve({ enabled: false, cuda_available: false, active: false, device_name: "" }),
   startFileJob: (_jobId: string, _filePath: string) =>
     Promise.reject(new Error("File transcription is not available in browser mode.")),
   cancelFileJob: (_jobId: string) =>

@@ -935,6 +935,45 @@ body {
   color: var(--theme-text-dim);
 }
 
+/* GPU status badge */
+.gpu-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gpu-status-badge.gpu-active {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #16a34a;
+}
+
+.gpu-status-badge.gpu-pending {
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #a16207;
+}
+
+.gpu-status-badge.gpu-off {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--theme-border-light);
+  color: var(--theme-text-muted);
+}
+
+.gpu-status-icon {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.gpu-check { color: #16a34a; }
+.gpu-warn { color: #a16207; }
+.gpu-off-icon { color: #9ca3af; font-size: 8px; }
+
 .hotkey-builder {
   display: flex;
   align-items: center;

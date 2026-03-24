@@ -56,6 +56,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [spellCheck, setSpellCheck] = createSignal(true);
 
   const [gpuInfo, setGpuInfo] = createSignal<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string } | null>(null);
+  const [gpuStatus, setGpuStatus] = createSignal<{ enabled: boolean; cuda_available: boolean; active: boolean; device_name: string } | null>(null);
+  const [gpuLoading, setGpuLoading] = createSignal(false);
 
   const [key1, setKey1] = createSignal("CmdOrCtrl");
   const [key2, setKey2] = createSignal("Super");
@@ -90,6 +92,10 @@ export default function SettingsPanel(props: SettingsPanelProps) {
     try {
       const gpu = await api.getGpuInfo();
       setGpuInfo(gpu);
+    } catch (_) {}
+    try {
+      const status = await api.getGpuStatus();
+      setGpuStatus(status);
     } catch (_) {}
   });
 
@@ -195,7 +201,22 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 <input
                   type="checkbox"
                   checked={useGpu()}
-                  onChange={(e) => { setUseGpu(e.target.checked); autoSave({ use_gpu: e.target.checked }); }}
+                  onChange={async (e) => {
+                    const val = e.target.checked;
+                    setUseGpu(val);
+                    autoSave({ use_gpu: val });
+                    setGpuLoading(true);
+                    // Reload model with new GPU setting
+                    try {
+                      const s = props.settings;
+                      if (s?.model_path) {
+                        await api.loadModel(s.model_path);
+                      }
+                      const status = await api.getGpuStatus();
+                      setGpuStatus(status);
+                    } catch (_) {}
+                    setGpuLoading(false);
+                  }}
                 />
                 <span class="toggle-slider" />
               </label>
@@ -216,6 +237,27 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   <div class="gpu-info-detail">{t("settings.gpuDriver")}: {gpuInfo()!.driver}</div>
                 </Show>
                 <div class="gpu-info-recommendation">{gpuInfo()!.recommendation}</div>
+              </div>
+            </Show>
+            <Show when={gpuStatus()}>
+              <div class={`gpu-status-badge ${gpuStatus()!.active ? "gpu-active" : gpuStatus()!.enabled ? "gpu-pending" : "gpu-off"}`}>
+                <Show when={gpuLoading()}>
+                  <span class="gpu-status-icon">...</span>
+                </Show>
+                <Show when={!gpuLoading()}>
+                  <Show when={gpuStatus()!.active}>
+                    <span class="gpu-status-icon gpu-check">&#10003;</span>
+                    <span>CUDA {t("settings.gpuStatusActive")}: {gpuStatus()!.device_name}</span>
+                  </Show>
+                  <Show when={!gpuStatus()!.active && gpuStatus()!.enabled}>
+                    <span class="gpu-status-icon gpu-warn">!</span>
+                    <span>{gpuStatus()!.cuda_available ? t("settings.gpuStatusNotDetected") : t("settings.gpuStatusNoCuda")}</span>
+                  </Show>
+                  <Show when={!gpuStatus()!.enabled}>
+                    <span class="gpu-status-icon gpu-off-icon">&#9679;</span>
+                    <span>{t("settings.gpuStatusOff")}</span>
+                  </Show>
+                </Show>
               </div>
             </Show>
           </div>

@@ -263,6 +263,70 @@ async fn is_model_loaded(state: State<'_, AppState>) -> Result<bool, String> {
     Ok(transcriber.is_some())
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GpuStatus {
+    pub enabled: bool,
+    pub cuda_available: bool,
+    pub active: bool,
+    pub device_name: String,
+}
+
+/// Check whether GPU/CUDA is actually active for the loaded model.
+#[tauri::command]
+async fn get_gpu_status(state: State<'_, AppState>) -> Result<GpuStatus, String> {
+    let settings = state.settings.lock().map_err(|e| e.to_string())?;
+    let enabled = settings.use_gpu;
+
+    // Check if ggml-cuda.dll exists next to the whisper binary
+    let cuda_available = {
+        let transcriber = state.transcriber.lock().map_err(|e| e.to_string())?;
+        if let Some(t) = transcriber.as_ref() {
+            t.whisper_bin.parent()
+                .map(|dir| dir.join("ggml-cuda.dll").exists())
+                .unwrap_or(false)
+        } else {
+            false
+        }
+    };
+
+    // Quick probe: run whisper-cli --help and check for CUDA device detection
+    let (active, device_name) = if enabled && cuda_available {
+        let transcriber = state.transcriber.lock().map_err(|e| e.to_string())?;
+        if let Some(t) = transcriber.as_ref() {
+            let mut cmd = std::process::Command::new(&t.whisper_bin);
+            cmd.arg("--help");
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                cmd.creation_flags(0x08000000u32);
+            }
+            if let Ok(output) = cmd.output() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                // whisper.cpp CUDA build prints: "ggml_cuda_init: found N CUDA devices:"
+                // followed by "  Device 0: <name>, compute capability X.Y"
+                if stderr.contains("CUDA devices") {
+                    let name = stderr.lines()
+                        .find(|l| l.contains("Device 0:"))
+                        .and_then(|l| l.split("Device 0:").nth(1))
+                        .map(|s| s.split(',').next().unwrap_or("").trim().to_string())
+                        .unwrap_or_default();
+                    (true, name)
+                } else {
+                    (false, String::new())
+                }
+            } else {
+                (false, String::new())
+            }
+        } else {
+            (false, String::new())
+        }
+    } else {
+        (false, String::new())
+    };
+
+    Ok(GpuStatus { enabled, cuda_available, active, device_name })
+}
+
 #[tauri::command]
 async fn get_dictionary(state: State<'_, AppState>) -> Result<dictionary::Dictionary, String> {
     let dict = state.dictionary.lock().map_err(|e| e.to_string())?;
@@ -331,7 +395,7 @@ async fn start_file_job(
     use std::io::{BufRead, BufReader};
 
     // Gather what we need without holding locks long
-    let (whisper_bin, model_path, language, dict) = {
+    let (whisper_bin, model_path, language, use_gpu, dict) = {
         let settings = state.settings.lock().map_err(|e| e.to_string())?;
         let transcriber_guard = state.transcriber.lock().map_err(|e| e.to_string())?;
         let t = transcriber_guard
@@ -342,6 +406,7 @@ async fn start_file_job(
             t.whisper_bin.clone(),
             t.model_path.clone(),
             settings.language.clone(),
+            settings.use_gpu,
             d,
         )
     };
@@ -383,6 +448,9 @@ async fn start_file_job(
     cmd.arg("-m").arg(&model_path);
     cmd.arg("-f").arg(&actual_file);
     cmd.arg("--no-timestamps");
+    if !use_gpu {
+        cmd.arg("--no-gpu");
+    }
     cmd.arg("-t").arg("4");
     // No --output-txt: we read from stdout, don't create files next to the input
     cmd.stderr(Stdio::piped());
@@ -808,6 +876,7 @@ pub fn run() {
             get_audio_devices,
             get_audio_level,
             get_gpu_info,
+            get_gpu_status,
             is_model_loaded,
             save_text_file,
             type_text,

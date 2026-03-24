@@ -6,10 +6,11 @@ use std::process::Command;
 pub struct Transcriber {
     pub(crate) whisper_bin: PathBuf,
     pub(crate) model_path: PathBuf,
+    use_gpu: bool,
 }
 
 impl Transcriber {
-    pub fn new(model_path: &str, _use_gpu: bool) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(model_path: &str, use_gpu: bool) -> Result<Self, Box<dyn std::error::Error>> {
         let model = PathBuf::from(model_path);
         if !model.exists() {
             return Err(format!("Model not found: {}", model_path).into());
@@ -28,10 +29,46 @@ impl Transcriber {
         let whisper_bin = find_whisper_binary()?;
         log::info!("Using whisper binary: {}", whisper_bin.display());
 
+        // Check if CUDA DLL is available when GPU is requested
+        if use_gpu {
+            if let Some(bin_dir) = whisper_bin.parent() {
+                let cuda_dll = bin_dir.join("ggml-cuda.dll");
+                if cuda_dll.exists() {
+                    log::info!("CUDA support available: {}", cuda_dll.display());
+                } else {
+                    log::warn!("GPU requested but ggml-cuda.dll not found — falling back to CPU");
+                }
+            }
+        }
+
         Ok(Self {
             whisper_bin,
             model_path: model,
+            use_gpu,
         })
+    }
+
+    /// Apply common whisper.cpp arguments to a command.
+    fn apply_common_args(&self, cmd: &mut Command, language: &str) {
+        cmd.arg("-m").arg(&self.model_path);
+        cmd.arg("--no-timestamps");
+
+        // CUDA build uses GPU by default; pass --no-gpu to force CPU
+        if !self.use_gpu {
+            cmd.arg("--no-gpu");
+        }
+        cmd.arg("-t").arg("4");
+
+        if !language.is_empty() && language != "auto" {
+            cmd.arg("-l").arg(language);
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
     }
 
     /// Transcribe an audio/video file directly via whisper.cpp CLI.
@@ -46,22 +83,8 @@ impl Transcriber {
         }
 
         let mut cmd = Command::new(&self.whisper_bin);
-        cmd.arg("-m").arg(&self.model_path);
         cmd.arg("-f").arg(file_path);
-        cmd.arg("--no-timestamps");
-        cmd.arg("-t").arg("4");
-        // No --output-txt: we read from stdout, don't create files next to the input
-
-        if !language.is_empty() && language != "auto" {
-            cmd.arg("-l").arg(language);
-        }
-
-        #[cfg(target_os = "windows")]
-        {
-            use std::os::windows::process::CommandExt;
-            const CREATE_NO_WINDOW: u32 = 0x08000000;
-            cmd.creation_flags(CREATE_NO_WINDOW);
-        }
+        self.apply_common_args(&mut cmd, language);
 
         log::info!("Running whisper on file: {:?}", cmd);
 
@@ -101,28 +124,11 @@ impl Transcriber {
         let wav_path = temp_dir.join("oss_recording.wav");
         write_wav(&wav_path, audio_data, 16000)?;
 
-        // Build whisper.cpp command
         let mut cmd = Command::new(&self.whisper_bin);
-        cmd.arg("-m").arg(&self.model_path);
         cmd.arg("-f").arg(&wav_path);
-        cmd.arg("--no-timestamps");
-        cmd.arg("-t").arg("4"); // threads
-        // No --output-txt: we read from stdout, don't create files next to the input // plain text output
+        self.apply_common_args(&mut cmd, language);
 
-        // Set language
-        if !language.is_empty() && language != "auto" {
-            cmd.arg("-l").arg(language);
-        }
-
-        // Hide the console window on Windows
-        #[cfg(target_os = "windows")]
-        {
-            use std::os::windows::process::CommandExt;
-            const CREATE_NO_WINDOW: u32 = 0x08000000;
-            cmd.creation_flags(CREATE_NO_WINDOW);
-        }
-
-        log::info!("Running whisper: {:?}", cmd);
+        log::info!("Running whisper (gpu={}): {:?}", self.use_gpu, cmd);
 
         let output = cmd.output()?;
 
@@ -134,7 +140,6 @@ impl Transcriber {
             return Err(format!("Whisper failed: {}", stderr).into());
         }
 
-        // whisper.cpp with --no-timestamps prints text to stdout
         let text = String::from_utf8_lossy(&output.stdout)
             .trim()
             .to_string();
