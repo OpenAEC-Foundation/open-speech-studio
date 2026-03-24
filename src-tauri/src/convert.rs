@@ -1,6 +1,6 @@
 //! Native audio file conversion using symphonia (decode) + hound (WAV write).
 //!
-//! Converts any supported audio format (mp3, m4a/aac, ogg, flac, wav) to
+//! Converts any supported audio format (mp3, m4a/aac, flac, wav) to
 //! 16 kHz mono PCM 16-bit WAV — the format whisper.cpp expects.
 
 use std::path::Path;
