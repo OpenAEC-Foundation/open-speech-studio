@@ -1,10 +1,15 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// Audio buffer that is shared between threads.
 /// The cpal::Stream is stored so it is dropped (and the mic released) on stop.
 pub struct AudioRecorder {
     buffer: Arc<Mutex<Vec<f32>>>,
+    /// Secondary buffer for dictation — only filled when dictation_active is true.
+    dictation_buffer: Arc<Mutex<Vec<f32>>>,
+    /// Flag: when true the cpal callback also writes to dictation_buffer.
+    dictation_active: Arc<AtomicBool>,
     /// Current RMS audio level (0.0–1.0), updated by the recording callback.
     pub level: Arc<Mutex<f32>>,
     sample_rate: u32,
@@ -21,6 +26,8 @@ impl AudioRecorder {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
             buffer: Arc::new(Mutex::new(Vec::new())),
+            dictation_buffer: Arc::new(Mutex::new(Vec::new())),
+            dictation_active: Arc::new(AtomicBool::new(false)),
             level: Arc::new(Mutex::new(0.0)),
             sample_rate: 16000,
             stream: None,
@@ -51,6 +58,8 @@ impl AudioRecorder {
         };
 
         let buffer = self.buffer.clone();
+        let dictation_buffer = self.dictation_buffer.clone();
+        let dictation_active = self.dictation_active.clone();
         let level = self.level.clone();
         let target_rate = self.sample_rate;
 
@@ -66,35 +75,46 @@ impl AudioRecorder {
                     }
                 }
 
-                if let Ok(mut buf) = buffer.lock() {
-                    // Mix to mono if needed, then resample to 16kHz
-                    let mono: Vec<f32> = if device_channels > 1 {
-                        data.chunks(device_channels)
-                            .map(|frame| frame.iter().sum::<f32>() / device_channels as f32)
-                            .collect()
-                    } else {
-                        data.to_vec()
-                    };
+                // Mix to mono if needed, then resample to 16kHz
+                let mono: Vec<f32> = if device_channels > 1 {
+                    data.chunks(device_channels)
+                        .map(|frame| frame.iter().sum::<f32>() / device_channels as f32)
+                        .collect()
+                } else {
+                    data.to_vec()
+                };
 
-                    if device_sample_rate == target_rate {
-                        buf.extend_from_slice(&mono);
-                    } else {
-                        // Simple linear resampling
-                        let ratio = device_sample_rate as f64 / target_rate as f64;
-                        let out_len = (mono.len() as f64 / ratio) as usize;
-                        for i in 0..out_len {
-                            let src_idx = i as f64 * ratio;
-                            let idx = src_idx as usize;
-                            let frac = src_idx - idx as f64;
-                            let sample = if idx + 1 < mono.len() {
-                                mono[idx] * (1.0 - frac as f32) + mono[idx + 1] * frac as f32
-                            } else if idx < mono.len() {
-                                mono[idx]
-                            } else {
-                                0.0
-                            };
-                            buf.push(sample);
-                        }
+                let resampled = if device_sample_rate == target_rate {
+                    mono
+                } else {
+                    let ratio = device_sample_rate as f64 / target_rate as f64;
+                    let out_len = (mono.len() as f64 / ratio) as usize;
+                    let mut out = Vec::with_capacity(out_len);
+                    for i in 0..out_len {
+                        let src_idx = i as f64 * ratio;
+                        let idx = src_idx as usize;
+                        let frac = src_idx - idx as f64;
+                        let sample = if idx + 1 < mono.len() {
+                            mono[idx] * (1.0 - frac as f32) + mono[idx + 1] * frac as f32
+                        } else if idx < mono.len() {
+                            mono[idx]
+                        } else {
+                            0.0
+                        };
+                        out.push(sample);
+                    }
+                    out
+                };
+
+                // Write to main buffer
+                if let Ok(mut buf) = buffer.lock() {
+                    buf.extend_from_slice(&resampled);
+                }
+
+                // Write to dictation buffer if active
+                if dictation_active.load(Ordering::Relaxed) {
+                    if let Ok(mut dbuf) = dictation_buffer.lock() {
+                        dbuf.extend_from_slice(&resampled);
                     }
                 }
             },
@@ -112,12 +132,39 @@ impl AudioRecorder {
         Ok(())
     }
 
-    pub fn stop(mut self) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+    /// Stop recording entirely — drops the audio stream and returns the main buffer.
+    pub fn stop(&mut self) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
         // Drop the stream to release the microphone
         self.stream.take();
+        self.dictation_active.store(false, Ordering::Relaxed);
 
         let buffer = self.buffer.lock().map_err(|e| e.to_string())?;
         Ok(buffer.clone())
+    }
+
+    /// Take the main buffer contents and clear it (for meeting segment capture).
+    pub fn take_buffer(&self) -> Vec<f32> {
+        let mut buf = self.buffer.lock().unwrap();
+        let data = buf.clone();
+        buf.clear();
+        data
+    }
+
+    /// Start filling the dictation buffer.
+    pub fn start_dictation(&self) {
+        if let Ok(mut dbuf) = self.dictation_buffer.lock() {
+            dbuf.clear();
+        }
+        self.dictation_active.store(true, Ordering::Relaxed);
+    }
+
+    /// Stop filling the dictation buffer and return its contents.
+    pub fn stop_dictation(&self) -> Vec<f32> {
+        self.dictation_active.store(false, Ordering::Relaxed);
+        let mut buf = self.dictation_buffer.lock().unwrap();
+        let data = buf.clone();
+        buf.clear();
+        data
     }
 }
 

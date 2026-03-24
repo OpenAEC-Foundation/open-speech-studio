@@ -298,7 +298,7 @@ export default function App() {
 
     try {
       if (settings()?.audio_feedback !== false) soundRecordStart();
-      await api.startRecording();
+      await api.startDictation();
       recordingStartedAt = Date.now();
       setIsRecording(true);
       await showOverlay("recording");
@@ -320,7 +320,7 @@ export default function App() {
       const estSec = getEstimatedSeconds(modelName, recDuration);
       await showOverlay("transcribing", `~${estSec}s`);
       const transcribeStart = Date.now();
-      const result = await api.stopRecording();
+      const result = await api.stopDictation();
       const transcribeDuration = Date.now() - transcribeStart;
       updateEstimate(modelName, recDuration, transcribeDuration);
       setIsRecording(false);

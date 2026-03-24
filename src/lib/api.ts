@@ -63,6 +63,9 @@ const tauriApi = {
   startRecording: () => tauriInvoke<void>("start_recording"),
   stopRecording: () => tauriInvoke<TranscriptionResult>("stop_recording"),
   getRecordingStatus: () => tauriInvoke<boolean>("get_recording_status"),
+  startDictation: () => tauriInvoke<void>("start_dictation"),
+  stopDictation: () => tauriInvoke<TranscriptionResult>("stop_dictation"),
+  getDictationStatus: () => tauriInvoke<boolean>("get_dictation_status"),
   getDictionary: () => tauriInvoke<Dictionary>("get_dictionary"),
   saveDictionary: (dict: Dictionary) => tauriInvoke<void>("save_dictionary", { dict }),
   addDictionaryWord: (word: string, replacement: string | null) =>
@@ -473,6 +476,9 @@ const browserApi = {
   },
 
   getRecordingStatus: () => Promise.resolve(recognition !== null || isServerRecording),
+  startDictation: async () => browserApi.startRecording(),
+  stopDictation: async () => browserApi.stopRecording(),
+  getDictationStatus: () => Promise.resolve(false),
 
   getDictionary: () => Promise.resolve({ ...currentDict }),
 

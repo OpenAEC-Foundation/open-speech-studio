@@ -51,11 +51,14 @@ pub struct AppState {
     settings: Arc<Mutex<settings::Settings>>,
     dictionary: Arc<Mutex<dictionary::Dictionary>>,
     is_recording: Arc<Mutex<bool>>,
+    is_dictating: Arc<Mutex<bool>>,
     /// Active file transcription jobs: job_id -> child PID (for cancellation)
     file_jobs: Arc<Mutex<HashMap<String, u32>>>,
     /// The window handle (HWND) that was focused when recording started.
     /// Text will be typed back into this window after transcription completes.
     source_window: Arc<Mutex<usize>>,
+    /// The window handle for dictation (separate from meeting source_window).
+    dictation_source_window: Arc<Mutex<usize>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -225,11 +228,17 @@ async fn start_recording(state: State<'_, AppState>) -> Result<(), String> {
         *sw = hwnd;
     }
 
-    let mut recorder = audio::AudioRecorder::new().map_err(|e| e.to_string())?;
-    recorder.start().map_err(|e| e.to_string())?;
-
     let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
-    *rec = Some(recorder);
+    if rec.is_some() {
+        // Recorder already exists (kept alive by active dictation) — clear main buffer
+        if let Some(recorder) = rec.as_ref() {
+            recorder.take_buffer();
+        }
+    } else {
+        let mut recorder = audio::AudioRecorder::new().map_err(|e| e.to_string())?;
+        recorder.start().map_err(|e| e.to_string())?;
+        *rec = Some(recorder);
+    }
     *is_recording = true;
 
     Ok(())
@@ -242,19 +251,31 @@ async fn stop_recording(state: State<'_, AppState>) -> Result<TranscriptionResul
         return Err("Not recording".to_string());
     }
 
-    // Stop recording and get audio data
+    let is_dictating = *state.is_dictating.lock().map_err(|e| e.to_string())?;
+
+    // Get audio data — if dictation is active, keep the recorder alive
     let audio_data = {
         let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
-        let recorder = rec.take().ok_or("No recorder")?;
-        recorder.stop().map_err(|e| e.to_string())?
+        if is_dictating {
+            // Dictation still using the recorder — just take the main buffer
+            let recorder = rec.as_ref().ok_or("No recorder")?;
+            recorder.take_buffer()
+        } else {
+            // No dictation — destroy recorder as before
+            let mut recorder = rec.take().ok_or("No recorder")?;
+            recorder.stop().map_err(|e| e.to_string())?
+        }
     };
 
     *is_recording = false;
 
-    // Transcribe
+    // Clone transcriber and drop lock so dictation can transcribe in parallel
+    let transcriber = {
+        let guard = state.transcriber.lock().map_err(|e| e.to_string())?;
+        guard.as_ref().ok_or("Model not loaded")?.clone()
+    };
+
     let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
-    let transcriber_guard = state.transcriber.lock().map_err(|e| e.to_string())?;
-    let transcriber = transcriber_guard.as_ref().ok_or("Model not loaded")?;
 
     let start = std::time::Instant::now();
     let mut text = transcriber
@@ -287,6 +308,120 @@ async fn stop_recording(state: State<'_, AppState>) -> Result<TranscriptionResul
 async fn get_recording_status(state: State<'_, AppState>) -> Result<bool, String> {
     let is_recording = state.is_recording.lock().map_err(|e| e.to_string())?;
     Ok(*is_recording)
+}
+
+#[tauri::command]
+async fn start_dictation(state: State<'_, AppState>) -> Result<(), String> {
+    let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
+    if *is_dictating {
+        return Ok(());
+    }
+
+    // Capture the currently focused window for auto-paste after dictation
+    #[cfg(target_os = "windows")]
+    {
+        #[link(name = "user32")]
+        extern "system" {
+            fn GetForegroundWindow() -> usize;
+        }
+        let hwnd = unsafe { GetForegroundWindow() };
+        let mut sw = state.dictation_source_window.lock().map_err(|e| e.to_string())?;
+        *sw = hwnd;
+    }
+
+    let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
+
+    let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
+    if is_recording {
+        // Meeting is active — enable dictation buffer on existing recorder
+        if let Some(recorder) = rec.as_ref() {
+            recorder.start_dictation();
+        }
+    } else {
+        // No meeting — start a fresh recorder for dictation
+        let mut recorder = audio::AudioRecorder::new().map_err(|e| e.to_string())?;
+        recorder.start().map_err(|e| e.to_string())?;
+        recorder.start_dictation();
+        *rec = Some(recorder);
+    }
+
+    *is_dictating = true;
+    Ok(())
+}
+
+#[tauri::command]
+async fn stop_dictation(state: State<'_, AppState>) -> Result<TranscriptionResult, String> {
+    let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
+    if !*is_dictating {
+        return Err("Not dictating".to_string());
+    }
+
+    let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
+
+    // Get dictation audio
+    let audio_data = {
+        let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
+        let recorder = rec.as_ref().ok_or("No recorder")?;
+        let data = recorder.stop_dictation();
+
+        // If no meeting is active, stop the recorder entirely (release mic)
+        if !is_recording {
+            let mut recorder = rec.take().ok_or("No recorder")?;
+            let _ = recorder.stop();
+        }
+
+        data
+    };
+
+    *is_dictating = false;
+
+    // Restore dictation source window for type_text
+    #[cfg(target_os = "windows")]
+    {
+        let dsw = *state.dictation_source_window.lock().map_err(|e| e.to_string())?;
+        let mut sw = state.source_window.lock().map_err(|e| e.to_string())?;
+        *sw = dsw;
+    }
+
+    // Clone transcriber and drop lock so meeting can transcribe in parallel
+    let transcriber = {
+        let guard = state.transcriber.lock().map_err(|e| e.to_string())?;
+        guard.as_ref().ok_or("Model not loaded")?.clone()
+    };
+
+    let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
+
+    let start = std::time::Instant::now();
+    let mut text = transcriber
+        .transcribe(&audio_data, &settings.language)
+        .map_err(|e| e.to_string())?;
+    let duration_ms = start.elapsed().as_millis() as u64;
+
+    // Apply dictionary corrections
+    let dict = state.dictionary.lock().map_err(|e| e.to_string())?;
+    text = dict.apply_corrections(&text);
+
+    // Apply spell-check if enabled
+    let original_text = if settings.spell_check {
+        let before = text.clone();
+        text = spellcheck::correct(&text, &settings.language);
+        if text != before { Some(before) } else { None }
+    } else {
+        None
+    };
+
+    Ok(TranscriptionResult {
+        text,
+        original_text,
+        language: settings.language.clone(),
+        duration_ms,
+    })
+}
+
+#[tauri::command]
+async fn get_dictation_status(state: State<'_, AppState>) -> Result<bool, String> {
+    let is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
+    Ok(*is_dictating)
 }
 
 #[tauri::command]
@@ -886,8 +1021,10 @@ pub fn run() {
             settings: Arc::new(Mutex::new(settings)),
             dictionary: Arc::new(Mutex::new(dictionary)),
             is_recording: Arc::new(Mutex::new(false)),
+            is_dictating: Arc::new(Mutex::new(false)),
             file_jobs: Arc::new(Mutex::new(HashMap::new())),
             source_window: Arc::new(Mutex::new(0)),
+            dictation_source_window: Arc::new(Mutex::new(0)),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -899,6 +1036,9 @@ pub fn run() {
             start_recording,
             stop_recording,
             get_recording_status,
+            start_dictation,
+            stop_dictation,
+            get_dictation_status,
             get_dictionary,
             save_dictionary,
             add_dictionary_word,

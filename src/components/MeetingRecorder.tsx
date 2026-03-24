@@ -5,6 +5,10 @@ import { soundRecordStart, soundRecordStop, soundTranscriptionDone, soundError }
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
+interface MeetingSegment extends TranscriptionResult {
+  timestamp: string;
+}
+
 interface MeetingRecorderProps {
   activeModelName?: string;
   audioFeedback?: boolean;
@@ -13,7 +17,7 @@ interface MeetingRecorderProps {
 export default function MeetingRecorder(props: MeetingRecorderProps) {
   const { t, locale } = useI18n();
   const [isRecording, setIsRecording] = createSignal(false);
-  const [segments, setSegments] = createSignal<TranscriptionResult[]>([]);
+  const [segments, setSegments] = createSignal<MeetingSegment[]>([]);
   const [status, setStatus] = createSignal(t("meeting.statusReady"));
   const [activeModel, setActiveModel] = createSignal("");
   const [activeLang, setActiveLang] = createSignal("auto");
@@ -216,7 +220,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
     try {
       const result = await api.stopRecording();
       if (result.text && result.text.trim().length > 0) {
-        setSegments((prev) => [...prev, result]);
+        setSegments((prev) => [...prev, { ...result, timestamp: formatTime(new Date()) }]);
         if (props.audioFeedback !== false) soundTranscriptionDone();
       }
       if (props.audioFeedback !== false) soundRecordStart();
@@ -246,7 +250,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
       const result = await api.stopRecording();
       setIsRecording(false);
       if (result.text && result.text.trim().length > 0) {
-        setSegments((prev) => [...prev, result]);
+        setSegments((prev) => [...prev, { ...result, timestamp: formatTime(new Date()) }]);
         if (props.audioFeedback !== false) soundTranscriptionDone();
       }
       setStatus(t("meeting.statusStopped", { count: segments().length + (result.text ? 1 : 0) }));
@@ -257,7 +261,9 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
     }
   };
 
-  const getFullTranscript = () => segments().map((s) => s.text).join("\n\n");
+  const formatTime = (date: Date) => date.toLocaleTimeString(locale() === "nl" ? "nl-NL" : "en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  const getFullTranscript = () => segments().map((s) => `[${s.timestamp}] ${s.text}`).join("\n\n");
 
   const copyTranscript = () => {
     navigator.clipboard.writeText(getFullTranscript());
@@ -294,9 +300,9 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
   const exportMarkdown = () => {
     const lines = [`# Transcript — ${new Date().toLocaleString(locale() === "nl" ? "nl-NL" : "en-US")}`, ""];
     segments().forEach((s, i) => {
-      lines.push(`## ${t("meeting.exportSegment")} ${i + 1}`);
+      lines.push(`## ${t("meeting.exportSegment")} ${i + 1} — ${s.timestamp}`);
       lines.push("");
-      lines.push(`> **${t("meeting.exportLanguage")}** ${s.language || "auto"} | **${t("meeting.exportDuration")}** ${s.duration_ms}ms`);
+      lines.push(`> **${s.timestamp}** | **${t("meeting.exportLanguage")}** ${s.language || "auto"} | **${t("meeting.exportDuration")}** ${s.duration_ms}ms`);
       lines.push("");
       lines.push(s.text);
       lines.push("");
@@ -311,9 +317,9 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
   const exportOdt = async () => {
     const segs = segments();
     const paragraphs = segs.map((s, i) =>
-      `<text:h text:style-name="Heading_20_2" text:outline-level="2">${escapeXml(t("meeting.exportSegment"))} ${i + 1}</text:h>
+      `<text:h text:style-name="Heading_20_2" text:outline-level="2">${escapeXml(t("meeting.exportSegment"))} ${i + 1} — ${escapeXml(s.timestamp)}</text:h>
 <text:p text:style-name="Text_20_body">${escapeXml(s.text)}</text:p>
-<text:p text:style-name="Text_20_body"><text:span text:style-name="meta">${escapeXml(t("meeting.exportLanguage"))} ${s.language || "auto"} | ${escapeXml(t("meeting.exportDuration"))} ${s.duration_ms}ms</text:span></text:p>`
+<text:p text:style-name="Text_20_body"><text:span text:style-name="meta">${escapeXml(s.timestamp)} | ${escapeXml(t("meeting.exportLanguage"))} ${s.language || "auto"} | ${escapeXml(t("meeting.exportDuration"))} ${s.duration_ms}ms</text:span></text:p>`
     ).join("\n");
 
     const contentXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -536,6 +542,7 @@ ${paragraphs}
                   <div class="meeting-segment">
                     <div class="meeting-segment-header">
                       <span class="meeting-segment-num">#{index() + 1}</span>
+                      <span class="meta-tag">{segment.timestamp}</span>
                       <span class="meta-tag">{segment.language || "auto"}</span>
                       <span class="meta-tag">{segment.duration_ms}ms</span>
                     </div>

@@ -3,6 +3,7 @@ use std::process::Command;
 
 /// Transcriber that calls the pre-compiled whisper.cpp binary as a subprocess.
 /// No C++ toolchain needed - we ship the binary.
+#[derive(Clone)]
 pub struct Transcriber {
     pub(crate) whisper_bin: PathBuf,
     pub(crate) model_path: PathBuf,
@@ -121,7 +122,11 @@ impl Transcriber {
     ) -> Result<String, Box<dyn std::error::Error>> {
         // Write audio to temp WAV file (whisper.cpp expects WAV input)
         let temp_dir = std::env::temp_dir();
-        let wav_path = temp_dir.join("oss_recording.wav");
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let wav_path = temp_dir.join(format!("oss_{}.wav", ts));
         write_wav(&wav_path, audio_data, 16000)?;
 
         let mut cmd = Command::new(&self.whisper_bin);
@@ -145,7 +150,7 @@ impl Transcriber {
             .to_string();
 
         // Also check for .txt output file (some versions write to file)
-        let txt_path = temp_dir.join("oss_recording.wav.txt");
+        let txt_path = wav_path.with_extension("wav.txt");
         let result = if text.is_empty() && txt_path.exists() {
             let file_text = std::fs::read_to_string(&txt_path)?;
             let _ = std::fs::remove_file(&txt_path);
