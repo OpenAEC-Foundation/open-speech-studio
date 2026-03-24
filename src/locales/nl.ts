@@ -87,6 +87,9 @@ const nl: Record<string, string> = {
   "settings.spellCheck": "Spellingcontrole",
   "settings.spellCheckEnabled": "Spelling corrigeren na transcriptie",
   "settings.spellCheckDisabled": "Ruwe transcriptie-uitvoer",
+  "settings.audioFeedback": "Geluidseffecten",
+  "settings.audioFeedbackEnabled": "Geluiden afspelen bij start, stop en voltooiing",
+  "settings.audioFeedbackDisabled": "Geen audiofeedback",
   "settings.audio": "Audio",
   "settings.inputDevice": "Invoerapparaat",
   "settings.defaultMic": "Standaard microfoon",
@@ -260,7 +263,7 @@ const nl: Record<string, string> = {
   "micTest.resultDuration": "Duur:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.4.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.6.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Automatisch detecteren",
@@ -419,6 +422,12 @@ const nl: Record<string, string> = {
   // ── Common ───────────────────────────────────────────────
   "common.yes": "Ja",
   "common.no": "Nee",
+
+  // ── Dictation Overlay ─────────────────────────────────
+  "overlay.listening": "Luisteren...",
+  "overlay.transcribing": "Transcriberen",
+  "overlay.done": "Klaar",
+  "overlay.error": "Fout",
 };
 
 export default nl;

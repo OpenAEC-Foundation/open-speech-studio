@@ -87,6 +87,9 @@ const en: Record<string, string> = {
   "settings.spellCheck": "Spell check",
   "settings.spellCheckEnabled": "Correct spelling after transcription",
   "settings.spellCheckDisabled": "Raw transcription output",
+  "settings.audioFeedback": "Sound effects",
+  "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
+  "settings.audioFeedbackDisabled": "No audio feedback",
   "settings.audio": "Audio",
   "settings.inputDevice": "Input device",
   "settings.defaultMic": "Default microphone",
@@ -260,7 +263,7 @@ const en: Record<string, string> = {
   "micTest.resultDuration": "Duration:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.4.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.6.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Auto-detect",
@@ -419,6 +422,12 @@ const en: Record<string, string> = {
   // ── Common ───────────────────────────────────────────────
   "common.yes": "Yes",
   "common.no": "No",
+
+  // ── Dictation Overlay ─────────────────────────────────
+  "overlay.listening": "Listening...",
+  "overlay.transcribing": "Transcribing",
+  "overlay.done": "Done",
+  "overlay.error": "Error",
 };
 
 export default en;

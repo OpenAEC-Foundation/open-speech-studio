@@ -297,14 +297,14 @@ export default function App() {
     if (isRecording()) return;
 
     try {
-      soundRecordStart();
+      if (settings()?.audio_feedback !== false) soundRecordStart();
       await api.startRecording();
       recordingStartedAt = Date.now();
       setIsRecording(true);
       await showOverlay("recording");
       startAudioLevelPolling();
     } catch (e) {
-      soundError();
+      if (settings()?.audio_feedback !== false) soundError();
       console.error("Recording error:", e);
     }
   };
@@ -313,7 +313,7 @@ export default function App() {
     if (!isRecording()) return;
 
     try {
-      soundRecordStop();
+      if (settings()?.audio_feedback !== false) soundRecordStop();
       stopAudioLevelPolling();
       const recDuration = Date.now() - recordingStartedAt;
       const modelName = settings()?.model_name || "base";
@@ -325,17 +325,17 @@ export default function App() {
       updateEstimate(modelName, recDuration, transcribeDuration);
       setIsRecording(false);
       setTranscriptions((prev) => [result, ...prev]);
-      soundTranscriptionDone();
+      if (settings()?.audio_feedback !== false) soundTranscriptionDone();
       const s = settings();
       if (s?.auto_paste && result.text) {
         await api.typeText(result.text);
       }
       // Show result briefly, then close
-      await showOverlay("done", result.text || "Klaar");
+      await showOverlay("done", result.text || t("overlay.done"));
       setTimeout(() => closeOverlay(), 2000);
     } catch (e) {
       setIsRecording(false);
-      soundError();
+      if (settings()?.audio_feedback !== false) soundError();
       await showOverlay("error", String(e));
       setTimeout(() => closeOverlay(), 3000);
       console.error("Transcription error:", e);
@@ -409,7 +409,7 @@ export default function App() {
         </Show>
 
         <div style={{ display: view() === "meeting" ? "block" : "none" }}>
-          <MeetingRecorder activeModelName={settings()?.model_name || ""} />
+          <MeetingRecorder activeModelName={settings()?.model_name || ""} audioFeedback={settings()?.audio_feedback !== false} />
         </div>
 
         <Show when={view() === "about"}>

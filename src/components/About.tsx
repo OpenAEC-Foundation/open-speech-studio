@@ -9,7 +9,7 @@ export default function About() {
         <img class="about-icon" src={appIcon} alt="" width="64" height="64" />
         <div>
           <h2>Open Speech Studio</h2>
-          <span class="about-version">v0.4.0</span>
+          <span class="about-version">v0.6.0</span>
         </div>
       </div>
 

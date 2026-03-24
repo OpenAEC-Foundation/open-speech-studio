@@ -7,6 +7,7 @@ const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
 interface MeetingRecorderProps {
   activeModelName?: string;
+  audioFeedback?: boolean;
 }
 
 export default function MeetingRecorder(props: MeetingRecorderProps) {
@@ -185,7 +186,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
 
   const startRecording = async () => {
     try {
-      soundRecordStart();
+      if (props.audioFeedback !== false) soundRecordStart();
       await api.startRecording();
       setIsRecording(true);
       setStartTime(new Date());
@@ -202,7 +203,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
         }
       }, intervalMs);
     } catch (e) {
-      soundError();
+      if (props.audioFeedback !== false) soundError();
       setStatus(t("meeting.statusError", { error: String(e) }));
     }
   };
@@ -210,20 +211,20 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
   const captureSegment = async () => {
     if (!isRecording()) return;
     stopMicMonitor();
-    soundRecordStop();
+    if (props.audioFeedback !== false) soundRecordStop();
 
     try {
       const result = await api.stopRecording();
       if (result.text && result.text.trim().length > 0) {
         setSegments((prev) => [...prev, result]);
-        soundTranscriptionDone();
+        if (props.audioFeedback !== false) soundTranscriptionDone();
       }
-      soundRecordStart();
+      if (props.audioFeedback !== false) soundRecordStart();
       await api.startRecording();
       startMicMonitor();
       setStatus(t("meeting.statusSegments", { count: segments().length + 1 }));
     } catch (e) {
-      soundError();
+      if (props.audioFeedback !== false) soundError();
       setStatus(t("meeting.statusSegmentError", { error: String(e) }));
     }
   };
@@ -241,17 +242,17 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
     closeMeetingOverlay();
 
     try {
-      soundRecordStop();
+      if (props.audioFeedback !== false) soundRecordStop();
       const result = await api.stopRecording();
       setIsRecording(false);
       if (result.text && result.text.trim().length > 0) {
         setSegments((prev) => [...prev, result]);
-        soundTranscriptionDone();
+        if (props.audioFeedback !== false) soundTranscriptionDone();
       }
       setStatus(t("meeting.statusStopped", { count: segments().length + (result.text ? 1 : 0) }));
     } catch (e) {
       setIsRecording(false);
-      soundError();
+      if (props.audioFeedback !== false) soundError();
       setStatus(t("meeting.statusError", { error: String(e) }));
     }
   };

@@ -1,8 +1,10 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
+import { useI18n } from "../lib/i18n";
 
 type OverlayState = "recording" | "transcribing" | "done" | "error";
 
 export default function DictationOverlay() {
+  const { t } = useI18n();
   const [state, setState] = createSignal<OverlayState>("recording");
   const [text, setText] = createSignal("");
   const [dots, setDots] = createSignal("");
@@ -120,18 +122,18 @@ export default function DictationOverlay() {
   const stateLabel = () => {
     switch (state()) {
       case "recording":
-        return "Luisteren...";
+        return t("overlay.listening");
       case "transcribing": {
         const c = countdown();
         if (c !== null && c > 0) {
-          return `Transcriberen ~${c}s${dots()}`;
+          return `${t("overlay.transcribing")} ~${c}s${dots()}`;
         }
-        return `Transcriberen${dots()}`;
+        return `${t("overlay.transcribing")}${dots()}`;
       }
       case "done":
-        return text() || "Klaar";
+        return text() || t("overlay.done");
       case "error":
-        return text() || "Fout";
+        return text() || t("overlay.error");
     }
   };
 

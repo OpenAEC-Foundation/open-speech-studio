@@ -32,7 +32,11 @@ if (isOverlay) {
   document.getElementById("app")!.style.background = "transparent";
 
   import("./components/DictationOverlay").then(({ default: DictationOverlay }) => {
-    render(() => <DictationOverlay />, document.getElementById("app")!);
+    render(() => (
+      <I18nProvider>
+        <DictationOverlay />
+      </I18nProvider>
+    ), document.getElementById("app")!);
   });
 } else {
   import("./App").then(({ default: App }) => {

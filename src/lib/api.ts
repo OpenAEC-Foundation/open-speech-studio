@@ -13,6 +13,7 @@ export interface Settings {
   file_save_directory: string;
   file_confirm_actions: boolean;
   spell_check: boolean;
+  audio_feedback: boolean;
 }
 
 export interface ModelInfo {
@@ -72,6 +73,7 @@ const tauriApi = {
   isModelLoaded: () => tauriInvoke<boolean>("is_model_loaded"),
   getGpuInfo: () => tauriInvoke<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string }>("get_gpu_info"),
   typeText: (text: string) => tauriInvoke<void>("type_text", { text }),
+  updateTrayLanguage: (language: string) => tauriInvoke<void>("update_tray_language", { language }),
   startFileJob: (jobId: string, filePath: string) =>
     tauriInvoke<void>("start_file_job", { jobId, filePath }),
   cancelFileJob: (jobId: string) =>
@@ -126,6 +128,7 @@ function loadLocalSettings(): Settings {
     file_save_directory: "",
     file_confirm_actions: true,
     spell_check: true,
+    audio_feedback: true,
   };
 }
 

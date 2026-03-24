@@ -23,6 +23,8 @@ pub struct Settings {
     pub file_confirm_actions: bool,
     #[serde(default = "default_true")]
     pub spell_check: bool,
+    #[serde(default = "default_true")]
+    pub audio_feedback: bool,
 }
 
 impl Default for Settings {
@@ -45,6 +47,7 @@ impl Default for Settings {
             file_save_directory: String::new(),
             file_confirm_actions: true,
             spell_check: true,
+            audio_feedback: true,
         }
     }
 }

@@ -1,4 +1,5 @@
 mod audio;
+mod convert;
 mod dictionary;
 mod settings;
 mod spellcheck;
@@ -12,6 +13,37 @@ use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
 };
+
+/// Get localised tray menu labels for Show, Enabled, Quit.
+fn tray_labels(lang: &str) -> (&'static str, &'static str, &'static str) {
+    match lang {
+        "nl" => ("Tonen", "Ingeschakeld", "Afsluiten"),
+        "de" => ("Anzeigen", "Aktiviert", "Beenden"),
+        "fr" => ("Afficher", "Activ\u{00e9}", "Quitter"),
+        "es" => ("Mostrar", "Activado", "Salir"),
+        "pt" => ("Mostrar", "Ativado", "Sair"),
+        "it" => ("Mostra", "Attivato", "Esci"),
+        "pl" => ("Poka\u{017c}", "W\u{0142}\u{0105}czony", "Zako\u{0144}cz"),
+        "ru" => ("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{0430}\u{0442}\u{044c}", "\u{0412}\u{043a}\u{043b}\u{044e}\u{0447}\u{0435}\u{043d}\u{043e}", "\u{0412}\u{044b}\u{0445}\u{043e}\u{0434}"),
+        "tr" => ("G\u{00f6}ster", "Etkin", "\u{00c7}\u{0131}k\u{0131}\u{015f}"),
+        "zh" => ("\u{663e}\u{793a}", "\u{5df2}\u{542f}\u{7528}", "\u{9000}\u{51fa}"),
+        "ja" => ("\u{8868}\u{793a}", "\u{6709}\u{52b9}", "\u{7d42}\u{4e86}"),
+        "ko" => ("\u{d45c}\u{c2dc}", "\u{d65c}\u{c131}\u{d654}", "\u{c885}\u{b8cc}"),
+        "uk" => ("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{0430}\u{0442}\u{0438}", "\u{0423}\u{0432}\u{0456}\u{043c}\u{043a}\u{043d}\u{0435}\u{043d}\u{043e}", "\u{0412}\u{0438}\u{0445}\u{0456}\u{0434}"),
+        "cs" => ("Zobrazit", "Povoleno", "Ukon\u{010d}it"),
+        "ro" => ("Afi\u{0219}are", "Activat", "Ie\u{0219}ire"),
+        "hu" => ("Megjelen\u{00ed}t\u{00e9}s", "Enged\u{00e9}lyezve", "Kil\u{00e9}p\u{00e9}s"),
+        "sv" => ("Visa", "Aktiverad", "Avsluta"),
+        "da" => ("Vis", "Aktiveret", "Afslut"),
+        "no" => ("Vis", "Aktivert", "Avslutt"),
+        "fi" => ("N\u{00e4}yt\u{00e4}", "K\u{00e4}yt\u{00f6}ss\u{00e4}", "Lopeta"),
+        "el" => ("\u{0395}\u{03bc}\u{03c6}\u{03ac}\u{03bd}\u{03b9}\u{03c3}\u{03b7}", "\u{0395}\u{03bd}\u{03b5}\u{03c1}\u{03b3}\u{03bf}\u{03c0}\u{03bf}\u{03b9}\u{03b7}\u{03bc}\u{03ad}\u{03bd}\u{03bf}", "\u{0388}\u{03be}\u{03bf}\u{03b4}\u{03bf}\u{03c2}"),
+        "bg" => ("\u{041f}\u{043e}\u{043a}\u{0430}\u{0436}\u{0438}", "\u{0412}\u{043a}\u{043b}\u{044e}\u{0447}\u{0435}\u{043d}\u{043e}", "\u{0418}\u{0437}\u{0445}\u{043e}\u{0434}"),
+        "hr" => ("Prika\u{017e}i", "Omogu\u{0107}eno", "Iza\u{0111}i"),
+        "sk" => ("Zobrazi\u{0165}", "Povolen\u{00e9}", "Ukon\u{010d}i\u{0165}"),
+        _    => ("Show", "Enabled", "Quit"),
+    }
+}
 
 pub struct AppState {
     transcriber: Arc<Mutex<Option<transcriber::Transcriber>>>,
@@ -346,36 +378,14 @@ async fn start_file_job(
         )
     };
 
-    // Whisper.cpp only reads WAV 16kHz mono. Convert other formats via ffmpeg.
+    // Whisper.cpp only reads WAV 16kHz mono. Convert other formats natively.
     let actual_file = if file_path.to_lowercase().ends_with(".wav") {
         file_path.clone()
     } else {
         let temp_wav = std::env::temp_dir()
             .join(format!("oss_convert_{}.wav", &job_id));
         let temp_path = temp_wav.to_string_lossy().to_string();
-
-        let mut ffmpeg = Command::new("ffmpeg");
-        ffmpeg.args([
-            "-y", "-i", &file_path,
-            "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le",
-            &temp_path,
-        ]);
-        ffmpeg.stdout(Stdio::null());
-        ffmpeg.stderr(Stdio::piped());
-        #[cfg(target_os = "windows")]
-        {
-            use std::os::windows::process::CommandExt;
-            const CREATE_NO_WINDOW: u32 = 0x08000000;
-            ffmpeg.creation_flags(CREATE_NO_WINDOW);
-        }
-        let ff_out = ffmpeg.output()
-            .map_err(|e| format!("ffmpeg not found — install ffmpeg to transcribe non-WAV files: {}", e))?;
-        if !ff_out.status.success() {
-            return Err(format!(
-                "ffmpeg conversion failed: {}",
-                String::from_utf8_lossy(&ff_out.stderr)
-            ));
-        }
+        convert::to_wav_16k_mono(&file_path, &temp_path)?;
         temp_path
     };
 
@@ -667,6 +677,28 @@ async fn save_text_file(path: String, content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn update_tray_language(app: tauri::AppHandle, language: String) -> Result<(), String> {
+    let (show_l, enabled_l, quit_l) = tray_labels(&language);
+
+    // Rebuild the tray menu with new labels
+    let title_i   = MenuItem::with_id(&app, "title", "Open Speech Studio", false, None::<&str>).map_err(|e| e.to_string())?;
+    let sep1      = PredefinedMenuItem::separator(&app).map_err(|e| e.to_string())?;
+    let show_i    = MenuItem::with_id(&app, "show", show_l, true, None::<&str>).map_err(|e| e.to_string())?;
+    let enabled_i = CheckMenuItem::with_id(&app, "enabled", enabled_l, true, true, None::<&str>).map_err(|e| e.to_string())?;
+    let sep2      = PredefinedMenuItem::separator(&app).map_err(|e| e.to_string())?;
+    let quit_i    = MenuItem::with_id(&app, "quit", quit_l, true, None::<&str>).map_err(|e| e.to_string())?;
+
+    let menu = Menu::with_items(&app, &[
+        &title_i, &sep1, &show_i, &enabled_i, &sep2, &quit_i,
+    ]).map_err(|e| e.to_string())?;
+
+    if let Some(tray) = app.tray_by_id("main") {
+        tray.set_menu(Some(menu)).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 async fn type_text(state: State<'_, AppState>, text: String) -> Result<(), String> {
     // Restore focus to the window that was active when recording started
     #[cfg(target_os = "windows")]
@@ -811,6 +843,7 @@ pub fn run() {
             is_model_loaded,
             save_text_file,
             type_text,
+            update_tray_language,
         ])
         .setup(move |app| {
             // Config has decorations:true + titleBarStyle:overlay for macOS traffic lights.
@@ -823,33 +856,7 @@ pub fn run() {
             }
 
             // Build system tray menu with localised labels
-            let (show_l, enabled_l, quit_l) = match ui_language.as_str() {
-                "nl" => ("Tonen", "Ingeschakeld", "Afsluiten"),
-                "de" => ("Anzeigen", "Aktiviert", "Beenden"),
-                "fr" => ("Afficher", "Activ\u{00e9}", "Quitter"),
-                "es" => ("Mostrar", "Activado", "Salir"),
-                "pt" => ("Mostrar", "Ativado", "Sair"),
-                "it" => ("Mostra", "Attivato", "Esci"),
-                "pl" => ("Poka\u{017c}", "W\u{0142}\u{0105}czony", "Zako\u{0144}cz"),
-                "ru" => ("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{0430}\u{0442}\u{044c}", "\u{0412}\u{043a}\u{043b}\u{044e}\u{0447}\u{0435}\u{043d}\u{043e}", "\u{0412}\u{044b}\u{0445}\u{043e}\u{0434}"),
-                "tr" => ("G\u{00f6}ster", "Etkin", "\u{00c7}\u{0131}k\u{0131}\u{015f}"),
-                "zh" => ("\u{663e}\u{793a}", "\u{5df2}\u{542f}\u{7528}", "\u{9000}\u{51fa}"),
-                "ja" => ("\u{8868}\u{793a}", "\u{6709}\u{52b9}", "\u{7d42}\u{4e86}"),
-                "ko" => ("\u{d45c}\u{c2dc}", "\u{d65c}\u{c131}\u{d654}", "\u{c885}\u{b8cc}"),
-                "uk" => ("\u{041f}\u{043e}\u{043a}\u{0430}\u{0437}\u{0430}\u{0442}\u{0438}", "\u{0423}\u{0432}\u{0456}\u{043c}\u{043a}\u{043d}\u{0435}\u{043d}\u{043e}", "\u{0412}\u{0438}\u{0445}\u{0456}\u{0434}"),
-                "cs" => ("Zobrazit", "Povoleno", "Ukon\u{010d}it"),
-                "ro" => ("Afi\u{0219}are", "Activat", "Ie\u{0219}ire"),
-                "hu" => ("Megjelen\u{00ed}t\u{00e9}s", "Enged\u{00e9}lyezve", "Kil\u{00e9}p\u{00e9}s"),
-                "sv" => ("Visa", "Aktiverad", "Avsluta"),
-                "da" => ("Vis", "Aktiveret", "Afslut"),
-                "no" => ("Vis", "Aktivert", "Avslutt"),
-                "fi" => ("N\u{00e4}yt\u{00e4}", "K\u{00e4}yt\u{00f6}ss\u{00e4}", "Lopeta"),
-                "el" => ("\u{0395}\u{03bc}\u{03c6}\u{03ac}\u{03bd}\u{03b9}\u{03c3}\u{03b7}", "\u{0395}\u{03bd}\u{03b5}\u{03c1}\u{03b3}\u{03bf}\u{03c0}\u{03bf}\u{03b9}\u{03b7}\u{03bc}\u{03ad}\u{03bd}\u{03bf}", "\u{0388}\u{03be}\u{03bf}\u{03b4}\u{03bf}\u{03c2}"),
-                "bg" => ("\u{041f}\u{043e}\u{043a}\u{0430}\u{0436}\u{0438}", "\u{0412}\u{043a}\u{043b}\u{044e}\u{0447}\u{0435}\u{043d}\u{043e}", "\u{0418}\u{0437}\u{0445}\u{043e}\u{0434}"),
-                "hr" => ("Prika\u{017e}i", "Omogu\u{0107}eno", "Iza\u{0111}i"),
-                "sk" => ("Zobrazi\u{0165}", "Povolen\u{00e9}", "Ukon\u{010d}i\u{0165}"),
-                _    => ("Show", "Enabled", "Quit"),
-            };
+            let (show_l, enabled_l, quit_l) = tray_labels(&ui_language);
 
             let title_i   = MenuItem::with_id(app, "title", "Open Speech Studio", false, None::<&str>)?;
             let sep1      = PredefinedMenuItem::separator(app)?;
@@ -863,7 +870,7 @@ pub fn run() {
             ])?;
 
             // Build tray icon
-            TrayIconBuilder::new()
+            TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("Open Speech Studio")
                 .menu(&menu)

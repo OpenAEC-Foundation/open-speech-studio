@@ -54,6 +54,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [fileSaveDir, setFileSaveDir] = createSignal("");
   const [fileConfirmActions, setFileConfirmActions] = createSignal(true);
   const [spellCheck, setSpellCheck] = createSignal(true);
+  const [audioFeedback, setAudioFeedback] = createSignal(true);
 
   const [gpuInfo, setGpuInfo] = createSignal<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string } | null>(null);
 
@@ -75,6 +76,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setFileSaveDir(props.settings.file_save_directory ?? "");
       setFileConfirmActions(props.settings.file_confirm_actions ?? true);
       setSpellCheck(props.settings.spell_check ?? true);
+      setAudioFeedback(props.settings.audio_feedback ?? true);
       const parsed = parseHotkey(props.settings.hotkey || "Ctrl+Super");
       setKey1(parsed.key1);
       setKey2(parsed.key2);
@@ -143,6 +145,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 if (props.settings) {
                   props.onSave({ ...props.settings, ui_language: newLang });
                 }
+                api.updateTrayLanguage(newLang).catch(() => {});
               }}
             >
               <option value="bg">Bulgarian (&#1041;&#1098;&#1083;&#1075;&#1072;&#1088;&#1089;&#1082;&#1080;)</option>
@@ -248,6 +251,23 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               </label>
               <span class="setting-hint">
                 {spellCheck() ? t("settings.spellCheckEnabled") : t("settings.spellCheckDisabled")}
+              </span>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <label>{t("settings.audioFeedback")}</label>
+            <div class="toggle-group">
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  checked={audioFeedback()}
+                  onChange={(e) => { setAudioFeedback(e.target.checked); autoSave({ audio_feedback: e.target.checked }); }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <span class="setting-hint">
+                {audioFeedback() ? t("settings.audioFeedbackEnabled") : t("settings.audioFeedbackDisabled")}
               </span>
             </div>
           </div>
