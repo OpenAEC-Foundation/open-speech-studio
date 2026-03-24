@@ -37,7 +37,7 @@ impl Default for Settings {
             ui_language: "en".to_string(),
             model_name,
             model_path,
-            use_gpu: false,
+            use_gpu: true,
             hotkey: "Ctrl+Super".to_string(),
             hotkey_mode: "hold".to_string(),
             auto_paste: true,
