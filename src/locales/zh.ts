@@ -237,7 +237,7 @@ const zh: Record<string, string> = {
   "micTest.resultDuration": "时长：",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.4.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.5.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "自动检测",

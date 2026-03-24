@@ -264,7 +264,7 @@ const nl: Record<string, string> = {
   "micTest.resultDuration": "Duur:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.4.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.5.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Automatisch detecteren",

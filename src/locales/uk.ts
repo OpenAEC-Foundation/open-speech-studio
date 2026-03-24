@@ -237,7 +237,7 @@ const uk: Record<string, string> = {
   "micTest.resultDuration": "\u0422\u0440\u0438\u0432\u0430\u043B\u0456\u0441\u0442\u044C:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.4.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.5.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0410\u0432\u0442\u043E\u0432\u0438\u0437\u043D\u0430\u0447\u0435\u043D\u043D\u044F",
