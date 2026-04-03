@@ -72,7 +72,7 @@ impl Default for Settings {
             file_confirm_actions: true,
             spell_check: true,
             audio_feedback: true,
-            incremental_interval_secs: 5.0,
+            incremental_interval_secs: 2.0,
             max_workers: 2,
             auto_correct: false,
             auto_correct_model: String::new(),
@@ -106,7 +106,7 @@ fn default_true() -> bool {
 }
 
 fn default_incremental_interval_secs() -> f32 {
-    5.0
+    2.0
 }
 
 fn default_max_workers() -> usize {
