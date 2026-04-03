@@ -314,20 +314,23 @@ async fn get_recording_status(state: State<'_, AppState>) -> Result<bool, String
 }
 
 #[tauri::command]
-async fn start_dictation(state: State<'_, AppState>) -> Result<(), String> {
+async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
     let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
     if *is_dictating {
-        return Ok(());
+        // Already dictating — return a fresh UUID anyway (idempotent call)
+        return Ok(uuid::Uuid::new_v4().to_string());
     }
 
     // Capture the currently focused window for auto-paste after dictation
+    #[allow(unused_mut)]
+    let mut hwnd: usize = 0;
     #[cfg(target_os = "windows")]
     {
         #[link(name = "user32")]
         extern "system" {
             fn GetForegroundWindow() -> usize;
         }
-        let hwnd = unsafe { GetForegroundWindow() };
+        hwnd = unsafe { GetForegroundWindow() };
         let mut sw = state.dictation_source_window.lock().map_err(|e| e.to_string())?;
         *sw = hwnd;
     }
@@ -349,11 +352,29 @@ async fn start_dictation(state: State<'_, AppState>) -> Result<(), String> {
     }
 
     *is_dictating = true;
-    Ok(())
+    // Drop locks before accessing job queue
+    drop(rec);
+    drop(is_dictating);
+
+    // Create a session in the job queue; fall back to a random UUID if no queue
+    let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
+    let language = settings.language.clone();
+
+    let session_id = {
+        let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+        match queue_guard.as_ref() {
+            Some(queue) => queue.create_session(hwnd, language).to_string(),
+            None => uuid::Uuid::new_v4().to_string(),
+        }
+    };
+
+    Ok(session_id)
 }
 
+/// Synchronous stop-dictation: transcribes immediately and returns the result.
+/// Kept for backward compatibility (e.g. file transcription flows).
 #[tauri::command]
-async fn stop_dictation(state: State<'_, AppState>) -> Result<TranscriptionResult, String> {
+async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<TranscriptionResult, String> {
     let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
     if !*is_dictating {
         return Err("Not dictating".to_string());
@@ -419,6 +440,90 @@ async fn stop_dictation(state: State<'_, AppState>) -> Result<TranscriptionResul
         language: settings.language.clone(),
         duration_ms,
     })
+}
+
+/// Async stop-dictation: splits audio into chunks and submits to the job queue
+/// for parallel transcription. Results are retrieved via get_completed_sessions.
+#[tauri::command]
+async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Result<(), String> {
+    let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
+    if !*is_dictating {
+        return Err("Not dictating".to_string());
+    }
+
+    let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
+
+    // Get dictation audio
+    let audio_data = {
+        let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
+        let recorder = rec.as_ref().ok_or("No recorder")?;
+        let data = recorder.stop_dictation();
+
+        // If no meeting is active, stop the recorder entirely (release mic)
+        if !is_recording {
+            let mut recorder = rec.take().ok_or("No recorder")?;
+            let _ = recorder.stop();
+        }
+
+        data
+    };
+
+    *is_dictating = false;
+    // Drop is_dictating lock early
+    drop(is_dictating);
+
+    // Read the HWND that was captured at start_dictation
+    let hwnd = *state.dictation_source_window.lock().map_err(|e| e.to_string())?;
+
+    // Restore dictation source window for type_text
+    #[cfg(target_os = "windows")]
+    {
+        let mut sw = state.source_window.lock().map_err(|e| e.to_string())?;
+        *sw = hwnd;
+    }
+
+    let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
+    let interval = settings.incremental_interval_secs;
+    let language = settings.language.clone();
+
+    // Parse the session UUID
+    let session_uuid = uuid::Uuid::parse_str(&session_id)
+        .map_err(|e| format!("Invalid session_id: {}", e))?;
+
+    // Split audio into chunks based on incremental_interval_secs
+    let samples_per_chunk = (interval * 16000.0) as usize;
+    let chunks: Vec<Vec<f32>> = if samples_per_chunk > 0 && audio_data.len() > samples_per_chunk {
+        audio_data.chunks(samples_per_chunk).map(|c| c.to_vec()).collect()
+    } else {
+        vec![audio_data]
+    };
+
+    let total_chunks = chunks.len() as u32;
+
+    // Submit each chunk as a TranscriptionJob to the queue
+    {
+        let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+        let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
+
+        for (i, chunk) in chunks.into_iter().enumerate() {
+            let job = job_queue::TranscriptionJob {
+                id: uuid::Uuid::new_v4(),
+                audio: chunk,
+                target_hwnd: hwnd,
+                language: language.clone(),
+                job_type: job_queue::JobType::Dictation,
+                chunk_index: Some(i as u32),
+                session_id: session_uuid,
+                created_at: std::time::Instant::now(),
+                status: job_queue::JobStatus::Queued,
+            };
+            queue.submit(job);
+        }
+
+        queue.finalize_session_chunks(session_uuid, total_chunks);
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -1073,6 +1178,7 @@ pub fn run() {
             get_recording_status,
             start_dictation,
             stop_dictation,
+            stop_dictation_sync,
             get_dictation_status,
             get_dictionary,
             save_dictionary,
