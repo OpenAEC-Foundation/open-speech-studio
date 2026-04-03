@@ -1,4 +1,5 @@
 mod audio;
+mod autocorrect;
 mod convert;
 mod dictionary;
 mod job_queue;
@@ -68,6 +69,8 @@ pub struct AppState {
     meeting_writer: Arc<Mutex<Option<meeting_writer::MeetingWriter>>>,
     /// ONNX-based speaker embedding matcher for diarization
     speaker_matcher: Arc<Mutex<Option<speaker::SpeakerMatcher>>>,
+    /// Optional LLM-based auto-corrector for post-processing transcriptions
+    auto_corrector: Arc<Mutex<Option<autocorrect::AutoCorrector>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1218,6 +1221,7 @@ pub fn run() {
             job_queue: Arc::new(Mutex::new(None)),
             meeting_writer: Arc::new(Mutex::new(None)),
             speaker_matcher: Arc::new(Mutex::new(None)),
+            auto_corrector: Arc::new(Mutex::new(None)),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
