@@ -71,6 +71,8 @@ pub struct AppState {
     speaker_matcher: Arc<Mutex<Option<speaker::SpeakerMatcher>>>,
     /// Optional LLM-based auto-corrector for post-processing transcriptions
     auto_corrector: Arc<Mutex<Option<autocorrect::AutoCorrector>>>,
+    /// Handle to stop the incremental dictation timer thread
+    incremental_stop: Arc<std::sync::atomic::AtomicBool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -368,14 +370,75 @@ async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
     // Create a session in the job queue; fall back to a random UUID if no queue
     let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
     let language = settings.language.clone();
+    let interval = settings.incremental_interval_secs;
 
     let session_id = {
         let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
         match queue_guard.as_ref() {
-            Some(queue) => queue.create_session(hwnd, language).to_string(),
+            Some(queue) => queue.create_session(hwnd, language.clone()).to_string(),
             None => uuid::Uuid::new_v4().to_string(),
         }
     };
+
+    // Start incremental timer: every `interval` seconds, grab the dictation buffer
+    // and submit it as a chunk to the job queue (while recording continues)
+    if interval > 0.0 && interval < 300.0 {
+        let stop_flag = state.incremental_stop.clone();
+        stop_flag.store(false, std::sync::atomic::Ordering::Relaxed);
+
+        let recorder_ref = state.recorder.clone();
+        let queue_ref = state.job_queue.clone();
+        let session_uuid = uuid::Uuid::parse_str(&session_id)
+            .map_err(|e| format!("Invalid session_id: {}", e))?;
+        let lang = language.clone();
+        let interval_ms = (interval * 1000.0) as u64;
+
+        std::thread::spawn(move || {
+            let mut chunk_index: u32 = 0;
+            loop {
+                std::thread::sleep(std::time::Duration::from_millis(interval_ms));
+
+                // Check if we should stop
+                if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
+                    break;
+                }
+
+                // Grab current dictation audio without stopping recording
+                let audio = {
+                    let rec = recorder_ref.lock().ok();
+                    match rec.as_ref().and_then(|r| r.as_ref()) {
+                        Some(recorder) => recorder.take_dictation_chunk(),
+                        None => break, // recorder gone, stop timer
+                    }
+                };
+
+                // Skip empty chunks
+                if audio.len() < 1600 { // less than 0.1s at 16kHz
+                    continue;
+                }
+
+                // Submit chunk to job queue
+                let queue_guard = queue_ref.lock().ok();
+                if let Some(Some(queue)) = queue_guard.as_ref().map(|g| g.as_ref()) {
+                    let job = job_queue::TranscriptionJob {
+                        id: uuid::Uuid::new_v4(),
+                        audio,
+                        target_hwnd: hwnd,
+                        language: lang.clone(),
+                        job_type: job_queue::JobType::Dictation,
+                        chunk_index: Some(chunk_index),
+                        session_id: session_uuid,
+                        created_at: std::time::Instant::now(),
+                        status: job_queue::JobStatus::Queued,
+                    };
+                    queue.submit(job);
+                    chunk_index += 1;
+                } else {
+                    break; // no queue, stop timer
+                }
+            }
+        });
+    }
 
     Ok(session_id)
 }
@@ -451,10 +514,13 @@ async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<Transcription
     })
 }
 
-/// Async stop-dictation: splits audio into chunks and submits to the job queue
-/// for parallel transcription. Results are retrieved via get_completed_sessions.
+/// Async stop-dictation: stops the incremental timer, submits remaining audio
+/// as final chunk, and finalizes the session. Results come via get_completed_sessions.
 #[tauri::command(rename_all = "camelCase")]
 async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Result<(), String> {
+    // Signal the incremental timer thread to stop
+    state.incremental_stop.store(true, std::sync::atomic::Ordering::Relaxed);
+
     let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
     if !*is_dictating {
         return Err("Not dictating".to_string());
@@ -462,7 +528,7 @@ async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Resul
 
     let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
 
-    // Get dictation audio
+    // Get remaining dictation audio (what the timer hasn't grabbed yet)
     let audio_data = {
         let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
         let recorder = rec.as_ref().ok_or("No recorder")?;
@@ -478,7 +544,6 @@ async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Resul
     };
 
     *is_dictating = false;
-    // Drop is_dictating lock early
     drop(is_dictating);
 
     // Read the HWND that was captured at start_dictation
@@ -492,44 +557,48 @@ async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Resul
     }
 
     let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
-    let interval = settings.incremental_interval_secs;
     let language = settings.language.clone();
 
     // Parse the session UUID
     let session_uuid = uuid::Uuid::parse_str(&session_id)
         .map_err(|e| format!("Invalid session_id: {}", e))?;
 
-    // Split audio into chunks based on incremental_interval_secs
-    let samples_per_chunk = (interval * 16000.0) as usize;
-    let chunks: Vec<Vec<f32>> = if samples_per_chunk > 0 && audio_data.len() > samples_per_chunk {
-        audio_data.chunks(samples_per_chunk).map(|c| c.to_vec()).collect()
-    } else {
-        vec![audio_data]
-    };
-
-    let total_chunks = chunks.len() as u32;
-
-    // Submit each chunk as a TranscriptionJob to the queue
+    // Submit remaining audio as final chunk (the timer already submitted earlier chunks)
     {
         let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
         let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
 
-        for (i, chunk) in chunks.into_iter().enumerate() {
+        // Only submit if there's meaningful audio remaining
+        if audio_data.len() >= 1600 { // at least 0.1s at 16kHz
+            // Get current chunk count from the session to know next index
+            let status = queue.get_status();
+            let chunk_index = status.sessions.iter()
+                .find(|s| s.session_id == session_uuid.to_string())
+                .map(|s| s.total_chunks)
+                .unwrap_or(0);
+
             let job = job_queue::TranscriptionJob {
                 id: uuid::Uuid::new_v4(),
-                audio: chunk,
+                audio: audio_data,
                 target_hwnd: hwnd,
                 language: language.clone(),
                 job_type: job_queue::JobType::Dictation,
-                chunk_index: Some(i as u32),
+                chunk_index: Some(chunk_index),
                 session_id: session_uuid,
                 created_at: std::time::Instant::now(),
                 status: job_queue::JobStatus::Queued,
             };
             queue.submit(job);
+            queue.finalize_session_chunks(session_uuid, chunk_index + 1);
+        } else {
+            // No remaining audio — finalize with current chunk count
+            let status = queue.get_status();
+            let total = status.sessions.iter()
+                .find(|s| s.session_id == session_uuid.to_string())
+                .map(|s| s.total_chunks)
+                .unwrap_or(0);
+            queue.finalize_session_chunks(session_uuid, total);
         }
-
-        queue.finalize_session_chunks(session_uuid, total_chunks);
     }
 
     Ok(())
@@ -1222,6 +1291,7 @@ pub fn run() {
             meeting_writer: Arc::new(Mutex::new(None)),
             speaker_matcher: Arc::new(Mutex::new(None)),
             auto_corrector: Arc::new(Mutex::new(None)),
+            incremental_stop: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,

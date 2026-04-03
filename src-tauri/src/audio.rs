@@ -166,6 +166,16 @@ impl AudioRecorder {
         buf.clear();
         data
     }
+
+    /// Take current dictation buffer contents WITHOUT stopping dictation.
+    /// Used for incremental transcription: grab what we have so far, clear buffer,
+    /// keep recording.
+    pub fn take_dictation_chunk(&self) -> Vec<f32> {
+        let mut buf = self.dictation_buffer.lock().unwrap();
+        let data = buf.clone();
+        buf.clear();
+        data
+    }
 }
 
 pub fn list_input_devices() -> Result<Vec<String>, Box<dyn std::error::Error>> {
