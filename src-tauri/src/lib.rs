@@ -568,36 +568,27 @@ async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Resul
         let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
         let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
 
-        // Only submit if there's meaningful audio remaining
-        if audio_data.len() >= 1600 { // at least 0.1s at 16kHz
-            // Get current chunk count from the session to know next index
-            let status = queue.get_status();
-            let chunk_index = status.sessions.iter()
-                .find(|s| s.session_id == session_uuid.to_string())
-                .map(|s| s.total_chunks)
-                .unwrap_or(0);
+        // Get how many chunks the timer already submitted
+        let already_submitted = queue.session_submitted_count(session_uuid);
 
+        // Only submit remaining audio if there's meaningful content
+        if audio_data.len() >= 1600 { // at least 0.1s at 16kHz
             let job = job_queue::TranscriptionJob {
                 id: uuid::Uuid::new_v4(),
                 audio: audio_data,
                 target_hwnd: hwnd,
                 language: language.clone(),
                 job_type: job_queue::JobType::Dictation,
-                chunk_index: Some(chunk_index),
+                chunk_index: Some(already_submitted),
                 session_id: session_uuid,
                 created_at: std::time::Instant::now(),
                 status: job_queue::JobStatus::Queued,
             };
             queue.submit(job);
-            queue.finalize_session_chunks(session_uuid, chunk_index + 1);
+            queue.finalize_session_chunks(session_uuid, already_submitted + 1);
         } else {
-            // No remaining audio — finalize with current chunk count
-            let status = queue.get_status();
-            let total = status.sessions.iter()
-                .find(|s| s.session_id == session_uuid.to_string())
-                .map(|s| s.total_chunks)
-                .unwrap_or(0);
-            queue.finalize_session_chunks(session_uuid, total);
+            // No remaining audio — finalize with chunks already submitted
+            queue.finalize_session_chunks(session_uuid, already_submitted);
         }
     }
 

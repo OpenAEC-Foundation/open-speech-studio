@@ -81,6 +81,11 @@ impl DictationSession {
             && self.chunks.iter().all(|c| c.is_some())
     }
 
+    /// Number of chunk slots that have been created (via submit)
+    pub fn submitted_count(&self) -> u32 {
+        self.chunks.len() as u32
+    }
+
     pub fn assembled_text(&self) -> String {
         self.chunks
             .iter()
@@ -164,6 +169,12 @@ impl JobQueue {
         job_id
     }
 
+    /// Get how many chunks have been submitted for a session so far.
+    pub fn session_submitted_count(&self, session_id: Uuid) -> u32 {
+        let sessions = self.sessions.lock().unwrap();
+        sessions.get(&session_id).map(|s| s.submitted_count()).unwrap_or(0)
+    }
+
     pub fn finalize_session_chunks(&self, session_id: Uuid, total: u32) {
         let mut sessions = self.sessions.lock().unwrap();
         if let Some(session) = sessions.get_mut(&session_id) {
@@ -171,6 +182,14 @@ impl JobQueue {
             // Ensure chunks vector is the right size
             if session.chunks.len() < total as usize {
                 session.chunks.resize(total as usize, None);
+            }
+            // Check if session is already complete (all chunks finished before finalize)
+            if session.is_complete() {
+                session.status = SessionStatus::Done;
+            }
+            // Edge case: 0 chunks submitted (very short recording)
+            if total == 0 {
+                session.status = SessionStatus::Done;
             }
         }
     }
