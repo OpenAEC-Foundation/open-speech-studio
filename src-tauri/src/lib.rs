@@ -60,6 +60,8 @@ pub struct AppState {
     source_window: Arc<Mutex<usize>>,
     /// The window handle for dictation (separate from meeting source_window).
     dictation_source_window: Arc<Mutex<usize>>,
+    /// Job queue for parallel transcription
+    job_queue: Arc<Mutex<Option<job_queue::JobQueue>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -936,6 +938,37 @@ async fn type_text(state: State<'_, AppState>, text: String) -> Result<(), Strin
     Ok(())
 }
 
+#[tauri::command]
+fn init_job_queue(state: State<'_, AppState>) -> Result<(), String> {
+    let settings = state.settings.lock().map_err(|e| e.to_string())?;
+    let max_workers = settings.max_workers;
+    drop(settings);
+
+    let transcriber_guard = state.transcriber.lock().map_err(|e| e.to_string())?;
+    let transcriber = transcriber_guard.clone();
+    drop(transcriber_guard);
+
+    let queue = job_queue::JobQueue::new(max_workers, transcriber);
+    *state.job_queue.lock().map_err(|e| e.to_string())? = Some(queue);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_queue_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+    let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
+    let status = queue.get_status();
+    serde_json::to_value(&status).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_completed_sessions(state: State<'_, AppState>) -> Result<Vec<(String, usize, String)>, String> {
+    let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+    let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
+    let sessions = queue.get_completed_sessions();
+    Ok(sessions.iter().map(|(id, hwnd, text)| (id.to_string(), *hwnd, text.clone())).collect())
+}
+
 pub fn run() {
     env_logger::init();
 
@@ -1026,6 +1059,7 @@ pub fn run() {
             file_jobs: Arc::new(Mutex::new(HashMap::new())),
             source_window: Arc::new(Mutex::new(0)),
             dictation_source_window: Arc::new(Mutex::new(0)),
+            job_queue: Arc::new(Mutex::new(None)),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -1054,6 +1088,9 @@ pub fn run() {
             save_text_file,
             type_text,
             update_tray_language,
+            init_job_queue,
+            get_queue_status,
+            get_completed_sessions,
         ])
         .setup(move |app| {
             // Config has decorations:true + titleBarStyle:overlay for macOS traffic lights.
