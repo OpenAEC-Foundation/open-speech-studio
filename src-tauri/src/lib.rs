@@ -4,6 +4,7 @@ mod dictionary;
 mod job_queue;
 mod meeting_writer;
 mod settings;
+mod speaker;
 mod spellcheck;
 mod transcriber;
 
@@ -65,6 +66,8 @@ pub struct AppState {
     job_queue: Arc<Mutex<Option<job_queue::JobQueue>>>,
     /// Active meeting writer for crash-safe transcript storage
     meeting_writer: Arc<Mutex<Option<meeting_writer::MeetingWriter>>>,
+    /// ONNX-based speaker embedding matcher for diarization
+    speaker_matcher: Arc<Mutex<Option<speaker::SpeakerMatcher>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1077,6 +1080,29 @@ fn get_completed_sessions(state: State<'_, AppState>) -> Result<Vec<(String, usi
     Ok(sessions.iter().map(|(id, hwnd, text)| (id.to_string(), *hwnd, text.clone())).collect())
 }
 
+// ── Speaker profile management commands ─────────────────────────────────
+
+#[tauri::command]
+fn train_speaker(state: State<'_, AppState>, name: String, audio: Vec<f32>) -> Result<(), String> {
+    let mut matcher = state.speaker_matcher.lock().map_err(|e| e.to_string())?;
+    let matcher = matcher.as_mut().ok_or("Speaker matcher not initialized")?;
+    matcher.train_profile(&name, &audio)
+}
+
+#[tauri::command]
+fn list_speaker_profiles(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    let matcher = state.speaker_matcher.lock().map_err(|e| e.to_string())?;
+    let matcher = matcher.as_ref().ok_or("Speaker matcher not initialized")?;
+    Ok(matcher.list_profiles())
+}
+
+#[tauri::command]
+fn delete_speaker_profile(state: State<'_, AppState>, name: String) -> Result<(), String> {
+    let mut matcher = state.speaker_matcher.lock().map_err(|e| e.to_string())?;
+    let matcher = matcher.as_mut().ok_or("Speaker matcher not initialized")?;
+    matcher.delete_profile(&name)
+}
+
 pub fn run() {
     env_logger::init();
 
@@ -1169,6 +1195,7 @@ pub fn run() {
             dictation_source_window: Arc::new(Mutex::new(0)),
             job_queue: Arc::new(Mutex::new(None)),
             meeting_writer: Arc::new(Mutex::new(None)),
+            speaker_matcher: Arc::new(Mutex::new(None)),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -1201,6 +1228,9 @@ pub fn run() {
             init_job_queue,
             get_queue_status,
             get_completed_sessions,
+            train_speaker,
+            list_speaker_profiles,
+            delete_speaker_profile,
         ])
         .setup(move |app| {
             // Config has decorations:true + titleBarStyle:overlay for macOS traffic lights.
