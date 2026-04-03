@@ -453,7 +453,7 @@ async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<Transcription
 
 /// Async stop-dictation: splits audio into chunks and submits to the job queue
 /// for parallel transcription. Results are retrieved via get_completed_sessions.
-#[tauri::command]
+#[tauri::command(rename_all = "camelCase")]
 async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Result<(), String> {
     let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
     if !*is_dictating {
