@@ -188,8 +188,8 @@ impl JobQueue {
             if session.is_complete() {
                 session.status = SessionStatus::Done;
             }
-            // Edge case: 0 chunks submitted (very short recording)
-            if total == 0 {
+            // Edge case: 0 chunks submitted (very short recording, nothing to transcribe)
+            if total == 0 && session.status != SessionStatus::Recording {
                 session.status = SessionStatus::Done;
             }
         }

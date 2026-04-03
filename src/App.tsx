@@ -433,25 +433,26 @@ export default function App() {
         }, ...prev]);
       }
 
-      // 2. Check for fully completed sessions (cleanup)
-      const completed = await api.getCompletedSessions();
-      for (const [sessionId, _hwnd, _text] of completed) {
-        // Session is done — remove from active, play sound, show done overlay
-        setActiveSessions(prev => {
-          const next = new Map(prev);
-          next.delete(sessionId);
-          return next;
-        });
-        if (settings()?.audio_feedback !== false) soundTranscriptionDone();
-        await showOverlay('done', 'Transcriptie voltooid');
-        setTimeout(() => closeOverlay(), 2000);
-      }
+      // 2. Check for fully completed sessions — but only if user has stopped recording
+      if (!isRecording()) {
+        const completed = await api.getCompletedSessions();
+        for (const [sessionId, _hwnd, _text] of completed) {
+          setActiveSessions(prev => {
+            const next = new Map(prev);
+            next.delete(sessionId);
+            return next;
+          });
+          if (settings()?.audio_feedback !== false) soundTranscriptionDone();
+          await showOverlay('done', 'Transcriptie voltooid');
+          setTimeout(() => closeOverlay(), 2000);
+        }
 
-      // Stop polling if nothing is active anymore
-      const remaining = activeSessions();
-      const hasActive = remaining.size > 0;
-      if (!hasActive) {
-        stopChunkPolling();
+        // Stop polling if nothing is active anymore
+        const remaining = activeSessions();
+        const hasActive = remaining.size > 0;
+        if (!hasActive) {
+          stopChunkPolling();
+        }
       }
     } catch (err) {
       console.error('Poll error:', err);
