@@ -339,7 +339,7 @@ async fn get_recording_status(state: State<'_, AppState>) -> Result<bool, String
 }
 
 #[tauri::command]
-async fn start_dictation(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
+async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
     dbg_log!("[DEBUG] start_dictation called");
     let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
     if *is_dictating {
@@ -399,23 +399,24 @@ async fn start_dictation(app: tauri::AppHandle, state: State<'_, AppState>) -> R
         }
     };
 
-    // Live streaming timer: every `interval` seconds, grab audio chunk,
-    // transcribe it, type it into the target window, and emit event for overlay.
-    // The timer does everything itself — no frontend involvement needed for typing.
-    if interval > 0.0 && interval < 300.0 {
+    // Incremental timer disabled for now — will be re-enabled in stap 2 (live streaming via Tauri events)
+    // The timer was stealing audio from the dictation buffer, causing lost speech.
+    // The sync flow (stop_dictation_sync) needs all audio intact.
+    if false && interval > 0.0 && interval < 300.0 {
         let stop_flag = state.incremental_stop.clone();
         stop_flag.store(false, std::sync::atomic::Ordering::Relaxed);
 
         let recorder_ref = state.recorder.clone();
-        let transcriber_ref = state.transcriber.clone();
-        let app_clone = app.clone();
+        let queue_ref = state.job_queue.clone();
+        let session_uuid = uuid::Uuid::parse_str(&session_id)
+            .map_err(|e| format!("Invalid session_id: {}", e))?;
         let lang = language.clone();
         let interval_ms = (interval * 1000.0) as u64;
 
-        dbg_log!("[DEBUG] spawning live timer thread, interval_ms={}", interval_ms);
+        dbg_log!("[DEBUG] spawning incremental timer thread, interval_ms={}", interval_ms);
         std::thread::spawn(move || {
             let mut chunk_index: u32 = 0;
-            dbg_log!("[DEBUG] live timer thread started");
+            dbg_log!("[DEBUG] timer thread started");
             loop {
                 std::thread::sleep(std::time::Duration::from_millis(interval_ms));
 
@@ -424,7 +425,6 @@ async fn start_dictation(app: tauri::AppHandle, state: State<'_, AppState>) -> R
                     break;
                 }
 
-                // Grab audio chunk from dictation buffer (keeps recording active)
                 let audio = {
                     let rec = recorder_ref.lock().ok();
                     match rec.as_ref().and_then(|r| r.as_ref()) {
@@ -436,87 +436,43 @@ async fn start_dictation(app: tauri::AppHandle, state: State<'_, AppState>) -> R
                     }
                 };
 
-                dbg_log!("[DEBUG] timer: got {} samples", audio.len());
+                dbg_log!("[DEBUG] timer: got {} samples from dictation buffer", audio.len());
 
-                if audio.len() < 1600 { // < 0.1s at 16kHz
-                    dbg_log!("[DEBUG] timer: chunk too small, skipping");
+                if audio.len() < 1600 {
+                    dbg_log!("[DEBUG] timer: chunk too small ({}), skipping", audio.len());
                     continue;
                 }
 
-                // Transcribe the chunk
-                let transcriber = {
-                    let guard = transcriber_ref.lock().ok();
-                    guard.and_then(|g| g.clone())
-                };
-
-                let text = match transcriber {
-                    Some(t) => match t.transcribe(&audio, &lang) {
-                        Ok(text) => text.trim().to_string(),
-                        Err(e) => {
-                            dbg_log!("[DEBUG] timer: transcription failed: {}", e);
-                            continue;
-                        }
-                    },
-                    None => {
-                        dbg_log!("[DEBUG] timer: no transcriber available");
-                        continue;
-                    }
-                };
-
-                dbg_log!("[DEBUG] timer: transcribed chunk {}: '{}'", chunk_index, &text[..text.len().min(60)]);
-
-                if text.is_empty() {
-                    continue;
-                }
-
-                // Type text directly into the target window
-                #[cfg(target_os = "windows")]
-                {
-                    #[link(name = "user32")]
-                    extern "system" {
-                        fn SetForegroundWindow(hwnd: usize) -> i32;
-                    }
-                    if hwnd != 0 {
-                        unsafe { SetForegroundWindow(hwnd); }
-                        std::thread::sleep(std::time::Duration::from_millis(50));
-                    }
-                }
-
-                if let Ok(mut enigo) = enigo::Enigo::new(&enigo::Settings::default()) {
-                    use enigo::Keyboard;
-                    let type_text = if chunk_index > 0 {
-                        format!(" {}", text) // add space between chunks
-                    } else {
-                        text.clone()
+                let queue_guard = queue_ref.lock().ok();
+                if let Some(Some(queue)) = queue_guard.as_ref().map(|g| g.as_ref()) {
+                    dbg_log!("[DEBUG] timer: submitting chunk {} ({} samples)", chunk_index, audio.len());
+                    let job = job_queue::TranscriptionJob {
+                        id: uuid::Uuid::new_v4(),
+                        audio,
+                        target_hwnd: hwnd,
+                        language: lang.clone(),
+                        job_type: job_queue::JobType::Dictation,
+                        chunk_index: Some(chunk_index),
+                        session_id: session_uuid,
+                        created_at: std::time::Instant::now(),
+                        status: job_queue::JobStatus::Queued,
                     };
-                    let _ = enigo.text(&type_text);
-                    dbg_log!("[DEBUG] timer: typed text into window");
+                    queue.submit(job);
+                    chunk_index += 1;
+                } else {
+                    break; // no queue, stop timer
                 }
-
-                // Emit event for overlay/UI
-                let _ = app_clone.emit("transcription-chunk", serde_json::json!({
-                    "chunk_index": chunk_index,
-                    "text": text,
-                }));
-
-                chunk_index += 1;
             }
-            dbg_log!("[DEBUG] live timer thread exited");
         });
     }
 
     Ok(session_id)
 }
 
-/// Stop dictation: stops the incremental timer, transcribes remaining audio,
-/// types it, and returns the result. The timer already typed earlier chunks.
+/// Synchronous stop-dictation: transcribes immediately and returns the result.
+/// Kept for backward compatibility (e.g. file transcription flows).
 #[tauri::command]
 async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<TranscriptionResult, String> {
-    // Stop the incremental timer first
-    state.incremental_stop.store(true, std::sync::atomic::Ordering::Relaxed);
-    // Give timer thread a moment to exit cleanly
-    std::thread::sleep(std::time::Duration::from_millis(100));
-
     let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
     if !*is_dictating {
         return Err("Not dictating".to_string());

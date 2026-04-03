@@ -248,24 +248,6 @@ export default function App() {
     }
   };
 
-  // Listen for live transcription chunks from the backend timer
-  if (isTauri) {
-    import("@tauri-apps/api/event").then(({ listen }) => {
-      listen<{ chunk_index: number; text: string }>("transcription-chunk", (e) => {
-        const { chunk_index, text } = e.payload;
-        console.log(`[OSS] Live chunk ${chunk_index}: ${text}`);
-        // Add to transcription history
-        setTranscriptions(prev => [{
-          text,
-          language: settings()?.language || 'nl',
-          duration_ms: 0,
-        }, ...prev]);
-        // Update overlay with live text
-        showOverlay('transcribing', text.substring(0, 50));
-      });
-    });
-  }
-
   onCleanup(async () => {
     if (!isTauri) return;
     try {
