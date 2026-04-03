@@ -1098,7 +1098,7 @@ fn stop_dictation_raw(state: State<'_, AppState>) -> Result<Vec<f32>, String> {
     };
     if !is_recording {
         let mut recorder_guard = state.recorder.lock().map_err(|e| e.to_string())?;
-        if let Some(recorder) = recorder_guard.take() {
+        if let Some(mut recorder) = recorder_guard.take() {
             let _ = recorder.stop();
         }
     }
