@@ -1080,6 +1080,28 @@ fn get_completed_sessions(state: State<'_, AppState>) -> Result<Vec<(String, usi
     Ok(sessions.iter().map(|(id, hwnd, text)| (id.to_string(), *hwnd, text.clone())).collect())
 }
 
+// ── Raw audio stop-dictation (for voice training) ───────────────────────
+
+#[tauri::command]
+fn stop_dictation_raw(state: State<'_, AppState>) -> Result<Vec<f32>, String> {
+    *state.is_dictating.lock().map_err(|e| e.to_string())? = false;
+    let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
+    let audio = {
+        let recorder_guard = state.recorder.lock().map_err(|e| e.to_string())?;
+        match &*recorder_guard {
+            Some(recorder) => recorder.stop_dictation(),
+            None => return Err("No recorder active".to_string()),
+        }
+    };
+    if !is_recording {
+        let mut recorder_guard = state.recorder.lock().map_err(|e| e.to_string())?;
+        if let Some(recorder) = recorder_guard.take() {
+            let _ = recorder.stop();
+        }
+    }
+    Ok(audio)
+}
+
 // ── Speaker profile management commands ─────────────────────────────────
 
 #[tauri::command]
@@ -1228,6 +1250,7 @@ pub fn run() {
             init_job_queue,
             get_queue_status,
             get_completed_sessions,
+            stop_dictation_raw,
             train_speaker,
             list_speaker_profiles,
             delete_speaker_profile,

@@ -1,6 +1,7 @@
 import { createSignal, onMount, For, Show } from "solid-js";
 import { api, type Settings } from "../lib/api";
 import { useI18n, getLanguageOptions, type Locale } from "../lib/i18n";
+import VoiceTraining from "./VoiceTraining";
 
 interface SettingsPanelProps {
   settings: Settings | null;
@@ -63,6 +64,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [floatingIndicator, setFloatingIndicator] = createSignal(true);
   const [soundPack, setSoundPack] = createSignal("retro");
   const [soundVolume, setSoundVolume] = createSignal(80);
+  const [speakerProfiles, setSpeakerProfiles] = createSignal<string[]>([]);
+  const [showVoiceTraining, setShowVoiceTraining] = createSignal(false);
 
   const [gpuInfo, setGpuInfo] = createSignal<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string } | null>(null);
   const [gpuStatus, setGpuStatus] = createSignal<{ enabled: boolean; cuda_available: boolean; active: boolean; device_name: string } | null>(null);
@@ -115,7 +118,18 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       const status = await api.getGpuStatus();
       setGpuStatus(status);
     } catch (_) {}
+    try {
+      const profiles = await api.listSpeakerProfiles();
+      setSpeakerProfiles(profiles);
+    } catch (_) {}
   });
+
+  const refreshSpeakerProfiles = async () => {
+    try {
+      const profiles = await api.listSpeakerProfiles();
+      setSpeakerProfiles(profiles);
+    } catch (_) {}
+  };
 
   const autoSave = (partial: Partial<Settings>) => {
     if (!props.settings) return;
@@ -526,6 +540,52 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               <span class="setting-hint">{t("settings.floatingIndicatorHint")}</span>
             </div>
           </div>
+
+          <div class="setting-row">
+            <label>Stemprofielen</label>
+            <div class="speaker-profiles-list">
+              <For each={speakerProfiles()}>
+                {(name) => (
+                  <div class="speaker-profile-item">
+                    <span class="speaker-profile-name">{name}</span>
+                    <span class="speaker-trained-badge">Getraind</span>
+                    <button
+                      class="btn btn-small btn-danger-outline"
+                      onClick={async () => {
+                        try {
+                          await api.deleteSpeakerProfile(name);
+                          await refreshSpeakerProfiles();
+                        } catch (_) {}
+                      }}
+                    >
+                      Verwijderen
+                    </button>
+                  </div>
+                )}
+              </For>
+              <Show when={speakerProfiles().length === 0}>
+                <span class="setting-hint">Geen stemprofielen aangemaakt.</span>
+              </Show>
+            </div>
+            <button
+              class="btn btn-small"
+              style={{ "margin-top": "8px" }}
+              onClick={() => setShowVoiceTraining(true)}
+            >
+              + Nieuw stemprofiel
+            </button>
+          </div>
+
+          <Show when={showVoiceTraining()}>
+            <VoiceTraining
+              language={props.settings?.language ?? "nl"}
+              onComplete={async () => {
+                setShowVoiceTraining(false);
+                await refreshSpeakerProfiles();
+              }}
+              onCancel={() => setShowVoiceTraining(false)}
+            />
+          </Show>
         </div>
       </div>
 

@@ -110,6 +110,14 @@ const tauriApi = {
     tauriInvoke<void>("start_file_job", { jobId, filePath }),
   cancelFileJob: (jobId: string) =>
     tauriInvoke<void>("cancel_file_job", { jobId }),
+  stopDictationRaw: () =>
+    tauriInvoke<number[]>("stop_dictation_raw"),
+  trainSpeaker: (name: string, audio: number[]) =>
+    tauriInvoke<void>("train_speaker", { name, audio }),
+  listSpeakerProfiles: () =>
+    tauriInvoke<string[]>("list_speaker_profiles"),
+  deleteSpeakerProfile: (name: string) =>
+    tauriInvoke<void>("delete_speaker_profile", { name }),
 };
 
 // ─── Local server detection ──────────────────────────────────
@@ -573,6 +581,10 @@ const browserApi = {
     Promise.reject(new Error("File transcription is not available in browser mode.")),
   cancelFileJob: (_jobId: string) =>
     Promise.reject(new Error("File transcription is not available in browser mode.")),
+  stopDictationRaw: (): Promise<number[]> => Promise.resolve([]),
+  trainSpeaker: (_name: string, _audio: number[]) => Promise.resolve(),
+  listSpeakerProfiles: (): Promise<string[]> => Promise.resolve([]),
+  deleteSpeakerProfile: (_name: string) => Promise.resolve(),
 };
 
 export const api = isTauri ? tauriApi : browserApi;
