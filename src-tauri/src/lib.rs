@@ -1,6 +1,7 @@
 mod audio;
 mod convert;
 mod dictionary;
+mod job_queue;
 mod settings;
 mod spellcheck;
 mod transcriber;
