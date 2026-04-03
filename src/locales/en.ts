@@ -112,6 +112,26 @@ const en: Record<string, string> = {
   "settings.uiLanguage": "Interface language",
   "settings.uiLanguageHint": "Choose the language for the user interface",
 
+  // ── Settings v0.7 new fields ─────────────────────────────
+  "settings.incrementalInterval": "Incremental interval",
+  "settings.incrementalIntervalHint": "How often intermediate transcription results are emitted during recording",
+  "settings.maxParallelWorkers": "Max parallel workers",
+  "settings.maxParallelWorkersHint": "Number of simultaneous transcription jobs",
+  "settings.autoCorrectionLlm": "Auto-correction (LLM)",
+  "settings.autoCorrectionLlmHint": "Use an LLM to automatically correct transcription output",
+  "settings.soundPack": "Sound pack",
+  "settings.soundPackRetro": "Retro",
+  "settings.soundPackClassic": "Classic",
+  "settings.soundVolume": "Sound volume",
+  "settings.meetingSection": "Meeting",
+  "settings.meetingSaveDirectory": "Meeting save directory",
+  "settings.meetingSaveDirPlaceholder": "Choose a folder...",
+  "settings.meetingSaveDirHint": "Meeting transcripts will be auto-saved to this folder",
+  "settings.speakerDiarization": "Speaker diarization",
+  "settings.speakerDiarizationHint": "Identify and label different speakers in meeting recordings",
+  "settings.floatingIndicator": "Floating meeting indicator",
+  "settings.floatingIndicatorHint": "Show a small always-on-top status badge during meeting recording",
+
   // ── Settings key groups ──────────────────────────────────
   "settings.keyGroupModifiers": "Modifiers",
   "settings.keyGroupSpecial": "Special keys",

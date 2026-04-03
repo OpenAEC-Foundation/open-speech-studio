@@ -102,6 +102,43 @@ async function closeOverlay() {
   } catch (_) {}
 }
 
+async function showMeetingIndicator(settingsGetter: () => { floating_indicator?: boolean } | null) {
+  if (!isTauri) return;
+  if (!settingsGetter()?.floating_indicator) return;
+  try {
+    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    const { currentMonitor } = await import("@tauri-apps/api/window");
+
+    let indicator = await WebviewWindow.getByLabel("meeting-indicator");
+    if (!indicator) {
+      indicator = new WebviewWindow("meeting-indicator", {
+        url: "/?meeting-indicator=true",
+        width: 140, height: 32,
+        resizable: false, decorations: false,
+        transparent: true, alwaysOnTop: true,
+        skipTaskbar: true, visible: false,
+      });
+    }
+    const monitor = await currentMonitor();
+    if (monitor) {
+      const { PhysicalPosition } = await import("@tauri-apps/api/window");
+      await indicator.setPosition(new PhysicalPosition(monitor.size.width - 160, 16));
+    }
+    await indicator.show();
+  } catch (e) {
+    console.error("Meeting indicator error:", e);
+  }
+}
+
+async function hideMeetingIndicator() {
+  if (!isTauri) return;
+  try {
+    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    const indicator = await WebviewWindow.getByLabel("meeting-indicator");
+    if (indicator) await indicator.hide();
+  } catch (_) {}
+}
+
 /** Convert Tauri hotkey format to human-readable label */
 function formatHotkey(raw: string): string {
   const isMac = navigator.platform?.startsWith("Mac");
@@ -465,7 +502,12 @@ export default function App() {
         </Show>
 
         <div style={{ display: view() === "meeting" ? "block" : "none" }}>
-          <MeetingRecorder activeModelName={settings()?.model_name || ""} audioFeedback={settings()?.audio_feedback !== false} />
+          <MeetingRecorder
+            activeModelName={settings()?.model_name || ""}
+            audioFeedback={settings()?.audio_feedback !== false}
+            onRecordingStart={() => showMeetingIndicator(settings)}
+            onRecordingStop={() => hideMeetingIndicator()}
+          />
         </div>
 
         <Show when={view() === "about"}>

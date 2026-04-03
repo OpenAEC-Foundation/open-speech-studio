@@ -23,7 +23,9 @@ if (!import.meta.env.DEV) {
   });
 }
 
-const isOverlay = new URLSearchParams(window.location.search).has("overlay");
+const params = new URLSearchParams(window.location.search);
+const isOverlay = params.has("overlay");
+const isMeetingIndicator = params.has("meeting-indicator");
 
 if (isOverlay) {
   // Force all layers transparent for the overlay webview
@@ -35,6 +37,19 @@ if (isOverlay) {
     render(() => (
       <I18nProvider>
         <DictationOverlay />
+      </I18nProvider>
+    ), document.getElementById("app")!);
+  });
+} else if (isMeetingIndicator) {
+  // Force all layers transparent for the meeting indicator window
+  document.documentElement.style.background = "transparent";
+  document.body.style.background = "transparent";
+  document.getElementById("app")!.style.background = "transparent";
+
+  import("./components/MeetingIndicator").then(({ default: MeetingIndicator }) => {
+    render(() => (
+      <I18nProvider>
+        <MeetingIndicator />
       </I18nProvider>
     ), document.getElementById("app")!);
   });

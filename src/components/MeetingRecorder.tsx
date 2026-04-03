@@ -12,6 +12,8 @@ interface MeetingSegment extends TranscriptionResult {
 interface MeetingRecorderProps {
   activeModelName?: string;
   audioFeedback?: boolean;
+  onRecordingStart?: () => void;
+  onRecordingStop?: () => void;
 }
 
 export default function MeetingRecorder(props: MeetingRecorderProps) {
@@ -67,6 +69,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
     if (animFrame) cancelAnimationFrame(animFrame);
     if (autoTranscribeTimer) clearInterval(autoTranscribeTimer);
     closeMeetingOverlay();
+    if (isRecording()) props.onRecordingStop?.();
   });
 
   // ─── Overlay for meeting recording ──────────────
@@ -198,6 +201,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
       timerInterval = setInterval(updateElapsed, 1000);
       startMicMonitor();
       showMeetingOverlay();
+      props.onRecordingStart?.();
 
       // Start auto-transcribe interval
       const intervalMs = autoInterval() * 60 * 1000;
@@ -244,6 +248,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
     }
     stopMicMonitor();
     closeMeetingOverlay();
+    props.onRecordingStop?.();
 
     try {
       if (props.audioFeedback !== false) soundRecordStop();

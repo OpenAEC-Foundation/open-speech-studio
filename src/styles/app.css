@@ -840,6 +840,25 @@ body {
   gap: 10px;
 }
 
+.range-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.range-group input[type="range"] {
+  flex: 1;
+  max-width: 200px;
+  accent-color: var(--theme-accent);
+}
+
+.range-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--theme-text);
+  min-width: 36px;
+}
+
 .toggle {
   position: relative;
   display: inline-block;
