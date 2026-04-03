@@ -42,19 +42,20 @@ async function showOverlay(state: string, text?: string) {
   if (!isTauri) return;
   try {
     const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-    const { currentMonitor } = await import("@tauri-apps/api/window");
     const { emit } = await import("@tauri-apps/api/event");
 
-    if (!overlayWindow || (overlayWindow as any).__destroyed) {
+    let win = await WebviewWindow.getByLabel("dictation-overlay");
+    if (!win) {
+      const { currentMonitor } = await import("@tauri-apps/api/window");
       const monitor = await currentMonitor();
       const screenW = monitor?.size?.width ?? 1920;
       const screenH = monitor?.size?.height ?? 1080;
       const scale = monitor?.scaleFactor ?? 1;
-      const overlayW = 280;
-      const overlayH = 64;
+      const overlayW = 200;
+      const overlayH = 48;
       const margin = 16;
 
-      overlayWindow = new WebviewWindow("dictation-overlay", {
+      win = new WebviewWindow("dictation-overlay", {
         url: "/?overlay=true",
         title: "Dictation",
         width: overlayW,
@@ -67,30 +68,37 @@ async function showOverlay(state: string, text?: string) {
         resizable: false,
         transparent: true,
         focus: false,
+        visible: false,
       });
 
-      (overlayWindow as any).__destroyed = false;
-      overlayWindow.once("tauri://destroyed", () => {
-        (overlayWindow as any).__destroyed = true;
-      });
+      overlayWindow = win;
 
-      // Small delay to let webview load
-      await new Promise((r) => setTimeout(r, 300));
+      // Wait for the webview to finish loading before sending events
+      await new Promise<void>((resolve) => {
+        win!.once("tauri://window-created", () => resolve());
+        // Fallback timeout in case the event is missed
+        setTimeout(resolve, 400);
+      });
+    } else {
+      overlayWindow = win;
     }
 
     await emit("overlay-state", state);
     if (text) await emit("overlay-text", text);
+    await overlayWindow.show();
   } catch (e) {
     console.error("Overlay error:", e);
   }
 }
 
 async function closeOverlay() {
-  if (!isTauri || !overlayWindow) return;
+  if (!isTauri) return;
   try {
-    const { emit } = await import("@tauri-apps/api/event");
-    await emit("overlay-close");
-    overlayWindow = null;
+    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+    const win = await WebviewWindow.getByLabel("dictation-overlay");
+    if (win) {
+      await win.hide();
+    }
   } catch (_) {}
 }
 
@@ -158,6 +166,8 @@ export default function App() {
   const [isModelLoaded, setIsModelLoaded] = createSignal(false);
   const [transcriptions, setTranscriptions] = createSignal<TranscriptionResult[]>([]);
   let recordingStartedAt = 0;
+  const [activeSessions, setActiveSessions] = createSignal<Map<string, string>>(new Map());
+  let completionPollInterval: number | undefined;
 
   /** All hotkeys that trigger recording (primary + secondary) */
   const SECONDARY_HOTKEY = "Ctrl+Shift+Space";
@@ -203,6 +213,10 @@ export default function App() {
   };
 
   onCleanup(async () => {
+    if (completionPollInterval) {
+      clearInterval(completionPollInterval);
+      completionPollInterval = undefined;
+    }
     if (!isTauri) return;
     try {
       const { unregisterAll } = await import("@tauri-apps/plugin-global-shortcut");
@@ -257,12 +271,14 @@ export default function App() {
       console.log("[startup] isModelLoaded:", loaded, "model_name:", s.model_name, "model_path:", s.model_path);
       if (loaded) {
         setIsModelLoaded(true);
+        await api.initJobQueue();
         setStartupMsg(t("app.startupActive", { hotkey: formatBothHotkeys() }));
       } else if (s.model_path) {
         console.log("[startup] backend didn't auto-load, trying from frontend...");
         try {
           await api.loadModel(s.model_path);
           setIsModelLoaded(true);
+          await api.initJobQueue();
           console.log("[startup] frontend load succeeded");
           setStartupMsg(t("app.startupModelLoaded", { hotkey: formatBothHotkeys() }));
         } catch (loadErr) {
@@ -297,10 +313,15 @@ export default function App() {
     if (isRecording()) return;
 
     try {
-      if (settings()?.audio_feedback !== false) soundRecordStart();
-      await api.startDictation();
+      const sessionId = await api.startDictation();
+      setActiveSessions(prev => {
+        const next = new Map(prev);
+        next.set(sessionId, 'recording');
+        return next;
+      });
       recordingStartedAt = Date.now();
       setIsRecording(true);
+      if (settings()?.audio_feedback !== false) soundRecordStart();
       await showOverlay("recording");
       startAudioLevelPolling();
     } catch (e) {
@@ -312,33 +333,68 @@ export default function App() {
   const handleStopRecording = async () => {
     if (!isRecording()) return;
 
+    stopAudioLevelPolling();
+    if (settings()?.audio_feedback !== false) soundRecordStop();
+
+    const sessions = activeSessions();
+    const sessionId = Array.from(sessions.entries())
+      .filter(([_, status]) => status === 'recording')
+      .pop()?.[0];
+    if (!sessionId) return;
+
+    setActiveSessions(prev => {
+      const next = new Map(prev);
+      next.set(sessionId, 'transcribing');
+      return next;
+    });
+    setIsRecording(false);
+
     try {
-      if (settings()?.audio_feedback !== false) soundRecordStop();
-      stopAudioLevelPolling();
-      const recDuration = Date.now() - recordingStartedAt;
-      const modelName = settings()?.model_name || "base";
-      const estSec = getEstimatedSeconds(modelName, recDuration);
-      await showOverlay("transcribing", `~${estSec}s`);
-      const transcribeStart = Date.now();
-      const result = await api.stopDictation();
-      const transcribeDuration = Date.now() - transcribeStart;
-      updateEstimate(modelName, recDuration, transcribeDuration);
-      setIsRecording(false);
-      setTranscriptions((prev) => [result, ...prev]);
-      if (settings()?.audio_feedback !== false) soundTranscriptionDone();
-      const s = settings();
-      if (s?.auto_paste && result.text) {
-        await api.typeText(result.text);
+      await api.stopDictationAsync(sessionId);
+      await showOverlay("transcribing", '');
+
+      if (!completionPollInterval) {
+        completionPollInterval = window.setInterval(pollCompletedSessions, 200);
       }
-      // Show result briefly, then close
-      await showOverlay("done", result.text || t("overlay.done"));
-      setTimeout(() => closeOverlay(), 2000);
     } catch (e) {
-      setIsRecording(false);
       if (settings()?.audio_feedback !== false) soundError();
       await showOverlay("error", String(e));
       setTimeout(() => closeOverlay(), 3000);
       console.error("Transcription error:", e);
+    }
+  };
+
+  const pollCompletedSessions = async () => {
+    try {
+      const completed = await api.getCompletedSessions();
+      for (const [sessionId, _hwnd, text] of completed) {
+        const finalText = text.trim();
+        if (finalText && settings()?.auto_paste) {
+          await api.typeText(finalText);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        setTranscriptions(prev => [{
+          text: finalText,
+          language: settings()?.language || 'nl',
+          duration_ms: 0,
+        }, ...prev]);
+        setActiveSessions(prev => {
+          const next = new Map(prev);
+          next.delete(sessionId);
+          return next;
+        });
+        if (settings()?.audio_feedback !== false) soundTranscriptionDone();
+        await showOverlay('done', finalText.substring(0, 50));
+        setTimeout(() => closeOverlay(), 2000);
+      }
+      const remaining = activeSessions();
+      const hasActive = Array.from(remaining.values()).some(s => s === 'transcribing');
+      if (!hasActive && completionPollInterval) {
+        clearInterval(completionPollInterval);
+        completionPollInterval = undefined;
+      }
+    } catch (err) {
+      console.error('Poll error:', err);
     }
   };
 
@@ -418,8 +474,9 @@ export default function App() {
 
         <Show when={view() === "models"}>
           <ModelManager
-            onModelLoaded={(path, name) => {
+            onModelLoaded={async (path, name) => {
               setIsModelLoaded(true);
+              await api.initJobQueue();
               const s = settings();
               if (s) {
                 const updated = { ...s, model_path: path, model_name: name };
