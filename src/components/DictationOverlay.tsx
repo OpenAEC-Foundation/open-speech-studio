@@ -1,5 +1,6 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import { listen } from "@tauri-apps/api/event";
+import { likeLastSound } from "../lib/sounds";
 
 type OverlayState = "recording" | "transcribing" | "done" | "error";
 
@@ -9,14 +10,20 @@ export default function DictationOverlay() {
   const [audioLevel, setAudioLevel] = createSignal(0);
   const [progressPct, setProgressPct] = createSignal(0);
   const [visible, setVisible] = createSignal(false);
+  const [showThumbsUp, setShowThumbsUp] = createSignal(false);
 
   onMount(() => {
     const unlisten1 = listen<string>("overlay-state", (e) => {
       const s = e.payload as OverlayState;
       setState(s);
       setVisible(true);
-      if (s === "done") setTimeout(() => setVisible(false), 2000);
-      else if (s === "error") setTimeout(() => setVisible(false), 3000);
+      if (s === "done") {
+        setShowThumbsUp(true);
+        setTimeout(() => setShowThumbsUp(false), 3000);
+        setTimeout(() => setVisible(false), 2000);
+      } else if (s === "error") {
+        setTimeout(() => setVisible(false), 3000);
+      }
     });
 
     const unlisten2 = listen<string>("overlay-text", (e) => {
@@ -178,6 +185,22 @@ export default function DictationOverlay() {
           >
             {text()}
           </span>
+        </Show>
+        <Show when={state() === "done" && showThumbsUp()}>
+          <button
+            onClick={() => { likeLastSound(); setShowThumbsUp(false); }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              "font-size": "14px",
+              padding: "0 4px",
+              opacity: 0.7,
+            }}
+            title="Like this sound"
+          >
+            👍
+          </button>
         </Show>
         <Show when={state() === "error"}>
           <span
