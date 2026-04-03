@@ -2,6 +2,7 @@ mod audio;
 mod convert;
 mod dictionary;
 mod job_queue;
+mod meeting_writer;
 mod settings;
 mod spellcheck;
 mod transcriber;
@@ -62,6 +63,8 @@ pub struct AppState {
     dictation_source_window: Arc<Mutex<usize>>,
     /// Job queue for parallel transcription
     job_queue: Arc<Mutex<Option<job_queue::JobQueue>>>,
+    /// Active meeting writer for crash-safe transcript storage
+    meeting_writer: Arc<Mutex<Option<meeting_writer::MeetingWriter>>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -1165,6 +1168,7 @@ pub fn run() {
             source_window: Arc::new(Mutex::new(0)),
             dictation_source_window: Arc::new(Mutex::new(0)),
             job_queue: Arc::new(Mutex::new(None)),
+            meeting_writer: Arc::new(Mutex::new(None)),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,

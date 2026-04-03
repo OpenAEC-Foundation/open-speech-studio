@@ -34,6 +34,7 @@ log = "0.4"
 env_logger = "0.11"
 regex-lite = "0.1"
 uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
 symphonia = { version = "0.5", default-features = false, features = ["mp3", "aac", "flac", "wav", "pcm"] }
 
 [target.'cfg(windows)'.dependencies]
