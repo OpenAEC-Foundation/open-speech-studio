@@ -237,7 +237,7 @@ const fi: Record<string, string> = {
   "micTest.resultDuration": "Kesto:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.6.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automaattinen tunnistus",

@@ -25,6 +25,30 @@ pub struct Settings {
     pub spell_check: bool,
     #[serde(default = "default_true")]
     pub audio_feedback: bool,
+
+    // Transcription
+    #[serde(default = "default_incremental_interval_secs")]
+    pub incremental_interval_secs: f32,
+    #[serde(default = "default_max_workers")]
+    pub max_workers: usize,
+    #[serde(default)]
+    pub auto_correct: bool,
+    #[serde(default)]
+    pub auto_correct_model: String,
+
+    // Meeting
+    #[serde(default = "default_meeting_save_dir")]
+    pub meeting_save_dir: String,
+    #[serde(default)]
+    pub speaker_diarization: bool,
+    #[serde(default = "default_true")]
+    pub floating_indicator: bool,
+
+    // Sounds
+    #[serde(default = "default_sound_pack")]
+    pub sound_pack: String,
+    #[serde(default = "default_sound_volume")]
+    pub sound_volume: f32,
 }
 
 impl Default for Settings {
@@ -48,6 +72,19 @@ impl Default for Settings {
             file_confirm_actions: true,
             spell_check: true,
             audio_feedback: true,
+            incremental_interval_secs: 2.0,
+            max_workers: 2,
+            auto_correct: false,
+            auto_correct_model: String::new(),
+            meeting_save_dir: dirs::document_dir()
+                .unwrap_or_default()
+                .join("OSS Meetings")
+                .to_string_lossy()
+                .to_string(),
+            speaker_diarization: false,
+            floating_indicator: true,
+            sound_pack: "retro".to_string(),
+            sound_volume: 0.7,
         }
     }
 }
@@ -66,6 +103,30 @@ fn default_false() -> bool {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_incremental_interval_secs() -> f32 {
+    2.0
+}
+
+fn default_max_workers() -> usize {
+    2
+}
+
+fn default_meeting_save_dir() -> String {
+    dirs::document_dir()
+        .unwrap_or_default()
+        .join("OSS Meetings")
+        .to_string_lossy()
+        .to_string()
+}
+
+fn default_sound_pack() -> String {
+    "retro".to_string()
+}
+
+fn default_sound_volume() -> f32 {
+    0.7
 }
 
 /// Find the best available model, checking config dir (user downloads) first, then bundled dirs.

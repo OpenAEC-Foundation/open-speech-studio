@@ -237,7 +237,7 @@ const bg: Record<string, string> = {
   "micTest.resultDuration": "\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.6.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0435",

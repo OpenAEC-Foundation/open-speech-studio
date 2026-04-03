@@ -1,7 +1,25 @@
+/// Debug file logger (eprintln doesn't work for Windows GUI apps)
+#[macro_export]
+macro_rules! dbg_log {
+    ($($arg:tt)*) => {{
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true).append(true)
+            .open(r"C:\Users\rickd\oss-debug.txt")
+        {
+            let _ = writeln!(f, "{}", format!($($arg)*));
+        }
+    }};
+}
+
 mod audio;
+mod autocorrect;
 mod convert;
 mod dictionary;
+mod job_queue;
+mod meeting_writer;
 mod settings;
+mod speaker;
 mod spellcheck;
 mod transcriber;
 
@@ -59,6 +77,16 @@ pub struct AppState {
     source_window: Arc<Mutex<usize>>,
     /// The window handle for dictation (separate from meeting source_window).
     dictation_source_window: Arc<Mutex<usize>>,
+    /// Job queue for parallel transcription
+    job_queue: Arc<Mutex<Option<job_queue::JobQueue>>>,
+    /// Active meeting writer for crash-safe transcript storage
+    meeting_writer: Arc<Mutex<Option<meeting_writer::MeetingWriter>>>,
+    /// ONNX-based speaker embedding matcher for diarization
+    speaker_matcher: Arc<Mutex<Option<speaker::SpeakerMatcher>>>,
+    /// Optional LLM-based auto-corrector for post-processing transcriptions
+    auto_corrector: Arc<Mutex<Option<autocorrect::AutoCorrector>>>,
+    /// Handle to stop the incremental dictation timer thread
+    incremental_stop: Arc<std::sync::atomic::AtomicBool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -311,22 +339,30 @@ async fn get_recording_status(state: State<'_, AppState>) -> Result<bool, String
 }
 
 #[tauri::command]
-async fn start_dictation(state: State<'_, AppState>) -> Result<(), String> {
+async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
+    dbg_log!("[DEBUG] start_dictation called");
     let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
     if *is_dictating {
-        return Ok(());
+        dbg_log!("[DEBUG] already dictating");
+        return Ok(uuid::Uuid::new_v4().to_string());
     }
 
     // Capture the currently focused window for auto-paste after dictation
+    #[allow(unused_mut)]
+    let mut hwnd: usize = 0;
     #[cfg(target_os = "windows")]
     {
         #[link(name = "user32")]
         extern "system" {
             fn GetForegroundWindow() -> usize;
         }
-        let hwnd = unsafe { GetForegroundWindow() };
+        hwnd = unsafe { GetForegroundWindow() };
         let mut sw = state.dictation_source_window.lock().map_err(|e| e.to_string())?;
         *sw = hwnd;
+        drop(sw);
+        // Also set source_window so type_text works during incremental transcription
+        let mut sw2 = state.source_window.lock().map_err(|e| e.to_string())?;
+        *sw2 = hwnd;
     }
 
     let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
@@ -346,11 +382,97 @@ async fn start_dictation(state: State<'_, AppState>) -> Result<(), String> {
     }
 
     *is_dictating = true;
-    Ok(())
+    // Drop locks before accessing job queue
+    drop(rec);
+    drop(is_dictating);
+
+    // Create a session in the job queue; fall back to a random UUID if no queue
+    let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
+    let language = settings.language.clone();
+    let interval = settings.incremental_interval_secs;
+
+    let session_id = {
+        let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+        match queue_guard.as_ref() {
+            Some(queue) => queue.create_session(hwnd, language.clone()).to_string(),
+            None => uuid::Uuid::new_v4().to_string(),
+        }
+    };
+
+    // Incremental timer disabled for now — will be re-enabled in stap 2 (live streaming via Tauri events)
+    // The timer was stealing audio from the dictation buffer, causing lost speech.
+    // The sync flow (stop_dictation_sync) needs all audio intact.
+    if false && interval > 0.0 && interval < 300.0 {
+        let stop_flag = state.incremental_stop.clone();
+        stop_flag.store(false, std::sync::atomic::Ordering::Relaxed);
+
+        let recorder_ref = state.recorder.clone();
+        let queue_ref = state.job_queue.clone();
+        let session_uuid = uuid::Uuid::parse_str(&session_id)
+            .map_err(|e| format!("Invalid session_id: {}", e))?;
+        let lang = language.clone();
+        let interval_ms = (interval * 1000.0) as u64;
+
+        dbg_log!("[DEBUG] spawning incremental timer thread, interval_ms={}", interval_ms);
+        std::thread::spawn(move || {
+            let mut chunk_index: u32 = 0;
+            dbg_log!("[DEBUG] timer thread started");
+            loop {
+                std::thread::sleep(std::time::Duration::from_millis(interval_ms));
+
+                if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
+                    dbg_log!("[DEBUG] timer: stop flag set, exiting");
+                    break;
+                }
+
+                let audio = {
+                    let rec = recorder_ref.lock().ok();
+                    match rec.as_ref().and_then(|r| r.as_ref()) {
+                        Some(recorder) => recorder.take_dictation_chunk(),
+                        None => {
+                            dbg_log!("[DEBUG] timer: recorder gone, exiting");
+                            break;
+                        }
+                    }
+                };
+
+                dbg_log!("[DEBUG] timer: got {} samples from dictation buffer", audio.len());
+
+                if audio.len() < 1600 {
+                    dbg_log!("[DEBUG] timer: chunk too small ({}), skipping", audio.len());
+                    continue;
+                }
+
+                let queue_guard = queue_ref.lock().ok();
+                if let Some(Some(queue)) = queue_guard.as_ref().map(|g| g.as_ref()) {
+                    dbg_log!("[DEBUG] timer: submitting chunk {} ({} samples)", chunk_index, audio.len());
+                    let job = job_queue::TranscriptionJob {
+                        id: uuid::Uuid::new_v4(),
+                        audio,
+                        target_hwnd: hwnd,
+                        language: lang.clone(),
+                        job_type: job_queue::JobType::Dictation,
+                        chunk_index: Some(chunk_index),
+                        session_id: session_uuid,
+                        created_at: std::time::Instant::now(),
+                        status: job_queue::JobStatus::Queued,
+                    };
+                    queue.submit(job);
+                    chunk_index += 1;
+                } else {
+                    break; // no queue, stop timer
+                }
+            }
+        });
+    }
+
+    Ok(session_id)
 }
 
+/// Synchronous stop-dictation: transcribes immediately and returns the result.
+/// Kept for backward compatibility (e.g. file transcription flows).
 #[tauri::command]
-async fn stop_dictation(state: State<'_, AppState>) -> Result<TranscriptionResult, String> {
+async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<TranscriptionResult, String> {
     let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
     if !*is_dictating {
         return Err("Not dictating".to_string());
@@ -416,6 +538,88 @@ async fn stop_dictation(state: State<'_, AppState>) -> Result<TranscriptionResul
         language: settings.language.clone(),
         duration_ms,
     })
+}
+
+/// Async stop-dictation: stops the incremental timer, submits remaining audio
+/// as final chunk, and finalizes the session. Results come via get_completed_sessions.
+#[tauri::command(rename_all = "camelCase")]
+async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Result<(), String> {
+    dbg_log!("[DEBUG] stop_dictation called with session_id={}", session_id);
+    // Signal the incremental timer thread to stop
+    state.incremental_stop.store(true, std::sync::atomic::Ordering::Relaxed);
+
+    let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
+    if !*is_dictating {
+        return Err("Not dictating".to_string());
+    }
+
+    let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
+
+    // Get remaining dictation audio (what the timer hasn't grabbed yet)
+    let audio_data = {
+        let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
+        let recorder = rec.as_ref().ok_or("No recorder")?;
+        let data = recorder.stop_dictation();
+
+        // If no meeting is active, stop the recorder entirely (release mic)
+        if !is_recording {
+            let mut recorder = rec.take().ok_or("No recorder")?;
+            let _ = recorder.stop();
+        }
+
+        data
+    };
+
+    *is_dictating = false;
+    drop(is_dictating);
+
+    // Read the HWND that was captured at start_dictation
+    let hwnd = *state.dictation_source_window.lock().map_err(|e| e.to_string())?;
+
+    // Restore dictation source window for type_text
+    #[cfg(target_os = "windows")]
+    {
+        let mut sw = state.source_window.lock().map_err(|e| e.to_string())?;
+        *sw = hwnd;
+    }
+
+    let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
+    let language = settings.language.clone();
+
+    // Parse the session UUID
+    let session_uuid = uuid::Uuid::parse_str(&session_id)
+        .map_err(|e| format!("Invalid session_id: {}", e))?;
+
+    // Submit remaining audio as final chunk (the timer already submitted earlier chunks)
+    {
+        let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+        let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
+
+        // Get how many chunks the timer already submitted
+        let already_submitted = queue.session_submitted_count(session_uuid);
+
+        // Only submit remaining audio if there's meaningful content
+        if audio_data.len() >= 1600 { // at least 0.1s at 16kHz
+            let job = job_queue::TranscriptionJob {
+                id: uuid::Uuid::new_v4(),
+                audio: audio_data,
+                target_hwnd: hwnd,
+                language: language.clone(),
+                job_type: job_queue::JobType::Dictation,
+                chunk_index: Some(already_submitted),
+                session_id: session_uuid,
+                created_at: std::time::Instant::now(),
+                status: job_queue::JobStatus::Queued,
+            };
+            queue.submit(job);
+            queue.finalize_session_chunks(session_uuid, already_submitted + 1);
+        } else {
+            // No remaining audio — finalize with chunks already submitted
+            queue.finalize_session_chunks(session_uuid, already_submitted);
+        }
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -935,6 +1139,104 @@ async fn type_text(state: State<'_, AppState>, text: String) -> Result<(), Strin
     Ok(())
 }
 
+#[tauri::command]
+fn init_job_queue(state: State<'_, AppState>) -> Result<(), String> {
+    let settings = state.settings.lock().map_err(|e| e.to_string())?;
+    let max_workers = settings.max_workers;
+    drop(settings);
+
+    let transcriber_guard = state.transcriber.lock().map_err(|e| e.to_string())?;
+    let transcriber = transcriber_guard.clone();
+    drop(transcriber_guard);
+
+    let queue = job_queue::JobQueue::new(max_workers, transcriber);
+    *state.job_queue.lock().map_err(|e| e.to_string())? = Some(queue);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_queue_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+    let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
+    let status = queue.get_status();
+    serde_json::to_value(&status).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_completed_sessions(state: State<'_, AppState>) -> Result<Vec<(String, usize, String)>, String> {
+    let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+    let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
+    let sessions = queue.get_completed_sessions();
+    Ok(sessions.iter().map(|(id, hwnd, text)| (id.to_string(), *hwnd, text.clone())).collect())
+}
+
+/// Poll individual chunk results (for live/incremental transcription).
+/// Returns completed chunks as (session_id, chunk_index, text, target_hwnd).
+/// Results are drained — each chunk is returned only once.
+#[tauri::command]
+fn poll_chunk_results(state: State<'_, AppState>) -> Result<Vec<(String, u32, String, usize)>, String> {
+    let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+    let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
+    let results = queue.poll_results();
+    if !results.is_empty() {
+        dbg_log!("[DEBUG] poll_chunk_results: returning {} results", results.len());
+        for r in &results {
+            dbg_log!("[DEBUG]   chunk {} text='{}'", r.chunk_index.unwrap_or(99), &r.text[..r.text.len().min(50)]);
+        }
+    }
+    Ok(results.iter().map(|r| (
+        r.session_id.to_string(),
+        r.chunk_index.unwrap_or(0),
+        r.text.clone(),
+        r.target_hwnd,
+    )).collect())
+}
+
+// ── Raw audio stop-dictation (for voice training) ───────────────────────
+
+#[tauri::command]
+fn stop_dictation_raw(state: State<'_, AppState>) -> Result<Vec<f32>, String> {
+    *state.is_dictating.lock().map_err(|e| e.to_string())? = false;
+    let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
+    let audio = {
+        let recorder_guard = state.recorder.lock().map_err(|e| e.to_string())?;
+        match &*recorder_guard {
+            Some(recorder) => recorder.stop_dictation(),
+            None => return Err("No recorder active".to_string()),
+        }
+    };
+    if !is_recording {
+        let mut recorder_guard = state.recorder.lock().map_err(|e| e.to_string())?;
+        if let Some(mut recorder) = recorder_guard.take() {
+            let _ = recorder.stop();
+        }
+    }
+    Ok(audio)
+}
+
+// ── Speaker profile management commands ─────────────────────────────────
+
+#[tauri::command]
+fn train_speaker(state: State<'_, AppState>, name: String, audio: Vec<f32>) -> Result<(), String> {
+    let mut matcher = state.speaker_matcher.lock().map_err(|e| e.to_string())?;
+    let matcher = matcher.as_mut().ok_or("Speaker matcher not initialized")?;
+    matcher.train_profile(&name, &audio)
+}
+
+#[tauri::command]
+fn list_speaker_profiles(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    let matcher = state.speaker_matcher.lock().map_err(|e| e.to_string())?;
+    let matcher = matcher.as_ref().ok_or("Speaker matcher not initialized")?;
+    Ok(matcher.list_profiles())
+}
+
+#[tauri::command]
+fn delete_speaker_profile(state: State<'_, AppState>, name: String) -> Result<(), String> {
+    let mut matcher = state.speaker_matcher.lock().map_err(|e| e.to_string())?;
+    let matcher = matcher.as_mut().ok_or("Speaker matcher not initialized")?;
+    matcher.delete_profile(&name)
+}
+
 pub fn run() {
     env_logger::init();
 
@@ -1025,6 +1327,11 @@ pub fn run() {
             file_jobs: Arc::new(Mutex::new(HashMap::new())),
             source_window: Arc::new(Mutex::new(0)),
             dictation_source_window: Arc::new(Mutex::new(0)),
+            job_queue: Arc::new(Mutex::new(None)),
+            meeting_writer: Arc::new(Mutex::new(None)),
+            speaker_matcher: Arc::new(Mutex::new(None)),
+            auto_corrector: Arc::new(Mutex::new(None)),
+            incremental_stop: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -1038,6 +1345,7 @@ pub fn run() {
             get_recording_status,
             start_dictation,
             stop_dictation,
+            stop_dictation_sync,
             get_dictation_status,
             get_dictionary,
             save_dictionary,
@@ -1053,6 +1361,14 @@ pub fn run() {
             save_text_file,
             type_text,
             update_tray_language,
+            init_job_queue,
+            get_queue_status,
+            get_completed_sessions,
+            poll_chunk_results,
+            stop_dictation_raw,
+            train_speaker,
+            list_speaker_profiles,
+            delete_speaker_profile,
         ])
         .setup(move |app| {
             // Config has decorations:true + titleBarStyle:overlay for macOS traffic lights.

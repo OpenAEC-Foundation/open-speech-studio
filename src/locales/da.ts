@@ -237,7 +237,7 @@ const da: Record<string, string> = {
   "micTest.resultDuration": "Varighed:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.6.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk genkendelse",

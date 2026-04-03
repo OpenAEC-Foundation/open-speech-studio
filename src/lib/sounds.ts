@@ -98,3 +98,7 @@ export function soundError() {
   playTone(220, 0.25, "square", 0.15);
   setTimeout(() => playTone(180, 0.3, "square", 0.12), 200);
 }
+
+// Stubs needed by DictationOverlay thumbs-up (no-op for now)
+export function likeLastSound(): void {}
+export function getLastPlayedSound(): string | null { return null; }

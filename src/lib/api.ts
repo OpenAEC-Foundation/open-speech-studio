@@ -14,6 +14,15 @@ export interface Settings {
   file_confirm_actions: boolean;
   spell_check: boolean;
   audio_feedback: boolean;
+  // v0.7 new fields
+  incremental_interval?: number;
+  max_parallel_workers?: number;
+  auto_correction_llm?: boolean;
+  meeting_save_directory?: string;
+  speaker_diarization?: boolean;
+  floating_indicator?: boolean;
+  sound_pack?: string;
+  sound_volume?: number;
 }
 
 export interface ModelInfo {
@@ -32,6 +41,21 @@ export interface TranscriptionResult {
 
 export interface Dictionary {
   words: Record<string, string | null>;
+}
+
+export interface QueueStatus {
+  queued: number;
+  active: number;
+  completed: number;
+  sessions: SessionInfo[];
+}
+
+export interface SessionInfo {
+  session_id: string;
+  status: string;
+  completed_chunks: number;
+  total_chunks: number;
+  current_progress_pct: number;
 }
 
 // Detect if we're running inside Tauri or in a plain browser
@@ -63,9 +87,14 @@ const tauriApi = {
   startRecording: () => tauriInvoke<void>("start_recording"),
   stopRecording: () => tauriInvoke<TranscriptionResult>("stop_recording"),
   getRecordingStatus: () => tauriInvoke<boolean>("get_recording_status"),
-  startDictation: () => tauriInvoke<void>("start_dictation"),
-  stopDictation: () => tauriInvoke<TranscriptionResult>("stop_dictation"),
+  startDictation: () => tauriInvoke<string>("start_dictation"),
+  stopDictationSync: () => tauriInvoke<TranscriptionResult>("stop_dictation_sync"),
+  stopDictationAsync: (sessionId: string) => tauriInvoke<void>("stop_dictation", { sessionId }),
   getDictationStatus: () => tauriInvoke<boolean>("get_dictation_status"),
+  getQueueStatus: () => tauriInvoke<QueueStatus>("get_queue_status"),
+  getCompletedSessions: () => tauriInvoke<Array<[string, number, string]>>("get_completed_sessions"),
+  pollChunkResults: () => tauriInvoke<Array<[string, number, string, number]>>("poll_chunk_results"),
+  initJobQueue: () => tauriInvoke<void>("init_job_queue"),
   getDictionary: () => tauriInvoke<Dictionary>("get_dictionary"),
   saveDictionary: (dict: Dictionary) => tauriInvoke<void>("save_dictionary", { dict }),
   addDictionaryWord: (word: string, replacement: string | null) =>
@@ -82,6 +111,14 @@ const tauriApi = {
     tauriInvoke<void>("start_file_job", { jobId, filePath }),
   cancelFileJob: (jobId: string) =>
     tauriInvoke<void>("cancel_file_job", { jobId }),
+  stopDictationRaw: () =>
+    tauriInvoke<number[]>("stop_dictation_raw"),
+  trainSpeaker: (name: string, audio: number[]) =>
+    tauriInvoke<void>("train_speaker", { name, audio }),
+  listSpeakerProfiles: () =>
+    tauriInvoke<string[]>("list_speaker_profiles"),
+  deleteSpeakerProfile: (name: string) =>
+    tauriInvoke<void>("delete_speaker_profile", { name }),
 };
 
 // ─── Local server detection ──────────────────────────────────
@@ -476,9 +513,19 @@ const browserApi = {
   },
 
   getRecordingStatus: () => Promise.resolve(recognition !== null || isServerRecording),
-  startDictation: async () => browserApi.startRecording(),
-  stopDictation: async () => browserApi.stopRecording(),
+  startDictation: async (): Promise<string> => {
+    await browserApi.startRecording();
+    return `browser-${Date.now()}`;
+  },
+  stopDictationSync: async () => browserApi.stopRecording(),
+  stopDictationAsync: async (_sessionId: string) => {
+    // In browser mode, stopDictationSync is used instead (sync path)
+  },
   getDictationStatus: () => Promise.resolve(false),
+  getQueueStatus: (): Promise<QueueStatus> => Promise.resolve({ queued: 0, active: 0, completed: 0, sessions: [] }),
+  getCompletedSessions: (): Promise<Array<[string, number, string]>> => Promise.resolve([]),
+  pollChunkResults: (): Promise<Array<[string, number, string, number]>> => Promise.resolve([]),
+  initJobQueue: () => Promise.resolve(),
 
   getDictionary: () => Promise.resolve({ ...currentDict }),
 
@@ -529,12 +576,17 @@ const browserApi = {
   },
 
   typeText: (_text: string) => Promise.resolve(),
+  updateTrayLanguage: (_language: string) => Promise.resolve(),
   getGpuInfo: () => Promise.resolve({ available: false, name: "Not available in browser mode", vram_mb: 0, driver: "", recommendation: "GPU detection requires the desktop app" }),
   getGpuStatus: () => Promise.resolve({ enabled: false, cuda_available: false, active: false, device_name: "" }),
   startFileJob: (_jobId: string, _filePath: string) =>
     Promise.reject(new Error("File transcription is not available in browser mode.")),
   cancelFileJob: (_jobId: string) =>
     Promise.reject(new Error("File transcription is not available in browser mode.")),
+  stopDictationRaw: (): Promise<number[]> => Promise.resolve([]),
+  trainSpeaker: (_name: string, _audio: number[]) => Promise.resolve(),
+  listSpeakerProfiles: (): Promise<string[]> => Promise.resolve([]),
+  deleteSpeakerProfile: (_name: string) => Promise.resolve(),
 };
 
 export const api = isTauri ? tauriApi : browserApi;

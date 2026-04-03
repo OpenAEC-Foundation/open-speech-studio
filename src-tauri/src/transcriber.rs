@@ -1,5 +1,6 @@
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 /// Transcriber that calls the pre-compiled whisper.cpp binary as a subprocess.
 /// No C++ toolchain needed - we ship the binary.
@@ -59,6 +60,7 @@ impl Transcriber {
             cmd.arg("--no-gpu");
         }
         cmd.arg("-t").arg("4");
+        cmd.arg("--print-progress");
 
         if !language.is_empty() && language != "auto" {
             cmd.arg("-l").arg(language);
@@ -151,6 +153,93 @@ impl Transcriber {
 
         // Also check for .txt output file (some versions write to file)
         let txt_path = wav_path.with_extension("wav.txt");
+        let result = if text.is_empty() && txt_path.exists() {
+            let file_text = std::fs::read_to_string(&txt_path)?;
+            let _ = std::fs::remove_file(&txt_path);
+            file_text.trim().to_string()
+        } else {
+            text
+        };
+
+        Ok(result)
+    }
+
+    /// Transcribe audio samples (f32 mono 16kHz) with a progress callback.
+    /// Reads stderr line-by-line and parses `progress = XX%` lines emitted by
+    /// whisper.cpp when `--print-progress` is active (already added via
+    /// `apply_common_args`).
+    pub fn transcribe_with_progress<F>(
+        &self,
+        audio_data: &[f32],
+        language: &str,
+        on_progress: F,
+    ) -> Result<String, Box<dyn std::error::Error>>
+    where
+        F: Fn(u8) + Send + 'static,
+    {
+        // Write audio to temp WAV file
+        let temp_dir = std::env::temp_dir();
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let wav_path = temp_dir.join(format!("oss_{}.wav", ts));
+        write_wav(&wav_path, audio_data, 16000)?;
+
+        let mut cmd = Command::new(&self.whisper_bin);
+        cmd.arg("-f").arg(&wav_path);
+        self.apply_common_args(&mut cmd, language);
+        cmd.stderr(Stdio::piped());
+        cmd.stdout(Stdio::piped());
+
+        log::info!("Running whisper with progress (gpu={}): {:?}", self.use_gpu, cmd);
+
+        let mut child = cmd.spawn()?;
+
+        // Drain stderr on a background thread, parsing progress lines.
+        let stderr = child.stderr.take().expect("stderr was piped");
+        let stderr_thread = std::thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                let line = match line {
+                    Ok(l) => l,
+                    Err(_) => break,
+                };
+                if line.contains("progress =") {
+                    if let Some(pct_part) = line.split("progress =").nth(1) {
+                        if let Some(pct_str) = pct_part.trim().strip_suffix('%') {
+                            if let Ok(pct) = pct_str.trim().parse::<u8>() {
+                                on_progress(pct);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Read stdout for the transcription result.
+        let stdout = child.stdout.take().expect("stdout was piped");
+        let mut stdout_text = String::new();
+        {
+            let mut reader = BufReader::new(stdout);
+            use std::io::Read;
+            reader.read_to_string(&mut stdout_text)?;
+        }
+
+        let status = child.wait()?;
+        let _ = stderr_thread.join();
+
+        // Clean up temp file
+        let _ = std::fs::remove_file(&wav_path);
+
+        if !status.success() {
+            return Err(format!("Whisper failed with status: {}", status).into());
+        }
+
+        let text = stdout_text.trim().to_string();
+
+        // Also check for .txt output file (some versions write to file)
+        let txt_path = temp_dir.join(format!("oss_{}.wav.txt", ts));
         let result = if text.is_empty() && txt_path.exists() {
             let file_text = std::fs::read_to_string(&txt_path)?;
             let _ = std::fs::remove_file(&txt_path);

@@ -237,7 +237,7 @@ const el: Record<string, string> = {
   "micTest.resultDuration": "\u0394\u03B9\u03AC\u03C1\u03BA\u03B5\u03B9\u03B1:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.6.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0391\u03C5\u03C4\u03CC\u03BC\u03B1\u03C4\u03B7 \u03B1\u03BD\u03AF\u03C7\u03BD\u03B5\u03C5\u03C3\u03B7",

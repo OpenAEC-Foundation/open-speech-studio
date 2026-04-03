@@ -1,6 +1,7 @@
-import { createSignal, onMount, For } from "solid-js";
+import { createSignal, onMount, For, Show } from "solid-js";
 import { api, type Settings } from "../lib/api";
 import { useI18n, getLanguageOptions, type Locale } from "../lib/i18n";
+import VoiceTraining from "./VoiceTraining";
 
 interface SettingsPanelProps {
   settings: Settings | null;
@@ -55,6 +56,16 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [fileConfirmActions, setFileConfirmActions] = createSignal(true);
   const [spellCheck, setSpellCheck] = createSignal(true);
   const [audioFeedback, setAudioFeedback] = createSignal(true);
+  const [incrementalInterval, setIncrementalInterval] = createSignal(5);
+  const [maxParallelWorkers, setMaxParallelWorkers] = createSignal(2);
+  const [autoCorrectionLlm, setAutoCorrectionLlm] = createSignal(false);
+  const [meetingSaveDir, setMeetingSaveDir] = createSignal("");
+  const [speakerDiarization, setSpeakerDiarization] = createSignal(false);
+  const [floatingIndicator, setFloatingIndicator] = createSignal(true);
+  const [soundPack, setSoundPack] = createSignal("retro");
+  const [soundVolume, setSoundVolume] = createSignal(80);
+  const [speakerProfiles, setSpeakerProfiles] = createSignal<string[]>([]);
+  const [showVoiceTraining, setShowVoiceTraining] = createSignal(false);
 
   const [gpuInfo, setGpuInfo] = createSignal<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string } | null>(null);
   const [gpuStatus, setGpuStatus] = createSignal<{ enabled: boolean; cuda_available: boolean; active: boolean; device_name: string } | null>(null);
@@ -79,6 +90,14 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setFileConfirmActions(props.settings.file_confirm_actions ?? true);
       setSpellCheck(props.settings.spell_check ?? true);
       setAudioFeedback(props.settings.audio_feedback ?? true);
+      setIncrementalInterval(props.settings.incremental_interval ?? 5);
+      setMaxParallelWorkers(props.settings.max_parallel_workers ?? 2);
+      setAutoCorrectionLlm(props.settings.auto_correction_llm ?? false);
+      setMeetingSaveDir(props.settings.meeting_save_directory ?? "");
+      setSpeakerDiarization(props.settings.speaker_diarization ?? false);
+      setFloatingIndicator(props.settings.floating_indicator ?? true);
+      setSoundPack(props.settings.sound_pack ?? "retro");
+      setSoundVolume(props.settings.sound_volume ?? 80);
       const parsed = parseHotkey(props.settings.hotkey || "Ctrl+Super");
       setKey1(parsed.key1);
       setKey2(parsed.key2);
@@ -99,7 +118,18 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       const status = await api.getGpuStatus();
       setGpuStatus(status);
     } catch (_) {}
+    try {
+      const profiles = await api.listSpeakerProfiles();
+      setSpeakerProfiles(profiles);
+    } catch (_) {}
   });
+
+  const refreshSpeakerProfiles = async () => {
+    try {
+      const profiles = await api.listSpeakerProfiles();
+      setSpeakerProfiles(profiles);
+    } catch (_) {}
+  };
 
   const autoSave = (partial: Partial<Settings>) => {
     if (!props.settings) return;
@@ -313,6 +343,48 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               </span>
             </div>
           </div>
+
+          <div class="setting-row">
+            <label>{t("settings.incrementalInterval")}</label>
+            <div class="range-group">
+              <input
+                type="range"
+                min="1" max="60" step="1"
+                value={incrementalInterval()}
+                onInput={(e) => { const v = parseInt(e.target.value, 10); setIncrementalInterval(v); autoSave({ incremental_interval: v }); }}
+              />
+              <span class="range-value">{incrementalInterval()}s</span>
+            </div>
+            <span class="setting-hint">{t("settings.incrementalIntervalHint")}</span>
+          </div>
+
+          <div class="setting-row">
+            <label>{t("settings.maxParallelWorkers")}</label>
+            <select
+              value={maxParallelWorkers()}
+              onChange={(e) => { const v = parseInt(e.target.value, 10); setMaxParallelWorkers(v); autoSave({ max_parallel_workers: v }); }}
+            >
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+            <span class="setting-hint">{t("settings.maxParallelWorkersHint")}</span>
+          </div>
+
+          <div class="setting-row">
+            <label>{t("settings.autoCorrectionLlm")}</label>
+            <div class="toggle-group">
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  checked={autoCorrectionLlm()}
+                  onChange={(e) => { setAutoCorrectionLlm(e.target.checked); autoSave({ auto_correction_llm: e.target.checked }); }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <span class="setting-hint">{t("settings.autoCorrectionLlmHint")}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -385,6 +457,135 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               ))}
             </select>
           </div>
+
+          <div class="setting-row">
+            <label>{t("settings.soundPack")}</label>
+            <select value={soundPack()} onChange={(e) => { setSoundPack(e.target.value); autoSave({ sound_pack: e.target.value }); }}>
+              <option value="retro">{t("settings.soundPackRetro")}</option>
+              <option value="classic">{t("settings.soundPackClassic")}</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <label>{t("settings.soundVolume")}</label>
+            <div class="range-group">
+              <input
+                type="range"
+                min="0" max="100" step="1"
+                value={soundVolume()}
+                onInput={(e) => { const v = parseInt(e.target.value, 10); setSoundVolume(v); autoSave({ sound_volume: v }); }}
+              />
+              <span class="range-value">{soundVolume()}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>{t("settings.meetingSection")}</h3>
+
+          <div class="setting-row">
+            <label>{t("settings.meetingSaveDirectory")}</label>
+            <div class="file-dir-picker">
+              <input
+                type="text"
+                value={meetingSaveDir()}
+                placeholder={t("settings.meetingSaveDirPlaceholder")}
+                readOnly
+              />
+              <button
+                class="btn btn-small"
+                onClick={async () => {
+                  try {
+                    const { open } = await import("@tauri-apps/plugin-dialog");
+                    const dir = await open({ directory: true });
+                    if (dir) {
+                      setMeetingSaveDir(dir as string);
+                      autoSave({ meeting_save_directory: dir as string });
+                    }
+                  } catch (_) {}
+                }}
+              >
+                {t("settings.fileSaveDirBrowse")}
+              </button>
+            </div>
+            <span class="setting-hint">{t("settings.meetingSaveDirHint")}</span>
+          </div>
+
+          <div class="setting-row">
+            <label>{t("settings.speakerDiarization")}</label>
+            <div class="toggle-group">
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  checked={speakerDiarization()}
+                  onChange={(e) => { setSpeakerDiarization(e.target.checked); autoSave({ speaker_diarization: e.target.checked }); }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <span class="setting-hint">{t("settings.speakerDiarizationHint")}</span>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <label>{t("settings.floatingIndicator")}</label>
+            <div class="toggle-group">
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  checked={floatingIndicator()}
+                  onChange={(e) => { setFloatingIndicator(e.target.checked); autoSave({ floating_indicator: e.target.checked }); }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <span class="setting-hint">{t("settings.floatingIndicatorHint")}</span>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <label>Stemprofielen</label>
+            <div class="speaker-profiles-list">
+              <For each={speakerProfiles()}>
+                {(name) => (
+                  <div class="speaker-profile-item">
+                    <span class="speaker-profile-name">{name}</span>
+                    <span class="speaker-trained-badge">Getraind</span>
+                    <button
+                      class="btn btn-small btn-danger-outline"
+                      onClick={async () => {
+                        try {
+                          await api.deleteSpeakerProfile(name);
+                          await refreshSpeakerProfiles();
+                        } catch (_) {}
+                      }}
+                    >
+                      Verwijderen
+                    </button>
+                  </div>
+                )}
+              </For>
+              <Show when={speakerProfiles().length === 0}>
+                <span class="setting-hint">Geen stemprofielen aangemaakt.</span>
+              </Show>
+            </div>
+            <button
+              class="btn btn-small"
+              style={{ "margin-top": "8px" }}
+              onClick={() => setShowVoiceTraining(true)}
+            >
+              + Nieuw stemprofiel
+            </button>
+          </div>
+
+          <Show when={showVoiceTraining()}>
+            <VoiceTraining
+              language={props.settings?.language ?? "nl"}
+              onComplete={async () => {
+                setShowVoiceTraining(false);
+                await refreshSpeakerProfiles();
+              }}
+              onCancel={() => setShowVoiceTraining(false)}
+            />
+          </Show>
         </div>
       </div>
 

@@ -23,7 +23,7 @@ export default function TitleBar() {
       {isMac && <div class="titlebar-mac-spacer" data-tauri-drag-region />}
       <img class="titlebar-icon" src={appIcon} alt="" width="16" height="16" data-tauri-drag-region />
       <div class="titlebar-title" data-tauri-drag-region>
-        Open Speech Studio <span class="titlebar-version">v0.6.0</span>
+        Open Speech Studio <span class="titlebar-version">v0.7.0</span>
       </div>
       <div class="titlebar-buttons">
         <a

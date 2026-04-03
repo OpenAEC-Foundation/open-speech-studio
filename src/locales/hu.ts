@@ -237,7 +237,7 @@ const hu: Record<string, string> = {
   "micTest.resultDuration": "Idotartam:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.6.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatikus felismeres",

@@ -112,6 +112,26 @@ const nl: Record<string, string> = {
   "settings.uiLanguage": "Interfacetaal",
   "settings.uiLanguageHint": "Kies de taal voor de gebruikersinterface",
 
+  // ── Settings v0.7 new fields ─────────────────────────────
+  "settings.incrementalInterval": "Incrementeel interval",
+  "settings.incrementalIntervalHint": "Hoe vaak tussentijdse transcriptieresultaten worden doorgegeven tijdens opname",
+  "settings.maxParallelWorkers": "Max. parallelle workers",
+  "settings.maxParallelWorkersHint": "Aantal gelijktijdige transcriptietaken",
+  "settings.autoCorrectionLlm": "Auto-correctie (LLM)",
+  "settings.autoCorrectionLlmHint": "Gebruik een LLM om transcriptie-uitvoer automatisch te corrigeren",
+  "settings.soundPack": "Geluidsset",
+  "settings.soundPackRetro": "Retro",
+  "settings.soundPackClassic": "Klassiek",
+  "settings.soundVolume": "Geluidsvolume",
+  "settings.meetingSection": "Vergadering",
+  "settings.meetingSaveDirectory": "Vergadering opslagmap",
+  "settings.meetingSaveDirPlaceholder": "Kies een map...",
+  "settings.meetingSaveDirHint": "Vergaderingstranscripten worden automatisch opgeslagen in deze map",
+  "settings.speakerDiarization": "Sprekerherkening",
+  "settings.speakerDiarizationHint": "Identificeer en label verschillende sprekers in vergaderingsopnames",
+  "settings.floatingIndicator": "Zwevende vergaderingsindicator",
+  "settings.floatingIndicatorHint": "Toon een klein altijd-zichtbaar statusbadge tijdens vergaderingsopname",
+
   // ── Settings key groups ──────────────────────────────────
   "settings.keyGroupModifiers": "Modifiers",
   "settings.keyGroupSpecial": "Speciale toetsen",
@@ -267,7 +287,7 @@ const nl: Record<string, string> = {
   "micTest.resultDuration": "Duur:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.6.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Automatisch detecteren",

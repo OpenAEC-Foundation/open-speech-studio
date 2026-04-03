@@ -1,6 +1,6 @@
 [package]
 name = "open-speech-studio"
-version = "0.6.0"
+version = "0.7.0"
 description = "Open source local AI speech-to-text"
 authors = ["OpenAEC Foundation"]
 license = "Apache-2.0"
@@ -33,7 +33,11 @@ dirs = "5"
 log = "0.4"
 env_logger = "0.11"
 regex-lite = "0.1"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
 symphonia = { version = "0.5", default-features = false, features = ["mp3", "aac", "flac", "wav", "pcm"] }
+ort = { version = "=2.0.0-rc.11", default-features = false, features = ["std", "ndarray", "load-dynamic"] }
+ndarray = "0.17"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.60", features = ["Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Foundation"] }
