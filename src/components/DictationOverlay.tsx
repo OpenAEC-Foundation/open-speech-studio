@@ -137,12 +137,12 @@ export default function DictationOverlay() {
           >
             <div
               style={{
-                width: `${Math.min(100, audioLevel() * 100)}%`,
+                width: `${Math.min(100, audioLevel() * 1000)}%`,
                 height: "6px",
                 background:
-                  audioLevel() > 0.8
+                  audioLevel() > 0.08
                     ? "#e74c3c"
-                    : audioLevel() > 0.5
+                    : audioLevel() > 0.05
                     ? "#f1c40f"
                     : "#27ae60",
                 "border-radius": "3px",

@@ -221,8 +221,9 @@ export function soundRecordStop(_volume = 0.5): void {
   // No dedicated "stop" category — silence is fine; could add one later.
 }
 
-export function soundTranscriptionDone(volume = 0.7): void {
-  playCategorySound('success', volume);
+export function soundTranscriptionDone(_volume = 0.7): void {
+  // Use the classic chime — the retro sounds were not pleasant enough
+  soundTranscriptionDoneClassic();
 }
 
 export function soundError(volume = 0.6): void {
