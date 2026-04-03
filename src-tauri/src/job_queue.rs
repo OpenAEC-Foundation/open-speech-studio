@@ -41,6 +41,7 @@ pub struct JobResult {
     pub speaker: Option<String>,
     pub duration_ms: u64,
     pub progress_pct: u8,
+    pub target_hwnd: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
@@ -281,6 +282,7 @@ impl JobQueue {
                     speaker: None,
                     duration_ms,
                     progress_pct,
+                    target_hwnd: job.target_hwnd,
                 });
 
                 // Remove from active
@@ -351,6 +353,7 @@ impl JobQueue {
                         speaker: None,
                         duration_ms,
                         progress_pct,
+                        target_hwnd: next_job.target_hwnd,
                     });
 
                     active_ref.lock().unwrap().remove(&next_job_id);

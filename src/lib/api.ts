@@ -93,6 +93,7 @@ const tauriApi = {
   getDictationStatus: () => tauriInvoke<boolean>("get_dictation_status"),
   getQueueStatus: () => tauriInvoke<QueueStatus>("get_queue_status"),
   getCompletedSessions: () => tauriInvoke<Array<[string, number, string]>>("get_completed_sessions"),
+  pollChunkResults: () => tauriInvoke<Array<[string, number, string, number]>>("poll_chunk_results"),
   initJobQueue: () => tauriInvoke<void>("init_job_queue"),
   getDictionary: () => tauriInvoke<Dictionary>("get_dictionary"),
   saveDictionary: (dict: Dictionary) => tauriInvoke<void>("save_dictionary", { dict }),
@@ -523,6 +524,7 @@ const browserApi = {
   getDictationStatus: () => Promise.resolve(false),
   getQueueStatus: (): Promise<QueueStatus> => Promise.resolve({ queued: 0, active: 0, completed: 0, sessions: [] }),
   getCompletedSessions: (): Promise<Array<[string, number, string]>> => Promise.resolve([]),
+  pollChunkResults: (): Promise<Array<[string, number, string, number]>> => Promise.resolve([]),
   initJobQueue: () => Promise.resolve(),
 
   getDictionary: () => Promise.resolve({ ...currentDict }),

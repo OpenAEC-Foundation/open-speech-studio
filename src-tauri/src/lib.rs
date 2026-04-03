@@ -1143,6 +1143,22 @@ fn get_completed_sessions(state: State<'_, AppState>) -> Result<Vec<(String, usi
     Ok(sessions.iter().map(|(id, hwnd, text)| (id.to_string(), *hwnd, text.clone())).collect())
 }
 
+/// Poll individual chunk results (for live/incremental transcription).
+/// Returns completed chunks as (session_id, chunk_index, text, target_hwnd).
+/// Results are drained — each chunk is returned only once.
+#[tauri::command]
+fn poll_chunk_results(state: State<'_, AppState>) -> Result<Vec<(String, u32, String, usize)>, String> {
+    let queue_guard = state.job_queue.lock().map_err(|e| e.to_string())?;
+    let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
+    let results = queue.poll_results();
+    Ok(results.iter().map(|r| (
+        r.session_id.to_string(),
+        r.chunk_index.unwrap_or(0),
+        r.text.clone(),
+        r.target_hwnd,
+    )).collect())
+}
+
 // ── Raw audio stop-dictation (for voice training) ───────────────────────
 
 #[tauri::command]
@@ -1315,6 +1331,7 @@ pub fn run() {
             init_job_queue,
             get_queue_status,
             get_completed_sessions,
+            poll_chunk_results,
             stop_dictation_raw,
             train_speaker,
             list_speaker_profiles,
