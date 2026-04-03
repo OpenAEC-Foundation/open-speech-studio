@@ -203,8 +203,7 @@ export default function App() {
   const [isModelLoaded, setIsModelLoaded] = createSignal(false);
   const [transcriptions, setTranscriptions] = createSignal<TranscriptionResult[]>([]);
   let recordingStartedAt = 0;
-  const [activeSessions, setActiveSessions] = createSignal<Map<string, string>>(new Map());
-  let completionPollInterval: number | undefined;
+  // activeSessions and completionPollInterval reserved for future live streaming (stap 2)
 
   /** All hotkeys that trigger recording (primary + secondary) */
   const SECONDARY_HOTKEY = "Ctrl+Shift+Space";
@@ -250,10 +249,6 @@ export default function App() {
   };
 
   onCleanup(async () => {
-    if (completionPollInterval) {
-      clearInterval(completionPollInterval);
-      completionPollInterval = undefined;
-    }
     if (!isTauri) return;
     try {
       const { unregisterAll } = await import("@tauri-apps/plugin-global-shortcut");
@@ -342,20 +337,6 @@ export default function App() {
     } catch (_) {}
   };
 
-  // Start polling for chunk results (used during recording AND after stop)
-  const startChunkPolling = () => {
-    if (!completionPollInterval) {
-      completionPollInterval = window.setInterval(pollChunkResults, 300);
-    }
-  };
-
-  const stopChunkPolling = () => {
-    if (completionPollInterval) {
-      clearInterval(completionPollInterval);
-      completionPollInterval = undefined;
-    }
-  };
-
   const handleStartRecording = async () => {
     if (!isModelLoaded()) {
       sendNotification("Open Speech Studio", t("app.noModelNotification"));
@@ -364,19 +345,12 @@ export default function App() {
     if (isRecording()) return;
 
     try {
-      const sessionId = await api.startDictation();
-      setActiveSessions(prev => {
-        const next = new Map(prev);
-        next.set(sessionId, 'recording');
-        return next;
-      });
+      await api.startDictation();
       recordingStartedAt = Date.now();
       setIsRecording(true);
       if (settings()?.audio_feedback !== false) soundRecordStart();
       await showOverlay("recording");
       startAudioLevelPolling();
-      // Start polling immediately so incremental chunks get typed during recording
-      startChunkPolling();
     } catch (e) {
       if (settings()?.audio_feedback !== false) soundError();
       console.error("Recording error:", e);
@@ -388,74 +362,34 @@ export default function App() {
 
     stopAudioLevelPolling();
     if (settings()?.audio_feedback !== false) soundRecordStop();
-
-    const sessions = activeSessions();
-    const sessionId = Array.from(sessions.entries())
-      .filter(([_, status]) => status === 'recording')
-      .pop()?.[0];
-    if (!sessionId) return;
-
-    setActiveSessions(prev => {
-      const next = new Map(prev);
-      next.set(sessionId, 'transcribing');
-      return next;
-    });
     setIsRecording(false);
 
     try {
-      await api.stopDictationAsync(sessionId);
       await showOverlay("transcribing", '');
-      // Polling is already running from handleStartRecording
+
+      // Synchronous path: wait for transcription result (v0.6 proven flow)
+      const result = await api.stopDictationSync();
+      const finalText = result.text?.trim() || '';
+
+      if (finalText && settings()?.auto_paste) {
+        await api.typeText(finalText);
+      }
+
+      setTranscriptions(prev => [{
+        text: finalText,
+        original_text: result.original_text,
+        language: result.language || settings()?.language || 'nl',
+        duration_ms: result.duration_ms || 0,
+      }, ...prev]);
+
+      if (settings()?.audio_feedback !== false) soundTranscriptionDone();
+      await showOverlay('done', finalText.substring(0, 50));
+      setTimeout(() => closeOverlay(), 2000);
     } catch (e) {
       if (settings()?.audio_feedback !== false) soundError();
       await showOverlay("error", String(e));
       setTimeout(() => closeOverlay(), 3000);
       console.error("Transcription error:", e);
-    }
-  };
-
-  // Poll for individual chunk results AND completed sessions
-  const pollChunkResults = async () => {
-    try {
-      // 1. Check for individual chunk results (typed immediately during recording)
-      const chunks = await api.pollChunkResults();
-      for (const [_sessionId, _chunkIdx, text, _hwnd] of chunks) {
-        const chunkText = text.trim();
-        if (chunkText && settings()?.auto_paste) {
-          await api.typeText(chunkText);
-          await new Promise(resolve => setTimeout(resolve, 50));
-        }
-        // Add to transcription history
-        setTranscriptions(prev => [{
-          text: chunkText,
-          language: settings()?.language || 'nl',
-          duration_ms: 0,
-        }, ...prev]);
-      }
-
-      // 2. Check for fully completed sessions — but only if user has stopped recording
-      if (!isRecording()) {
-        const completed = await api.getCompletedSessions();
-        for (const [sessionId, _hwnd, _text] of completed) {
-          setActiveSessions(prev => {
-            const next = new Map(prev);
-            next.delete(sessionId);
-            return next;
-          });
-          if (settings()?.audio_feedback !== false) soundTranscriptionDone();
-          await showOverlay('done', 'Transcriptie voltooid');
-          setTimeout(() => closeOverlay(), 2000);
-        }
-
-        // Stop polling if nothing is active anymore
-        const remaining = activeSessions();
-        const hasActive = remaining.size > 0;
-        if (!hasActive) {
-          stopChunkPolling();
-        }
-      }
-    } catch (err) {
-      console.error('Poll error:', err);
     }
   };
 

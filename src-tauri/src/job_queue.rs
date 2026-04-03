@@ -226,15 +226,15 @@ impl JobQueue {
                     let guard = transcriber_ref.lock().unwrap();
                     guard.clone()
                 };
-                eprintln!("[DEBUG] worker: starting transcription for job {} ({} samples)", job_id, job.audio.len());
+                dbg_log!("[DEBUG] worker: starting transcription for job {} ({} samples)", job_id, job.audio.len());
                 let result_text = match transcriber {
                     Some(t) => match t.transcribe(&job.audio, &job.language) {
                         Ok(text) => {
-                            eprintln!("[DEBUG] worker: transcription done, text='{}'", &text[..text.len().min(80)]);
+                            dbg_log!("[DEBUG] worker: transcription done, text='{}'", &text[..text.len().min(80)]);
                             text
                         }
                         Err(e) => {
-                            eprintln!("[DEBUG] worker: transcription FAILED: {}", e);
+                            dbg_log!("[DEBUG] worker: transcription FAILED: {}", e);
                             String::new()
                         }
                     },

@@ -1,3 +1,17 @@
+/// Debug file logger (eprintln doesn't work for Windows GUI apps)
+#[macro_export]
+macro_rules! dbg_log {
+    ($($arg:tt)*) => {{
+        use std::io::Write;
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true).append(true)
+            .open(r"C:\Users\rickd\oss-debug.txt")
+        {
+            let _ = writeln!(f, "{}", format!($($arg)*));
+        }
+    }};
+}
+
 mod audio;
 mod autocorrect;
 mod convert;
@@ -326,10 +340,10 @@ async fn get_recording_status(state: State<'_, AppState>) -> Result<bool, String
 
 #[tauri::command]
 async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
-    eprintln!("[DEBUG] start_dictation called");
+    dbg_log!("[DEBUG] start_dictation called");
     let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
     if *is_dictating {
-        eprintln!("[DEBUG] already dictating");
+        dbg_log!("[DEBUG] already dictating");
         return Ok(uuid::Uuid::new_v4().to_string());
     }
 
@@ -385,10 +399,10 @@ async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
         }
     };
 
-    // Start incremental timer: every `interval` seconds, grab the dictation buffer
-    // and submit it as a chunk to the job queue (while recording continues)
-    eprintln!("[DEBUG] interval={}, will start timer: {}", interval, interval > 0.0 && interval < 300.0);
-    if interval > 0.0 && interval < 300.0 {
+    // Incremental timer disabled for now — will be re-enabled in stap 2 (live streaming via Tauri events)
+    // The timer was stealing audio from the dictation buffer, causing lost speech.
+    // The sync flow (stop_dictation_sync) needs all audio intact.
+    if false && interval > 0.0 && interval < 300.0 {
         let stop_flag = state.incremental_stop.clone();
         stop_flag.store(false, std::sync::atomic::Ordering::Relaxed);
 
@@ -399,15 +413,15 @@ async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
         let lang = language.clone();
         let interval_ms = (interval * 1000.0) as u64;
 
-        eprintln!("[DEBUG] spawning incremental timer thread, interval_ms={}", interval_ms);
+        dbg_log!("[DEBUG] spawning incremental timer thread, interval_ms={}", interval_ms);
         std::thread::spawn(move || {
             let mut chunk_index: u32 = 0;
-            eprintln!("[DEBUG] timer thread started");
+            dbg_log!("[DEBUG] timer thread started");
             loop {
                 std::thread::sleep(std::time::Duration::from_millis(interval_ms));
 
                 if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
-                    eprintln!("[DEBUG] timer: stop flag set, exiting");
+                    dbg_log!("[DEBUG] timer: stop flag set, exiting");
                     break;
                 }
 
@@ -416,22 +430,22 @@ async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
                     match rec.as_ref().and_then(|r| r.as_ref()) {
                         Some(recorder) => recorder.take_dictation_chunk(),
                         None => {
-                            eprintln!("[DEBUG] timer: recorder gone, exiting");
+                            dbg_log!("[DEBUG] timer: recorder gone, exiting");
                             break;
                         }
                     }
                 };
 
-                eprintln!("[DEBUG] timer: got {} samples from dictation buffer", audio.len());
+                dbg_log!("[DEBUG] timer: got {} samples from dictation buffer", audio.len());
 
                 if audio.len() < 1600 {
-                    eprintln!("[DEBUG] timer: chunk too small ({}), skipping", audio.len());
+                    dbg_log!("[DEBUG] timer: chunk too small ({}), skipping", audio.len());
                     continue;
                 }
 
                 let queue_guard = queue_ref.lock().ok();
                 if let Some(Some(queue)) = queue_guard.as_ref().map(|g| g.as_ref()) {
-                    eprintln!("[DEBUG] timer: submitting chunk {} ({} samples)", chunk_index, audio.len());
+                    dbg_log!("[DEBUG] timer: submitting chunk {} ({} samples)", chunk_index, audio.len());
                     let job = job_queue::TranscriptionJob {
                         id: uuid::Uuid::new_v4(),
                         audio,
@@ -530,7 +544,7 @@ async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<Transcription
 /// as final chunk, and finalizes the session. Results come via get_completed_sessions.
 #[tauri::command(rename_all = "camelCase")]
 async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Result<(), String> {
-    eprintln!("[DEBUG] stop_dictation called with session_id={}", session_id);
+    dbg_log!("[DEBUG] stop_dictation called with session_id={}", session_id);
     // Signal the incremental timer thread to stop
     state.incremental_stop.store(true, std::sync::atomic::Ordering::Relaxed);
 
@@ -1165,9 +1179,9 @@ fn poll_chunk_results(state: State<'_, AppState>) -> Result<Vec<(String, u32, St
     let queue = queue_guard.as_ref().ok_or("Job queue not initialized")?;
     let results = queue.poll_results();
     if !results.is_empty() {
-        eprintln!("[DEBUG] poll_chunk_results: returning {} results", results.len());
+        dbg_log!("[DEBUG] poll_chunk_results: returning {} results", results.len());
         for r in &results {
-            eprintln!("[DEBUG]   chunk {} text='{}'", r.chunk_index.unwrap_or(99), &r.text[..r.text.len().min(50)]);
+            dbg_log!("[DEBUG]   chunk {} text='{}'", r.chunk_index.unwrap_or(99), &r.text[..r.text.len().min(50)]);
         }
     }
     Ok(results.iter().map(|r| (
