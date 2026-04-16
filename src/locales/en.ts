@@ -55,8 +55,6 @@ const en: Record<string, string> = {
   "transcription.hotkeyHint": "Press {hotkey} to start",
   "transcription.modelRequired": "Model required",
   "transcription.copy": "Copy",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "transcription.listening": "Listening...",
   "transcription.stop": "Stop",
 
@@ -82,15 +80,13 @@ const en: Record<string, string> = {
   "settings.hotkeyModeToggle": "Press to start/stop",
   "settings.hotkeyModeHint": "Hold: keep the hotkey pressed while speaking. Toggle: press once to start, press again to stop.",
   "settings.autoPaste": "Auto paste",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
   "settings.gpuStatusActive": "active",
   "settings.gpuStatusNotDetected": "GPU enabled but CUDA not responding",
   "settings.gpuStatusNoCuda": "CUDA libraries not found — install CUDA toolkit",
   "settings.gpuStatusOff": "GPU disabled — using CPU",
   "settings.autoPasteHint": "Automatically type text after transcription",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -229,6 +225,8 @@ const en: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Model switch failed: {error}",
   "meeting.emptyTranscript": "Start a recording to see the transcript here.",
   "meeting.tip": "Tip: Click \"Save Segment\" during the recording to transcribe in between without stopping the recording.",
+  "meeting.exportTranscriptHeading": "Transcript",
+  "meeting.minuteAbbrev": "min",
   "meeting.exportSegment": "Segment",
   "meeting.exportLanguage": "Language:",
   "meeting.exportDuration": "Duration:",
@@ -286,8 +284,12 @@ const en: Record<string, string> = {
   "micTest.resultLanguage": "Language:",
   "micTest.resultDuration": "Duration:",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Minimize",
+  "titlebar.close": "Close",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Auto-detect",
@@ -393,16 +395,31 @@ const en: Record<string, string> = {
   "languages.zh": "Chinese",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Bulgarian (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "Chinese (\u4E2D\u6587)",
+  "languages.hrFull": "Croatian (Hrvatski)",
+  "languages.csFull": "Czech (\u010Ce\u0161tina)",
+  "languages.daFull": "Danish (Dansk)",
   "languages.nlFull": "Dutch (Nederlands)",
   "languages.enFull": "English",
-  "languages.deFull": "German (Deutsch)",
+  "languages.fiFull": "Finnish (Suomi)",
   "languages.frFull": "French (Fran\u00E7ais)",
-  "languages.esFull": "Spanish (Espa\u00F1ol)",
+  "languages.deFull": "German (Deutsch)",
+  "languages.elFull": "Greek (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Hungarian (Magyar)",
   "languages.itFull": "Italian (Italiano)",
-  "languages.ptFull": "Portuguese (Portugu\u00EAs)",
-  "languages.plFull": "Polish (Polski)",
   "languages.jaFull": "Japanese (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "Chinese (\u4E2D\u6587)",
+  "languages.koFull": "Korean (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "Norwegian (Norsk)",
+  "languages.plFull": "Polish (Polski)",
+  "languages.ptFull": "Portuguese (Portugu\u00EAs)",
+  "languages.roFull": "Romanian (Rom\u00E2n\u0103)",
+  "languages.ruFull": "Russian (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "Slovak (Sloven\u010Dina)",
+  "languages.esFull": "Spanish (Espa\u00F1ol)",
+  "languages.svFull": "Swedish (Svenska)",
+  "languages.trFull": "Turkish (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "Ukrainian (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -427,6 +444,7 @@ const en: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Text files",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -452,6 +470,43 @@ const en: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Transcription failed",
+  "api.speechRecognitionUnavailable": "Speech recognition not available. Start the local server: node server.js",
+  "api.microphoneAccessDenied": "Microphone access denied.",
+  "api.speechRecognitionStartFailed": "Speech recognition failed to start: {error}",
+  "api.microphoneDevice": "Microphone {id}",
+  "api.defaultMicrophone": "Default microphone",
+
+  // ── VoiceTraining ─────────────────────────────────────
+  "voiceTraining.trainingText": "The quick brown fox jumps over the lazy dog. She sells seashells by the seashore. Peter Piper picked a peck of pickled peppers. How much wood would a woodchuck chuck if a woodchuck could chuck wood? The sixth sick sheik's sixth sheep's sick. Unique New York.",
+  "voiceTraining.nameRequired": "Enter a name for the voice profile.",
+  "voiceTraining.startFailed": "Failed to start recording: {error}",
+  "voiceTraining.noAudio": "No audio recorded. Please try again.",
+  "voiceTraining.saveFailed": "Failed to save voice profile: {error}",
+  "voiceTraining.step1Title": "New voice profile",
+  "voiceTraining.step1Description": "Provide a name for the voice profile.",
+  "voiceTraining.nameLabel": "Name",
+  "voiceTraining.namePlaceholder": "E.g. John Smith",
+  "voiceTraining.cancel": "Cancel",
+  "voiceTraining.next": "Next",
+  "voiceTraining.step2Title": "Speak the text",
+  "voiceTraining.step2Description": "Read the text below loud and clear. Recording stops automatically after 30 seconds.",
+  "voiceTraining.recordingInProgress": "Recording... {percent}%",
+  "voiceTraining.startRecording": "Start recording",
+  "voiceTraining.stopRecording": "Stop",
+  "voiceTraining.step3Title": "Voice profile saved!",
+  "voiceTraining.step3Description": "The voice profile for {name} has been successfully created.",
+  "voiceTraining.close": "Close",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Voice profiles",
+  "settings.speakerTrained": "Trained",
+  "settings.speakerDelete": "Delete",
+  "settings.speakerNoProfiles": "No voice profiles created.",
+  "settings.speakerNewProfile": "+ New voice profile",
+  "overlay.likeSound": "Like this sound",
 };
 
 export default en;

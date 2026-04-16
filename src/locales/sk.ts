@@ -179,6 +179,8 @@ const sk: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Zmena modelu zlyhala: {error}",
   "meeting.emptyTranscript": "Za\u010Dnite nahr\u00E1vanie, aby ste tu videli transkript.",
   "meeting.tip": "Tip: Kliknite 'Ulo\u017Ei\u0165 segment' po\u010Das nahr\u00E1vania, aby ste medzit\u00FDm prep\u00EDsali bez zastavenia nahr\u00E1vania.",
+  "meeting.exportTranscriptHeading": "Prepis",
+  "meeting.minuteAbbrev": "min",
   "meeting.exportSegment": "Segment",
   "meeting.exportLanguage": "Jazyk:",
   "meeting.exportDuration": "Trvanie:",
@@ -236,8 +238,12 @@ const sk: Record<string, string> = {
   "micTest.resultLanguage": "Jazyk:",
   "micTest.resultDuration": "Trvanie:",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Minimalizovať",
+  "titlebar.close": "Zavrieť",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatick\u00E9 rozpoznanie",
@@ -258,16 +264,31 @@ const sk: Record<string, string> = {
   "languages.ko": "K\u00F3rejsk\u00FD",
 
   // ── Settings language options (with native name) ─────────
-  "languages.nlFull": "Holandsk\u00FD (Nederlands)",
-  "languages.enFull": "Anglick\u00FD (English)",
-  "languages.deFull": "Nemeck\u00FD (Deutsch)",
-  "languages.frFull": "Franc\u00FAzsky (Fran\u00E7ais)",
-  "languages.esFull": "\u0160panielsky (Espa\u00F1ol)",
-  "languages.itFull": "Taliansky (Italiano)",
+  "languages.bgFull": "Bulhar\u010Dina (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "\u010C\u00EDn\u0161tina (\u4E2D\u6587)",
+  "languages.hrFull": "Chorv\u00E1t\u010Dina (Hrvatski)",
+  "languages.csFull": "\u010Ce\u0161tina (\u010Ce\u0161tina)",
+  "languages.daFull": "D\u00E1n\u010Dina (Dansk)",
+  "languages.nlFull": "Holand\u010Dina (Nederlands)",
+  "languages.enFull": "Angli\u010Dtina (English)",
+  "languages.fiFull": "F\u00EDn\u010Dina (Suomi)",
+  "languages.frFull": "Franc\u00FAz\u0161tina (Fran\u00E7ais)",
+  "languages.deFull": "Nem\u010Dina (Deutsch)",
+  "languages.elFull": "Gr\u00E9\u010Dtina (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Ma\u010Far\u010Dina (Magyar)",
+  "languages.itFull": "Talian\u010Dina (Italiano)",
+  "languages.jaFull": "Japon\u010Dina (\u65E5\u672C\u8A9E)",
+  "languages.koFull": "K\u00F3rej\u010Dina (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "N\u00F3r\u010Dina (Norsk)",
+  "languages.plFull": "Po\u013E\u0161tina (Polski)",
   "languages.ptFull": "Portugalsk\u00FD (Portugu\u00EAs)",
-  "languages.plFull": "Po\u013Esk\u00FD (Polski)",
-  "languages.jaFull": "Japonsk\u00FD (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "\u010C\u00EDnsky (\u4E2D\u6587)",
+  "languages.roFull": "Rumun\u010Dina (Rom\u00E2n\u0103)",
+  "languages.ruFull": "Ru\u0161tina (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "Sloven\u010Dina",
+  "languages.esFull": "\u0160paniel\u010Dina (Espa\u00F1ol)",
+  "languages.svFull": "\u0160v\u00E9d\u010Dina (Svenska)",
+  "languages.trFull": "Ture\u010Dtina (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "Ukrajin\u010Dina (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -290,17 +311,13 @@ const sk: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const sk: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Textové súbory",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const sk: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Prepis zlyhal",
+  "api.speechRecognitionUnavailable": "Rozpoznávanie reči nie je dostupné. Spustite lokálny server: node server.js",
+  "api.microphoneAccessDenied": "Prístup k mikrofónu bol zamietnutý.",
+  "api.speechRecognitionStartFailed": "Spustenie rozpoznávania reči zlyhalo: {error}",
+  "api.microphoneDevice": "Mikrofón {id}",
+  "api.defaultMicrophone": "Predvolený mikrofón",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Strč prst skrz krk. V kšici vrší Kristínka s Kristínou krištáľové črípky. Trinásť strieborných striekačiek striekalo cez trinásť strieborných striech.",
+  "voiceTraining.nameRequired": "Zadajte názov hlasového profilu.",
+  "voiceTraining.startFailed": "Nepodarilo sa spustiť nahrávanie: {error}",
+  "voiceTraining.noAudio": "Nebol zaznamenaný žiaden zvuk. Skúste to znova.",
+  "voiceTraining.saveFailed": "Nepodarilo sa uložiť hlasový profil: {error}",
+  "voiceTraining.step1Title": "Nový hlasový profil",
+  "voiceTraining.step1Description": "Zadajte názov pre hlasový profil.",
+  "voiceTraining.nameLabel": "Meno",
+  "voiceTraining.namePlaceholder": "Napr. Ján Novák",
+  "voiceTraining.cancel": "Zrušiť",
+  "voiceTraining.next": "Ďalej",
+  "voiceTraining.step2Title": "Vyslovte text",
+  "voiceTraining.step2Description": "Prečítajte nižšie uvedený text nahlas a zreteľne. Nahrávanie sa automaticky zastaví po 30 sekundách.",
+  "voiceTraining.recordingInProgress": "Nahrávanie... {percent}%",
+  "voiceTraining.startRecording": "Spustiť nahrávanie",
+  "voiceTraining.stopRecording": "Zastaviť",
+  "voiceTraining.step3Title": "Hlasový profil uložený!",
+  "voiceTraining.step3Description": "Hlasový profil pre {name} bol úspešne vytvorený.",
+  "voiceTraining.close": "Zavrieť",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Hlasové profily",
+  "settings.speakerTrained": "Natrénované",
+  "settings.speakerDelete": "Odstrániť",
+  "settings.speakerNoProfiles": "Neboli vytvorené žiadne hlasové profily.",
+  "settings.speakerNewProfile": "+ Nový hlasový profil",
+  "overlay.likeSound": "Páči sa mi tento zvuk",
 };
 
 export default sk;

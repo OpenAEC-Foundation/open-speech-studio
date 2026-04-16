@@ -179,6 +179,8 @@ const sv: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Modellbyte misslyckades: {error}",
   "meeting.emptyTranscript": "Starta en inspelning for att se transkriptionen har.",
   "meeting.tip": "Tips: Klicka pa 'Spara segment' under inspelningen for att transkribera utan att stoppa inspelningen.",
+  "meeting.exportTranscriptHeading": "Transkription",
+  "meeting.minuteAbbrev": "min",
   "meeting.exportSegment": "Segment",
   "meeting.exportLanguage": "Sprak:",
   "meeting.exportDuration": "Langd:",
@@ -237,7 +239,11 @@ const sv: Record<string, string> = {
   "micTest.resultDuration": "Langd:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Minimera",
+  "titlebar.close": "Stäng",
+
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk identifiering",
@@ -258,16 +264,31 @@ const sv: Record<string, string> = {
   "languages.ko": "Koreanska",
 
   // ── Settings language options (with native name) ─────────
-  "languages.nlFull": "Nerlandska (Nederlands)",
-  "languages.enFull": "Engelska (English)",
-  "languages.deFull": "Tyska (Deutsch)",
-  "languages.frFull": "Franska (Fran\u00E7ais)",
-  "languages.esFull": "Spanska (Espa\u00F1ol)",
-  "languages.itFull": "Italienska (Italiano)",
-  "languages.ptFull": "Portugisiska (Portugu\u00EAs)",
-  "languages.plFull": "Polska (Polski)",
-  "languages.jaFull": "Japanska (\u65E5\u672C\u8A9E)",
+  "languages.bgFull": "Bulgariska (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
   "languages.zhFull": "Kinesiska (\u4E2D\u6587)",
+  "languages.hrFull": "Kroatiska (Hrvatski)",
+  "languages.csFull": "Tjeckiska (\u010Ce\u0161tina)",
+  "languages.daFull": "Danska (Dansk)",
+  "languages.nlFull": "Nederl\u00E4ndska (Nederlands)",
+  "languages.enFull": "Engelska (English)",
+  "languages.fiFull": "Finska (Suomi)",
+  "languages.frFull": "Franska (Fran\u00E7ais)",
+  "languages.deFull": "Tyska (Deutsch)",
+  "languages.elFull": "Grekiska (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Ungerska (Magyar)",
+  "languages.itFull": "Italienska (Italiano)",
+  "languages.jaFull": "Japanska (\u65E5\u672C\u8A9E)",
+  "languages.koFull": "Koreanska (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "Norska (Norsk)",
+  "languages.plFull": "Polska (Polski)",
+  "languages.ptFull": "Portugisiska (Portugu\u00EAs)",
+  "languages.roFull": "Rum\u00E4nska (Rom\u00E2n\u0103)",
+  "languages.ruFull": "Ryska (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "Slovakiska (Sloven\u010Dina)",
+  "languages.esFull": "Spanska (Espa\u00F1ol)",
+  "languages.svFull": "Svenska",
+  "languages.trFull": "Turkiska (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "Ukrainska (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -290,17 +311,13 @@ const sv: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const sv: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Textfiler",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const sv: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Transkriptionen misslyckades",
+  "api.speechRecognitionUnavailable": "Taligenkänning inte tillgänglig. Starta den lokala servern: node server.js",
+  "api.microphoneAccessDenied": "Mikrofonåtkomst nekad.",
+  "api.speechRecognitionStartFailed": "Taligenkänning kunde inte startas: {error}",
+  "api.microphoneDevice": "Mikrofon {id}",
+  "api.defaultMicrophone": "Standardmikrofon",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Sex laxar i en laxask. Flyg fansen ansenansen ut. Packa pansenansenansen in. Sju sjösjuka sjömän sköttes av sju sjuksköterskor.",
+  "voiceTraining.nameRequired": "Ange ett namn för röstprofilen.",
+  "voiceTraining.startFailed": "Kunde inte starta inspelning: {error}",
+  "voiceTraining.noAudio": "Inget ljud spelades in. Försök igen.",
+  "voiceTraining.saveFailed": "Kunde inte spara röstprofilen: {error}",
+  "voiceTraining.step1Title": "Ny röstprofil",
+  "voiceTraining.step1Description": "Ange ett namn för röstprofilen.",
+  "voiceTraining.nameLabel": "Namn",
+  "voiceTraining.namePlaceholder": "T.ex. Anders Andersson",
+  "voiceTraining.cancel": "Avbryt",
+  "voiceTraining.next": "Nästa",
+  "voiceTraining.step2Title": "Tala in texten",
+  "voiceTraining.step2Description": "Läs texten nedan högt och tydligt. Inspelningen stoppar automatiskt efter 30 sekunder.",
+  "voiceTraining.recordingInProgress": "Spelar in... {percent}%",
+  "voiceTraining.startRecording": "Starta inspelning",
+  "voiceTraining.stopRecording": "Stoppa",
+  "voiceTraining.step3Title": "Röstprofil sparad!",
+  "voiceTraining.step3Description": "Röstprofilen för {name} har skapats.",
+  "voiceTraining.close": "Stäng",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Röstprofiler",
+  "settings.speakerTrained": "Tränad",
+  "settings.speakerDelete": "Ta bort",
+  "settings.speakerNoProfiles": "Inga röstprofiler skapade.",
+  "settings.speakerNewProfile": "+ Ny röstprofil",
+  "overlay.likeSound": "Gilla detta ljud",
 };
 
 export default sv;

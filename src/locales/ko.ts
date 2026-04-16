@@ -179,6 +179,8 @@ const ko: Record<string, string> = {
   "meeting.statusModelChangeFailed": "모델 전환 실패: {error}",
   "meeting.emptyTranscript": "녹취록을 보려면 녹음을 시작하세요.",
   "meeting.tip": "팁: 녹음 중에 \"구간 저장\"을 클릭하면 녹음을 중지하지 않고 중간에 텍스트로 변환할 수 있습니다.",
+  "meeting.exportTranscriptHeading": "전사",
+  "meeting.minuteAbbrev": "분",
   "meeting.exportSegment": "구간",
   "meeting.exportLanguage": "언어:",
   "meeting.exportDuration": "길이:",
@@ -237,7 +239,11 @@ const ko: Record<string, string> = {
   "micTest.resultDuration": "길이:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "최소화",
+  "titlebar.close": "닫기",
+
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "자동 감지",
@@ -258,16 +264,31 @@ const ko: Record<string, string> = {
   "languages.ko": "한국어",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "불가리아어 (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "중국어 (\u4E2D\u6587)",
+  "languages.hrFull": "크로아티아어 (Hrvatski)",
+  "languages.csFull": "체코어 (\u010Ce\u0161tina)",
+  "languages.daFull": "덴마크어 (Dansk)",
   "languages.nlFull": "네덜란드어 (Nederlands)",
   "languages.enFull": "영어 (English)",
-  "languages.deFull": "독일어 (Deutsch)",
+  "languages.fiFull": "핀란드어 (Suomi)",
   "languages.frFull": "프랑스어 (Fran\u00E7ais)",
-  "languages.esFull": "스페인어 (Espa\u00F1ol)",
+  "languages.deFull": "독일어 (Deutsch)",
+  "languages.elFull": "그리스어 (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "헝가리어 (Magyar)",
   "languages.itFull": "이탈리아어 (Italiano)",
-  "languages.ptFull": "포르투갈어 (Portugu\u00EAs)",
-  "languages.plFull": "폴란드어 (Polski)",
   "languages.jaFull": "일본어 (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "중국어 (\u4E2D\u6587)",
+  "languages.koFull": "한국어",
+  "languages.noFull": "노르웨이어 (Norsk)",
+  "languages.plFull": "폴란드어 (Polski)",
+  "languages.ptFull": "포르투갈어 (Portugu\u00EAs)",
+  "languages.roFull": "루마니아어 (Rom\u00E2n\u0103)",
+  "languages.ruFull": "러시아어 (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "슬로바키아어 (Sloven\u010Dina)",
+  "languages.esFull": "스페인어 (Espa\u00F1ol)",
+  "languages.svFull": "스웨덴어 (Svenska)",
+  "languages.trFull": "터키어 (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "우크라이나어 (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "자동",
@@ -290,17 +311,13 @@ const ko: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const ko: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "텍스트 파일",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const ko: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "전사에 실패했습니다",
+  "api.speechRecognitionUnavailable": "음성 인식을 사용할 수 없습니다. 로컬 서버를 시작하세요: node server.js",
+  "api.microphoneAccessDenied": "마이크 접근이 거부되었습니다.",
+  "api.speechRecognitionStartFailed": "음성 인식 시작 실패: {error}",
+  "api.microphoneDevice": "마이크 {id}",
+  "api.defaultMicrophone": "기본 마이크",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "간장 공장 공장장은 강 공장장이고 된장 공장 공장장은 장 공장장이다. 저기 저 콩깍지는 깐 콩깍지인가 안 깐 콩깍지인가. 경찰청 철창살은 외철창살이냐 쌍철창살이냐.",
+  "voiceTraining.nameRequired": "음성 프로필의 이름을 입력하세요.",
+  "voiceTraining.startFailed": "녹음을 시작하지 못했습니다: {error}",
+  "voiceTraining.noAudio": "녹음된 오디오가 없습니다. 다시 시도하세요.",
+  "voiceTraining.saveFailed": "음성 프로필을 저장하지 못했습니다: {error}",
+  "voiceTraining.step1Title": "새 음성 프로필",
+  "voiceTraining.step1Description": "음성 프로필의 이름을 입력하세요.",
+  "voiceTraining.nameLabel": "이름",
+  "voiceTraining.namePlaceholder": "예: 홍길동",
+  "voiceTraining.cancel": "취소",
+  "voiceTraining.next": "다음",
+  "voiceTraining.step2Title": "텍스트 읽기",
+  "voiceTraining.step2Description": "아래 텍스트를 큰 소리로 명확하게 읽어주세요. 녹음은 30초 후 자동으로 중지됩니다.",
+  "voiceTraining.recordingInProgress": "녹음 중... {percent}%",
+  "voiceTraining.startRecording": "녹음 시작",
+  "voiceTraining.stopRecording": "중지",
+  "voiceTraining.step3Title": "음성 프로필이 저장되었습니다!",
+  "voiceTraining.step3Description": "{name}의 음성 프로필이 성공적으로 생성되었습니다.",
+  "voiceTraining.close": "닫기",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "음성 프로필",
+  "settings.speakerTrained": "학습됨",
+  "settings.speakerDelete": "삭제",
+  "settings.speakerNoProfiles": "음성 프로필이 없습니다.",
+  "settings.speakerNewProfile": "+ 새 음성 프로필",
+  "overlay.likeSound": "이 소리 좋아요",
 };
 
 export default ko;

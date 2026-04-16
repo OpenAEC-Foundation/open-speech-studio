@@ -179,6 +179,8 @@ const da: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Modelskift mislykkedes: {error}",
   "meeting.emptyTranscript": "Start en optagelse for at se transskriptionen her.",
   "meeting.tip": "Tip: Klik pa 'Gem segment' under optagelsen for at transskribere uden at stoppe optagelsen.",
+  "meeting.exportTranscriptHeading": "Transskription",
+  "meeting.minuteAbbrev": "min",
   "meeting.exportSegment": "Segment",
   "meeting.exportLanguage": "Sprog:",
   "meeting.exportDuration": "Varighed:",
@@ -236,8 +238,12 @@ const da: Record<string, string> = {
   "micTest.resultLanguage": "Sprog:",
   "micTest.resultDuration": "Varighed:",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Minimer",
+  "titlebar.close": "Luk",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk genkendelse",
@@ -258,16 +264,31 @@ const da: Record<string, string> = {
   "languages.ko": "Koreansk",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Bulgarsk (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "Kinesisk (\u4E2D\u6587)",
+  "languages.hrFull": "Kroatisk (Hrvatski)",
+  "languages.csFull": "Tjekkisk (\u010Ce\u0161tina)",
+  "languages.daFull": "Dansk",
   "languages.nlFull": "Hollandsk (Nederlands)",
   "languages.enFull": "Engelsk (English)",
-  "languages.deFull": "Tysk (Deutsch)",
+  "languages.fiFull": "Finsk (Suomi)",
   "languages.frFull": "Fransk (Fran\u00E7ais)",
-  "languages.esFull": "Spansk (Espa\u00F1ol)",
+  "languages.deFull": "Tysk (Deutsch)",
+  "languages.elFull": "Gr\u00E6sk (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Ungarsk (Magyar)",
   "languages.itFull": "Italiensk (Italiano)",
-  "languages.ptFull": "Portugisisk (Portugu\u00EAs)",
-  "languages.plFull": "Polsk (Polski)",
   "languages.jaFull": "Japansk (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "Kinesisk (\u4E2D\u6587)",
+  "languages.koFull": "Koreansk (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "Norsk",
+  "languages.plFull": "Polsk (Polski)",
+  "languages.ptFull": "Portugisisk (Portugu\u00EAs)",
+  "languages.roFull": "Rum\u00E6nsk (Rom\u00E2n\u0103)",
+  "languages.ruFull": "Russisk (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "Slovakisk (Sloven\u010Dina)",
+  "languages.esFull": "Spansk (Espa\u00F1ol)",
+  "languages.svFull": "Svensk (Svenska)",
+  "languages.trFull": "Tyrkisk (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "Ukrainsk (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -290,17 +311,13 @@ const da: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const da: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Tekstfiler",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const da: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Transskription mislykkedes",
+  "api.speechRecognitionUnavailable": "Talegenkendelse ikke tilgængelig. Start den lokale server: node server.js",
+  "api.microphoneAccessDenied": "Mikrofonadgang nægtet.",
+  "api.speechRecognitionStartFailed": "Talegenkendelse kunne ikke starte: {error}",
+  "api.microphoneDevice": "Mikrofon {id}",
+  "api.defaultMicrophone": "Standardmikrofon",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Rød grød med fløde. Fem flade flødeboller på et fladt flødebollefad. Stansenansenansenansen ud. Jeg drikker aldrig øl i Ølstykke.",
+  "voiceTraining.nameRequired": "Indtast et navn til stemmeprofilen.",
+  "voiceTraining.startFailed": "Kunne ikke starte optagelse: {error}",
+  "voiceTraining.noAudio": "Ingen lyd optaget. Prøv igen.",
+  "voiceTraining.saveFailed": "Kunne ikke gemme stemmeprofil: {error}",
+  "voiceTraining.step1Title": "Ny stemmeprofil",
+  "voiceTraining.step1Description": "Angiv et navn til stemmeprofilen.",
+  "voiceTraining.nameLabel": "Navn",
+  "voiceTraining.namePlaceholder": "F.eks. Jens Hansen",
+  "voiceTraining.cancel": "Annuller",
+  "voiceTraining.next": "Næste",
+  "voiceTraining.step2Title": "Udtal teksten",
+  "voiceTraining.step2Description": "Læs nedenstående tekst højt og tydeligt. Optagelsen stopper automatisk efter 30 sekunder.",
+  "voiceTraining.recordingInProgress": "Optager... {percent}%",
+  "voiceTraining.startRecording": "Start optagelse",
+  "voiceTraining.stopRecording": "Stop",
+  "voiceTraining.step3Title": "Stemmeprofil gemt!",
+  "voiceTraining.step3Description": "Stemmeprofilen for {name} er oprettet.",
+  "voiceTraining.close": "Luk",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Stemmeprofiler",
+  "settings.speakerTrained": "Trænet",
+  "settings.speakerDelete": "Slet",
+  "settings.speakerNoProfiles": "Ingen stemmeprofiler oprettet.",
+  "settings.speakerNewProfile": "+ Ny stemmeprofil",
+  "overlay.likeSound": "Kan lide denne lyd",
 };
 
 export default da;

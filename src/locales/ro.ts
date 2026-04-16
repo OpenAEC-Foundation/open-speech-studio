@@ -179,6 +179,8 @@ const ro: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Schimbarea modelului a e\u0219uat: {error}",
   "meeting.emptyTranscript": "Porni\u021Bi o \u00EEnregistrare pentru a vedea transcrierea aici.",
   "meeting.tip": "Sfat: Ap\u0103sa\u021Bi 'Salveaz\u0103 segmentul' \u00EEn timpul \u00EEnregistr\u0103rii pentru a transcrie un rezultat intermediar f\u0103r\u0103 a opri \u00EEnregistrarea.",
+  "meeting.exportTranscriptHeading": "Transcriere",
+  "meeting.minuteAbbrev": "min",
   "meeting.exportSegment": "Segment",
   "meeting.exportLanguage": "Limb\u0103:",
   "meeting.exportDuration": "Durat\u0103:",
@@ -237,7 +239,11 @@ const ro: Record<string, string> = {
   "micTest.resultDuration": "Durat\u0103:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Minimizare",
+  "titlebar.close": "Închide",
+
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Detectare automat\u0103",
@@ -258,16 +264,31 @@ const ro: Record<string, string> = {
   "languages.ko": "Corean\u0103",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Bulgar\u0103 (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "Chinez\u0103 (\u4E2D\u6587)",
+  "languages.hrFull": "Croat\u0103 (Hrvatski)",
+  "languages.csFull": "Ceh\u0103 (\u010Ce\u0161tina)",
+  "languages.daFull": "Danez\u0103 (Dansk)",
   "languages.nlFull": "Olandez\u0103 (Nederlands)",
   "languages.enFull": "Englez\u0103 (English)",
-  "languages.deFull": "German\u0103 (Deutsch)",
+  "languages.fiFull": "Finlandez\u0103 (Suomi)",
   "languages.frFull": "Francez\u0103 (Fran\u00E7ais)",
-  "languages.esFull": "Spaniol\u0103 (Espa\u00F1ol)",
+  "languages.deFull": "German\u0103 (Deutsch)",
+  "languages.elFull": "Greac\u0103 (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Maghiar\u0103 (Magyar)",
   "languages.itFull": "Italian\u0103 (Italiano)",
-  "languages.ptFull": "Portughez\u0103 (Portugu\u00EAs)",
-  "languages.plFull": "Polonez\u0103 (Polski)",
   "languages.jaFull": "Japonez\u0103 (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "Chinez\u0103 (\u4E2D\u6587)",
+  "languages.koFull": "Coreean\u0103 (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "Norvegian\u0103 (Norsk)",
+  "languages.plFull": "Polonez\u0103 (Polski)",
+  "languages.ptFull": "Portughez\u0103 (Portugu\u00EAs)",
+  "languages.roFull": "Rom\u00E2n\u0103",
+  "languages.ruFull": "Rus\u0103 (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "Slovac\u0103 (Sloven\u010Dina)",
+  "languages.esFull": "Spaniol\u0103 (Espa\u00F1ol)",
+  "languages.svFull": "Suedez\u0103 (Svenska)",
+  "languages.trFull": "Turc\u0103 (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "Ucraineana (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -290,17 +311,13 @@ const ro: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const ro: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Fișiere text",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const ro: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Transcrierea a eșuat",
+  "api.speechRecognitionUnavailable": "Recunoașterea vocală nu este disponibilă. Porniți serverul local: node server.js",
+  "api.microphoneAccessDenied": "Accesul la microfon a fost refuzat.",
+  "api.speechRecognitionStartFailed": "Pornirea recunoașterii vocale a eșuat: {error}",
+  "api.microphoneDevice": "Microfon {id}",
+  "api.defaultMicrophone": "Microfon implicit",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Un vultur stă pe-un pisc cu un pește-n cioc. Vine alt vultur și-i zice: tu ești vultur care stă pe pisc cu pește-n cioc? Da, eu sunt vulturul care stă pe pisc cu pește-n cioc.",
+  "voiceTraining.nameRequired": "Introduceți un nume pentru profilul vocal.",
+  "voiceTraining.startFailed": "Nu s-a putut porni înregistrarea: {error}",
+  "voiceTraining.noAudio": "Nu a fost înregistrat niciun audio. Încercați din nou.",
+  "voiceTraining.saveFailed": "Nu s-a putut salva profilul vocal: {error}",
+  "voiceTraining.step1Title": "Profil vocal nou",
+  "voiceTraining.step1Description": "Furnizați un nume pentru profilul vocal.",
+  "voiceTraining.nameLabel": "Nume",
+  "voiceTraining.namePlaceholder": "Ex. Ion Popescu",
+  "voiceTraining.cancel": "Anulare",
+  "voiceTraining.next": "Următorul",
+  "voiceTraining.step2Title": "Rostiți textul",
+  "voiceTraining.step2Description": "Citiți textul de mai jos tare și clar. Înregistrarea se oprește automat după 30 de secunde.",
+  "voiceTraining.recordingInProgress": "Înregistrare... {percent}%",
+  "voiceTraining.startRecording": "Pornire înregistrare",
+  "voiceTraining.stopRecording": "Oprire",
+  "voiceTraining.step3Title": "Profil vocal salvat!",
+  "voiceTraining.step3Description": "Profilul vocal pentru {name} a fost creat cu succes.",
+  "voiceTraining.close": "Închidere",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Profiluri vocale",
+  "settings.speakerTrained": "Antrenat",
+  "settings.speakerDelete": "Șterge",
+  "settings.speakerNoProfiles": "Nu au fost create profiluri vocale.",
+  "settings.speakerNewProfile": "+ Profil vocal nou",
+  "overlay.likeSound": "Îmi place acest sunet",
 };
 
 export default ro;

@@ -179,6 +179,8 @@ const tr: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Model değişikliği başarısız: {error}",
   "meeting.emptyTranscript": "Transkripti burada görmek için bir kayıt başlatın.",
   "meeting.tip": "İpucu: Kaydı durdurmadan arada yazıya dökmek için kayıt sırasında \"Bölümü Kaydet\"e tıklayın.",
+  "meeting.exportTranscriptHeading": "Transkript",
+  "meeting.minuteAbbrev": "dk",
   "meeting.exportSegment": "Bölüm",
   "meeting.exportLanguage": "Dil:",
   "meeting.exportDuration": "Süre:",
@@ -237,7 +239,11 @@ const tr: Record<string, string> = {
   "micTest.resultDuration": "Süre:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Küçült",
+  "titlebar.close": "Kapat",
+
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Otomatik algıla",
@@ -258,16 +264,31 @@ const tr: Record<string, string> = {
   "languages.ko": "Korece",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Bulgarca (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "Çince (\u4E2D\u6587)",
+  "languages.hrFull": "Hırvatça (Hrvatski)",
+  "languages.csFull": "Çekçe (\u010Ce\u0161tina)",
+  "languages.daFull": "Danca (Dansk)",
   "languages.nlFull": "Felemenkçe (Nederlands)",
   "languages.enFull": "İngilizce (English)",
-  "languages.deFull": "Almanca (Deutsch)",
+  "languages.fiFull": "Fince (Suomi)",
   "languages.frFull": "Fransızca (Fran\u00E7ais)",
-  "languages.esFull": "İspanyolca (Espa\u00F1ol)",
+  "languages.deFull": "Almanca (Deutsch)",
+  "languages.elFull": "Yunanca (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Macarca (Magyar)",
   "languages.itFull": "İtalyanca (Italiano)",
-  "languages.ptFull": "Portekizce (Portugu\u00EAs)",
-  "languages.plFull": "Lehçe (Polski)",
   "languages.jaFull": "Japonca (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "Çince (\u4E2D\u6587)",
+  "languages.koFull": "Korece (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "Norveççe (Norsk)",
+  "languages.plFull": "Lehçe (Polski)",
+  "languages.ptFull": "Portekizce (Portugu\u00EAs)",
+  "languages.roFull": "Rumence (Rom\u00E2n\u0103)",
+  "languages.ruFull": "Rusça (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "Slovakça (Sloven\u010Dina)",
+  "languages.esFull": "İspanyolca (Espa\u00F1ol)",
+  "languages.svFull": "İsveççe (Svenska)",
+  "languages.trFull": "Türkçe",
+  "languages.ukFull": "Ukraynaca (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Otomatik",
@@ -290,17 +311,13 @@ const tr: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const tr: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Metin dosyaları",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const tr: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Transkripsiyon başarısız oldu",
+  "api.speechRecognitionUnavailable": "Konuşma tanıma kullanılamıyor. Yerel sunucuyu başlatın: node server.js",
+  "api.microphoneAccessDenied": "Mikrofon erişimi reddedildi.",
+  "api.speechRecognitionStartFailed": "Konuşma tanıma başlatılamadı: {error}",
+  "api.microphoneDevice": "Mikrofon {id}",
+  "api.defaultMicrophone": "Varsayılan mikrofon",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Bir berber bir berbere gel beraber bir berber dükkânı açalım demiş. Şu köşe yaz köşesi, şu köşe kış köşesi, ortadaki su köşesi. Dal sarkar kartal kalkar, kartal kalkar dal sarkar.",
+  "voiceTraining.nameRequired": "Ses profili için bir ad girin.",
+  "voiceTraining.startFailed": "Kayıt başlatılamadı: {error}",
+  "voiceTraining.noAudio": "Ses kaydedilmedi. Lütfen tekrar deneyin.",
+  "voiceTraining.saveFailed": "Ses profili kaydedilemedi: {error}",
+  "voiceTraining.step1Title": "Yeni ses profili",
+  "voiceTraining.step1Description": "Ses profili için bir ad belirtin.",
+  "voiceTraining.nameLabel": "Ad",
+  "voiceTraining.namePlaceholder": "Örn. Ahmet Yılmaz",
+  "voiceTraining.cancel": "İptal",
+  "voiceTraining.next": "İleri",
+  "voiceTraining.step2Title": "Metni okuyun",
+  "voiceTraining.step2Description": "Aşağıdaki metni yüksek sesle ve net bir şekilde okuyun. Kayıt 30 saniye sonra otomatik olarak durur.",
+  "voiceTraining.recordingInProgress": "Kaydediliyor... %{percent}",
+  "voiceTraining.startRecording": "Kaydı başlat",
+  "voiceTraining.stopRecording": "Durdur",
+  "voiceTraining.step3Title": "Ses profili kaydedildi!",
+  "voiceTraining.step3Description": "{name} için ses profili başarıyla oluşturuldu.",
+  "voiceTraining.close": "Kapat",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Ses profilleri",
+  "settings.speakerTrained": "Eğitildi",
+  "settings.speakerDelete": "Sil",
+  "settings.speakerNoProfiles": "Ses profili oluşturulmadı.",
+  "settings.speakerNewProfile": "+ Yeni ses profili",
+  "overlay.likeSound": "Bu sesi beğen",
 };
 
 export default tr;

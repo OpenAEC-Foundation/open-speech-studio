@@ -179,6 +179,8 @@ const ru: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Ошибка переключения модели: {error}",
   "meeting.emptyTranscript": "Начните запись, чтобы увидеть транскрипцию здесь.",
   "meeting.tip": "Совет: Нажмите \"Сохранить сегмент\" во время записи, чтобы транскрибировать промежуточный результат без остановки записи.",
+  "meeting.exportTranscriptHeading": "Транскрипция",
+  "meeting.minuteAbbrev": "мин",
   "meeting.exportSegment": "Сегмент",
   "meeting.exportLanguage": "Язык:",
   "meeting.exportDuration": "Длительность:",
@@ -237,7 +239,11 @@ const ru: Record<string, string> = {
   "micTest.resultDuration": "Длительность:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Свернуть",
+  "titlebar.close": "Закрыть",
+
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Автоопределение",
@@ -258,16 +264,31 @@ const ru: Record<string, string> = {
   "languages.ko": "Корейский",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Болгарский (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "Китайский (\u4E2D\u6587)",
+  "languages.hrFull": "Хорватский (Hrvatski)",
+  "languages.csFull": "Чешский (\u010Ce\u0161tina)",
+  "languages.daFull": "Датский (Dansk)",
   "languages.nlFull": "Нидерландский (Nederlands)",
   "languages.enFull": "Английский (English)",
-  "languages.deFull": "Немецкий (Deutsch)",
+  "languages.fiFull": "Финский (Suomi)",
   "languages.frFull": "Французский (Fran\u00E7ais)",
-  "languages.esFull": "Испанский (Espa\u00F1ol)",
+  "languages.deFull": "Немецкий (Deutsch)",
+  "languages.elFull": "Греческий (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Венгерский (Magyar)",
   "languages.itFull": "Итальянский (Italiano)",
-  "languages.ptFull": "Португальский (Portugu\u00EAs)",
-  "languages.plFull": "Польский (Polski)",
   "languages.jaFull": "Японский (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "Китайский (\u4E2D\u6587)",
+  "languages.koFull": "Корейский (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "Норвежский (Norsk)",
+  "languages.plFull": "Польский (Polski)",
+  "languages.ptFull": "Португальский (Portugu\u00EAs)",
+  "languages.roFull": "Румынский (Rom\u00E2n\u0103)",
+  "languages.ruFull": "Русский",
+  "languages.skFull": "Словацкий (Sloven\u010Dina)",
+  "languages.esFull": "Испанский (Espa\u00F1ol)",
+  "languages.svFull": "Шведский (Svenska)",
+  "languages.trFull": "Турецкий (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "Украинский (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Авто",
@@ -290,17 +311,13 @@ const ru: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const ru: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Текстовые файлы",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const ru: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Транскрипция не удалась",
+  "api.speechRecognitionUnavailable": "Распознавание речи недоступно. Запустите локальный сервер: node server.js",
+  "api.microphoneAccessDenied": "Доступ к микрофону отклонён.",
+  "api.speechRecognitionStartFailed": "Не удалось запустить распознавание речи: {error}",
+  "api.microphoneDevice": "Микрофон {id}",
+  "api.defaultMicrophone": "Микрофон по умолчанию",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Карл у Клары украл кораллы, а Клара у Карла украла кларнет. Шла Саша по шоссе и сосала сушку. На дворе трава, на траве дрова. Не руби дрова на траве двора.",
+  "voiceTraining.nameRequired": "Введите имя для голосового профиля.",
+  "voiceTraining.startFailed": "Не удалось начать запись: {error}",
+  "voiceTraining.noAudio": "Аудио не записано. Попробуйте снова.",
+  "voiceTraining.saveFailed": "Не удалось сохранить голосовой профиль: {error}",
+  "voiceTraining.step1Title": "Новый голосовой профиль",
+  "voiceTraining.step1Description": "Укажите имя для голосового профиля.",
+  "voiceTraining.nameLabel": "Имя",
+  "voiceTraining.namePlaceholder": "Напр. Иван Иванов",
+  "voiceTraining.cancel": "Отмена",
+  "voiceTraining.next": "Далее",
+  "voiceTraining.step2Title": "Произнесите текст",
+  "voiceTraining.step2Description": "Прочитайте текст ниже громко и чётко. Запись автоматически остановится через 30 секунд.",
+  "voiceTraining.recordingInProgress": "Запись... {percent}%",
+  "voiceTraining.startRecording": "Начать запись",
+  "voiceTraining.stopRecording": "Остановить",
+  "voiceTraining.step3Title": "Голосовой профиль сохранён!",
+  "voiceTraining.step3Description": "Голосовой профиль для {name} успешно создан.",
+  "voiceTraining.close": "Закрыть",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Голосовые профили",
+  "settings.speakerTrained": "Обучен",
+  "settings.speakerDelete": "Удалить",
+  "settings.speakerNoProfiles": "Голосовые профили не созданы.",
+  "settings.speakerNewProfile": "+ Новый голосовой профиль",
+  "overlay.likeSound": "Нравится этот звук",
 };
 
 export default ru;

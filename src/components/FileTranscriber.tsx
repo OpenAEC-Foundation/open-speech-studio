@@ -278,7 +278,7 @@ export default function FileTranscriber() {
         const { save } = await import("@tauri-apps/plugin-dialog");
         const path = await save({
           defaultPath: `${baseName}-transcript.txt`,
-          filters: [{ name: "Text files", extensions: ["txt"] }],
+          filters: [{ name: t("fileTranscriber.textFiles"), extensions: ["txt"] }],
         });
         if (path) {
           const { invoke } = await import("@tauri-apps/api/core");

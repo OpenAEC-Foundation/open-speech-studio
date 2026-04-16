@@ -22,8 +22,6 @@ pub struct Settings {
     #[serde(default = "default_true")]
     pub file_confirm_actions: bool,
     #[serde(default = "default_true")]
-    pub spell_check: bool,
-    #[serde(default = "default_true")]
     pub audio_feedback: bool,
 
     // Transcription
@@ -57,7 +55,7 @@ impl Default for Settings {
         let (model_name, model_path) = find_bundled_model();
 
         Self {
-            language: "nl".to_string(),
+            language: "auto".to_string(),
             ui_language: "en".to_string(),
             model_name,
             model_path,
@@ -70,7 +68,6 @@ impl Default for Settings {
             file_auto_save: false,
             file_save_directory: String::new(),
             file_confirm_actions: true,
-            spell_check: true,
             audio_feedback: true,
             incremental_interval_secs: 2.0,
             max_workers: 2,

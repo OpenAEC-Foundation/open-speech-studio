@@ -179,6 +179,8 @@ const bg: Record<string, string> = {
   "meeting.statusModelChangeFailed": "\u0421\u043C\u044F\u043D\u0430\u0442\u0430 \u043D\u0430 \u043C\u043E\u0434\u0435\u043B\u0430 \u043D\u0435 \u0443\u0441\u043F\u044F: {error}",
   "meeting.emptyTranscript": "\u0417\u0430\u043F\u043E\u0447\u043D\u0435\u0442\u0435 \u0437\u0430\u043F\u0438\u0441, \u0437\u0430 \u0434\u0430 \u0432\u0438\u0434\u0438\u0442\u0435 \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0446\u0438\u044F\u0442\u0430 \u0442\u0443\u043A.",
   "meeting.tip": "\u0421\u044A\u0432\u0435\u0442: \u041D\u0430\u0442\u0438\u0441\u043D\u0435\u0442\u0435 '\u0417\u0430\u043F\u0430\u0437\u0438 \u0441\u0435\u0433\u043C\u0435\u043D\u0442' \u043F\u043E \u0432\u0440\u0435\u043C\u0435 \u043D\u0430 \u0437\u0430\u043F\u0438\u0441\u0430, \u0437\u0430 \u0434\u0430 \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u0431\u0438\u0440\u0430\u0442\u0435 \u043C\u0435\u0436\u0434\u0443\u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E, \u0431\u0435\u0437 \u0434\u0430 \u0441\u043F\u0438\u0440\u0430\u0442\u0435 \u0437\u0430\u043F\u0438\u0441\u0430.",
+  "meeting.exportTranscriptHeading": "Транскрипция",
+  "meeting.minuteAbbrev": "мин",
   "meeting.exportSegment": "\u0421\u0435\u0433\u043C\u0435\u043D\u0442",
   "meeting.exportLanguage": "\u0415\u0437\u0438\u043A:",
   "meeting.exportDuration": "\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442:",
@@ -236,8 +238,12 @@ const bg: Record<string, string> = {
   "micTest.resultLanguage": "\u0415\u0437\u0438\u043A:",
   "micTest.resultDuration": "\u041F\u0440\u043E\u0434\u044A\u043B\u0436\u0438\u0442\u0435\u043B\u043D\u043E\u0441\u0442:",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Минимизиране",
+  "titlebar.close": "Затваряне",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0435",
@@ -258,16 +264,31 @@ const bg: Record<string, string> = {
   "languages.ko": "\u041A\u043E\u0440\u0435\u0439\u0441\u043A\u0438",
 
   // ── Settings language options (with native name) ─────────
-  "languages.nlFull": "\u0425\u043E\u043B\u0430\u043D\u0434\u0441\u043A\u0438 (Nederlands)",
-  "languages.enFull": "\u0410\u043D\u0433\u043B\u0438\u0439\u0441\u043A\u0438 (English)",
-  "languages.deFull": "\u041D\u0435\u043C\u0441\u043A\u0438 (Deutsch)",
-  "languages.frFull": "\u0424\u0440\u0435\u043D\u0441\u043A\u0438 (Fran\u00E7ais)",
-  "languages.esFull": "\u0418\u0441\u043F\u0430\u043D\u0441\u043A\u0438 (Espa\u00F1ol)",
-  "languages.itFull": "\u0418\u0442\u0430\u043B\u0438\u0430\u043D\u0441\u043A\u0438 (Italiano)",
-  "languages.ptFull": "\u041F\u043E\u0440\u0442\u0443\u0433\u0430\u043B\u0441\u043A\u0438 (Portugu\u00EAs)",
-  "languages.plFull": "\u041F\u043E\u043B\u0441\u043A\u0438 (Polski)",
-  "languages.jaFull": "\u042F\u043F\u043E\u043D\u0441\u043A\u0438 (\u65E5\u672C\u8A9E)",
+  "languages.bgFull": "\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438",
   "languages.zhFull": "\u041A\u0438\u0442\u0430\u0439\u0441\u043A\u0438 (\u4E2D\u6587)",
+  "languages.hrFull": "\u0425\u044A\u0440\u0432\u0430\u0442\u0441\u043A\u0438 (Hrvatski)",
+  "languages.csFull": "\u0427\u0435\u0448\u043A\u0438 (\u010Ce\u0161tina)",
+  "languages.daFull": "\u0414\u0430\u0442\u0441\u043A\u0438 (Dansk)",
+  "languages.nlFull": "\u041D\u0438\u0434\u0435\u0440\u043B\u0430\u043D\u0434\u0441\u043A\u0438 (Nederlands)",
+  "languages.enFull": "\u0410\u043D\u0433\u043B\u0438\u0439\u0441\u043A\u0438 (English)",
+  "languages.fiFull": "\u0424\u0438\u043D\u0441\u043A\u0438 (Suomi)",
+  "languages.frFull": "\u0424\u0440\u0435\u043D\u0441\u043A\u0438 (Fran\u00E7ais)",
+  "languages.deFull": "\u041D\u0435\u043C\u0441\u043A\u0438 (Deutsch)",
+  "languages.elFull": "\u0413\u0440\u044A\u0446\u043A\u0438 (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "\u0423\u043D\u0433\u0430\u0440\u0441\u043A\u0438 (Magyar)",
+  "languages.itFull": "\u0418\u0442\u0430\u043B\u0438\u0430\u043D\u0441\u043A\u0438 (Italiano)",
+  "languages.jaFull": "\u042F\u043F\u043E\u043D\u0441\u043A\u0438 (\u65E5\u672C\u8A9E)",
+  "languages.koFull": "\u041A\u043E\u0440\u0435\u0439\u0441\u043A\u0438 (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "\u041D\u043E\u0440\u0432\u0435\u0436\u043A\u0438 (Norsk)",
+  "languages.plFull": "\u041F\u043E\u043B\u0441\u043A\u0438 (Polski)",
+  "languages.ptFull": "\u041F\u043E\u0440\u0442\u0443\u0433\u0430\u043B\u0441\u043A\u0438 (Portugu\u00EAs)",
+  "languages.roFull": "\u0420\u0443\u043C\u044A\u043D\u0441\u043A\u0438 (Rom\u00E2n\u0103)",
+  "languages.ruFull": "\u0420\u0443\u0441\u043A\u0438 (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "\u0421\u043B\u043E\u0432\u0430\u0448\u043A\u0438 (Sloven\u010Dina)",
+  "languages.esFull": "\u0418\u0441\u043F\u0430\u043D\u0441\u043A\u0438 (Espa\u00F1ol)",
+  "languages.svFull": "\u0428\u0432\u0435\u0434\u0441\u043A\u0438 (Svenska)",
+  "languages.trFull": "\u0422\u0443\u0440\u0441\u043A\u0438 (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "\u0423\u043A\u0440\u0430\u0438\u043D\u0441\u043A\u0438 (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "\u0410\u0432\u0442\u043E",
@@ -290,17 +311,13 @@ const bg: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const bg: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Текстови файлове",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const bg: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Транскрипцията не успя",
+  "api.speechRecognitionUnavailable": "Разпознаването на реч не е налично. Стартирайте локалния сървър: node server.js",
+  "api.microphoneAccessDenied": "Достъпът до микрофона е отказан.",
+  "api.speechRecognitionStartFailed": "Стартирането на разпознаване на реч не успя: {error}",
+  "api.microphoneDevice": "Микрофон {id}",
+  "api.defaultMicrophone": "Микрофон по подразбиране",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Петър Петров пее песни пред Петровата порта. Кукувица кука на кукувичи кукувичета. Шест шишета шише шест шишета ширше.",
+  "voiceTraining.nameRequired": "Въведете име за гласовия профил.",
+  "voiceTraining.startFailed": "Неуспешно стартиране на записа: {error}",
+  "voiceTraining.noAudio": "Не е записано аудио. Опитайте отново.",
+  "voiceTraining.saveFailed": "Неуспешно запазване на гласов профил: {error}",
+  "voiceTraining.step1Title": "Нов гласов профил",
+  "voiceTraining.step1Description": "Задайте име за гласовия профил.",
+  "voiceTraining.nameLabel": "Име",
+  "voiceTraining.namePlaceholder": "Напр. Иван Петров",
+  "voiceTraining.cancel": "Отказ",
+  "voiceTraining.next": "Напред",
+  "voiceTraining.step2Title": "Произнесете текста",
+  "voiceTraining.step2Description": "Прочетете текста по-долу на висок глас и ясно. Записът спира автоматично след 30 секунди.",
+  "voiceTraining.recordingInProgress": "Запис... {percent}%",
+  "voiceTraining.startRecording": "Започни запис",
+  "voiceTraining.stopRecording": "Спри",
+  "voiceTraining.step3Title": "Гласовият профил е запазен!",
+  "voiceTraining.step3Description": "Гласовият профил за {name} е създаден успешно.",
+  "voiceTraining.close": "Затваряне",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Гласови профили",
+  "settings.speakerTrained": "Обучен",
+  "settings.speakerDelete": "Изтриване",
+  "settings.speakerNoProfiles": "Не са създадени гласови профили.",
+  "settings.speakerNewProfile": "+ Нов гласов профил",
+  "overlay.likeSound": "Харесвам този звук",
 };
 
 export default bg;

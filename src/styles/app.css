@@ -503,11 +503,6 @@ body {
   opacity: 0.7;
 }
 
-.spellcheck-tag {
-  background: rgba(34, 197, 94, 0.1) !important;
-  color: #16a34a !important;
-}
-
 .transcription-meta {
   display: flex;
   align-items: center;
@@ -747,6 +742,10 @@ body {
 
 .settings-panel {
   max-width: 560px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .settings-panel h2 {
@@ -786,6 +785,9 @@ body {
 
 .settings-tab-content {
   max-width: 560px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .settings-section {
@@ -1061,6 +1063,10 @@ body {
 
 .dictionary-editor {
   max-width: 700px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .dictionary-editor h2 {
@@ -1107,7 +1113,9 @@ body {
 .dictionary-list {
   border: 1px solid var(--theme-border-light);
   border-radius: var(--radius);
-  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .dictionary-header {
@@ -1120,6 +1128,9 @@ body {
   color: var(--theme-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .dictionary-row {
@@ -1164,6 +1175,10 @@ body {
 
 .model-manager {
   max-width: 800px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .model-manager h2 {
@@ -1239,6 +1254,10 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 10px;
   margin-top: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
 }
 
 .model-card {

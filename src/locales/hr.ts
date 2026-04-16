@@ -179,6 +179,8 @@ const hr: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Promjena modela nije uspjela: {error}",
   "meeting.emptyTranscript": "Pokrenite snimanje da vidite transkript ovdje.",
   "meeting.tip": "Savjet: Kliknite 'Spremi segment' tijekom snimanja da transkribirate me\u0111uvremeno bez zaustavljanja snimanja.",
+  "meeting.exportTranscriptHeading": "Transkripcija",
+  "meeting.minuteAbbrev": "min",
   "meeting.exportSegment": "Segment",
   "meeting.exportLanguage": "Jezik:",
   "meeting.exportDuration": "Trajanje:",
@@ -236,8 +238,12 @@ const hr: Record<string, string> = {
   "micTest.resultLanguage": "Jezik:",
   "micTest.resultDuration": "Trajanje:",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Smanji",
+  "titlebar.close": "Zatvori",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatsko prepoznavanje",
@@ -258,16 +264,31 @@ const hr: Record<string, string> = {
   "languages.ko": "Korejski",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Bugarski (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "Kineski (\u4E2D\u6587)",
+  "languages.hrFull": "Hrvatski",
+  "languages.csFull": "\u010Ce\u0161ki (\u010Ce\u0161tina)",
+  "languages.daFull": "Danski (Dansk)",
   "languages.nlFull": "Nizozemski (Nederlands)",
   "languages.enFull": "Engleski (English)",
-  "languages.deFull": "Njema\u010Dki (Deutsch)",
+  "languages.fiFull": "Finski (Suomi)",
   "languages.frFull": "Francuski (Fran\u00E7ais)",
-  "languages.esFull": "\u0160panjolski (Espa\u00F1ol)",
+  "languages.deFull": "Njema\u010Dki (Deutsch)",
+  "languages.elFull": "Gr\u010Dki (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Ma\u0111arski (Magyar)",
   "languages.itFull": "Talijanski (Italiano)",
-  "languages.ptFull": "Portugalski (Portugu\u00EAs)",
-  "languages.plFull": "Poljski (Polski)",
   "languages.jaFull": "Japanski (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "Kineski (\u4E2D\u6587)",
+  "languages.koFull": "Korejski (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "Norve\u0161ki (Norsk)",
+  "languages.plFull": "Poljski (Polski)",
+  "languages.ptFull": "Portugalski (Portugu\u00EAs)",
+  "languages.roFull": "Rumunjski (Rom\u00E2n\u0103)",
+  "languages.ruFull": "Ruski (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "Slova\u010Dki (Sloven\u010Dina)",
+  "languages.esFull": "\u0160panjolski (Espa\u00F1ol)",
+  "languages.svFull": "\u0160vedski (Svenska)",
+  "languages.trFull": "Turski (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "Ukrajinski (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -290,17 +311,13 @@ const hr: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const hr: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Tekstualne datoteke",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const hr: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Transkripcija nije uspjela",
+  "api.speechRecognitionUnavailable": "Prepoznavanje govora nije dostupno. Pokrenite lokalni poslužitelj: node server.js",
+  "api.microphoneAccessDenied": "Pristup mikrofonu je odbijen.",
+  "api.speechRecognitionStartFailed": "Pokretanje prepoznavanja govora nije uspjelo: {error}",
+  "api.microphoneDevice": "Mikrofon {id}",
+  "api.defaultMicrophone": "Zadani mikrofon",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Na vrh brda vrba mrda. Četiri čavčića na čunčiću čučeći cijuču. Cvrči cvrčak na čvoru crne smrče.",
+  "voiceTraining.nameRequired": "Unesite naziv glasovnog profila.",
+  "voiceTraining.startFailed": "Pokretanje snimanja nije uspjelo: {error}",
+  "voiceTraining.noAudio": "Nije snimljen zvuk. Pokušajte ponovno.",
+  "voiceTraining.saveFailed": "Spremanje glasovnog profila nije uspjelo: {error}",
+  "voiceTraining.step1Title": "Novi glasovni profil",
+  "voiceTraining.step1Description": "Navedite naziv glasovnog profila.",
+  "voiceTraining.nameLabel": "Ime",
+  "voiceTraining.namePlaceholder": "Npr. Ivan Horvat",
+  "voiceTraining.cancel": "Odustani",
+  "voiceTraining.next": "Dalje",
+  "voiceTraining.step2Title": "Izgovorite tekst",
+  "voiceTraining.step2Description": "Pročitajte tekst ispod glasno i jasno. Snimanje se automatski zaustavlja nakon 30 sekundi.",
+  "voiceTraining.recordingInProgress": "Snimanje... {percent}%",
+  "voiceTraining.startRecording": "Pokreni snimanje",
+  "voiceTraining.stopRecording": "Zaustavi",
+  "voiceTraining.step3Title": "Glasovni profil spremljen!",
+  "voiceTraining.step3Description": "Glasovni profil za {name} uspješno je kreiran.",
+  "voiceTraining.close": "Zatvori",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Glasovni profili",
+  "settings.speakerTrained": "Istrenirano",
+  "settings.speakerDelete": "Izbriši",
+  "settings.speakerNoProfiles": "Nisu kreirani glasovni profili.",
+  "settings.speakerNewProfile": "+ Novi glasovni profil",
+  "overlay.likeSound": "Sviđa mi se ovaj zvuk",
 };
 
 export default hr;

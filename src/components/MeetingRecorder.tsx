@@ -93,7 +93,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
 
         new WebviewWindow("dictation-overlay", {
           url: "/?overlay=true",
-          title: "Meeting",
+          title: t("sidebar.meeting"),
           width: overlayW,
           height: overlayH,
           x: Math.round(screenW / scale) - overlayW - margin,
@@ -303,7 +303,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
   };
 
   const exportMarkdown = () => {
-    const lines = [`# Transcript — ${new Date().toLocaleString(locale() === "nl" ? "nl-NL" : "en-US")}`, ""];
+    const lines = [`# ${t("meeting.exportTranscriptHeading")} — ${new Date().toLocaleString()}`, ""];
     segments().forEach((s, i) => {
       lines.push(`## ${t("meeting.exportSegment")} ${i + 1} — ${s.timestamp}`);
       lines.push("");
@@ -340,7 +340,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
   </office:automatic-styles>
   <office:body>
     <office:text>
-      <text:h text:style-name="Heading_20_1" text:outline-level="1">Transcript — ${escapeXml(new Date().toLocaleString(locale() === "nl" ? "nl-NL" : "en-US"))}</text:h>
+      <text:h text:style-name="Heading_20_1" text:outline-level="1">${escapeXml(t("meeting.exportTranscriptHeading"))} — ${escapeXml(new Date().toLocaleString())}</text:h>
 ${paragraphs}
       <text:p text:style-name="Text_20_body">${escapeXml(t("meeting.exportSegmentsCount", { count: segs.length }))} — ${escapeXml(t("meeting.exportWordsCount", { count: totalWords() }))} — ${escapeXml(t("meeting.exportRecordingTime", { time: elapsed() }))}</text:p>
     </office:text>
@@ -461,13 +461,13 @@ ${paragraphs}
             onChange={(e) => setAutoInterval(parseInt(e.currentTarget.value, 10))}
             disabled={isRecording()}
           >
-            <option value="1">1 min</option>
-            <option value="2">2 min</option>
-            <option value="3">3 min</option>
-            <option value="5">5 min</option>
-            <option value="10">10 min</option>
-            <option value="15">15 min</option>
-            <option value="30">30 min</option>
+            <option value="1">1 {t("meeting.minuteAbbrev")}</option>
+            <option value="2">2 {t("meeting.minuteAbbrev")}</option>
+            <option value="3">3 {t("meeting.minuteAbbrev")}</option>
+            <option value="5">5 {t("meeting.minuteAbbrev")}</option>
+            <option value="10">10 {t("meeting.minuteAbbrev")}</option>
+            <option value="15">15 {t("meeting.minuteAbbrev")}</option>
+            <option value="30">30 {t("meeting.minuteAbbrev")}</option>
           </select>
         </div>
         <div class="meeting-config-item">

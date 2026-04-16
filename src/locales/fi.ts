@@ -179,6 +179,8 @@ const fi: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Mallin vaihto ep\u00E4onnistui: {error}",
   "meeting.emptyTranscript": "Aloita nauhoitus n\u00E4hd\u00E4ksesi litteroinnin t\u00E4ss\u00E4.",
   "meeting.tip": "Vinkki: Napsauta 'Tallenna segmentti' nauhoituksen aikana litteroidaksesi v\u00E4liss\u00E4 pys\u00E4ytt\u00E4m\u00E4tt\u00E4 nauhoitusta.",
+  "meeting.exportTranscriptHeading": "Litterointi",
+  "meeting.minuteAbbrev": "min",
   "meeting.exportSegment": "Segmentti",
   "meeting.exportLanguage": "Kieli:",
   "meeting.exportDuration": "Kesto:",
@@ -236,8 +238,12 @@ const fi: Record<string, string> = {
   "micTest.resultLanguage": "Kieli:",
   "micTest.resultDuration": "Kesto:",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Pienennä",
+  "titlebar.close": "Sulje",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automaattinen tunnistus",
@@ -258,16 +264,31 @@ const fi: Record<string, string> = {
   "languages.ko": "Korea",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Bulgaria (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "Kiina (\u4E2D\u6587)",
+  "languages.hrFull": "Kroatia (Hrvatski)",
+  "languages.csFull": "T\u0161ekki (\u010Ce\u0161tina)",
+  "languages.daFull": "Tanska (Dansk)",
   "languages.nlFull": "Hollanti (Nederlands)",
   "languages.enFull": "Englanti (English)",
-  "languages.deFull": "Saksa (Deutsch)",
+  "languages.fiFull": "Suomi",
   "languages.frFull": "Ranska (Fran\u00E7ais)",
-  "languages.esFull": "Espanja (Espa\u00F1ol)",
+  "languages.deFull": "Saksa (Deutsch)",
+  "languages.elFull": "Kreikka (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Unkari (Magyar)",
   "languages.itFull": "Italia (Italiano)",
-  "languages.ptFull": "Portugali (Portugu\u00EAs)",
-  "languages.plFull": "Puola (Polski)",
   "languages.jaFull": "Japani (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "Kiina (\u4E2D\u6587)",
+  "languages.koFull": "Korea (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "Norja (Norsk)",
+  "languages.plFull": "Puola (Polski)",
+  "languages.ptFull": "Portugali (Portugu\u00EAs)",
+  "languages.roFull": "Romania (Rom\u00E2n\u0103)",
+  "languages.ruFull": "Ven\u00E4j\u00E4 (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "Slovakki (Sloven\u010Dina)",
+  "languages.esFull": "Espanja (Espa\u00F1ol)",
+  "languages.svFull": "Ruotsi (Svenska)",
+  "languages.trFull": "Turkki (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "Ukraina (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -290,17 +311,13 @@ const fi: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const fi: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Tekstitiedostot",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const fi: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Litterointi epäonnistui",
+  "api.speechRecognitionUnavailable": "Puheentunnistus ei ole käytettävissä. Käynnistä paikallinen palvelin: node server.js",
+  "api.microphoneAccessDenied": "Mikrofonin käyttö estetty.",
+  "api.speechRecognitionStartFailed": "Puheentunnistuksen käynnistys epäonnistui: {error}",
+  "api.microphoneDevice": "Mikrofoni {id}",
+  "api.defaultMicrophone": "Oletusmikrofoni",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Kokko, kokoo kokoon koko kokko. Koko kokkoko? Koko kokko. Appilan pappilan apupapin papupata pankolla kiehuu ja kuohuu.",
+  "voiceTraining.nameRequired": "Anna nimi ääniprofiilille.",
+  "voiceTraining.startFailed": "Tallennuksen aloittaminen epäonnistui: {error}",
+  "voiceTraining.noAudio": "Ääntä ei tallennettu. Yritä uudelleen.",
+  "voiceTraining.saveFailed": "Ääniprofiilin tallennus epäonnistui: {error}",
+  "voiceTraining.step1Title": "Uusi ääniprofiili",
+  "voiceTraining.step1Description": "Anna nimi ääniprofiilille.",
+  "voiceTraining.nameLabel": "Nimi",
+  "voiceTraining.namePlaceholder": "Esim. Matti Meikäläinen",
+  "voiceTraining.cancel": "Peruuta",
+  "voiceTraining.next": "Seuraava",
+  "voiceTraining.step2Title": "Sano teksti",
+  "voiceTraining.step2Description": "Lue alla oleva teksti ääneen selkeästi. Tallennus pysähtyy automaattisesti 30 sekunnin kuluttua.",
+  "voiceTraining.recordingInProgress": "Tallennetaan... {percent}%",
+  "voiceTraining.startRecording": "Aloita tallennus",
+  "voiceTraining.stopRecording": "Pysäytä",
+  "voiceTraining.step3Title": "Ääniprofiili tallennettu!",
+  "voiceTraining.step3Description": "Ääniprofiili nimelle {name} on luotu onnistuneesti.",
+  "voiceTraining.close": "Sulje",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Ääniprofiilit",
+  "settings.speakerTrained": "Opetettu",
+  "settings.speakerDelete": "Poista",
+  "settings.speakerNoProfiles": "Ei luotuja ääniprofiileja.",
+  "settings.speakerNewProfile": "+ Uusi ääniprofiili",
+  "overlay.likeSound": "Pidän tästä äänestä",
 };
 
 export default fi;

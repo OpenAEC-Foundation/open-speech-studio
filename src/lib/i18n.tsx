@@ -50,7 +50,6 @@ export function createI18n(initialLocale: Locale = "en") {
   const t = (key: string, params?: Record<string, string | number>): string => {
     let value =
       locales[locale()]?.[key] ??
-      locales["en"]?.[key] ??
       key;
 
     if (params) {
@@ -67,6 +66,19 @@ export function createI18n(initialLocale: Locale = "en") {
   return { t, locale, setLocale, availableLocales };
 }
 
+// ── Standalone t() for use outside components ─────────────
+
+let _sharedI18n: ReturnType<typeof createI18n> | null = null;
+
+/**
+ * Standalone translation function for use outside SolidJS components
+ * (e.g. in api.ts, utility modules). Uses the same locale as the provider.
+ */
+export function t(key: string, params?: Record<string, string | number>): string {
+  if (!_sharedI18n) _sharedI18n = createI18n("en");
+  return _sharedI18n.t(key, params);
+}
+
 // ── Context / Provider / Hook ──────────────────────────────
 
 type I18nValue = ReturnType<typeof createI18n>;
@@ -79,7 +91,10 @@ interface I18nProviderProps {
 }
 
 export function I18nProvider(props: I18nProviderProps) {
-  const i18n = createI18n(props.initialLocale ?? "en");
+  // Re-use the shared singleton so standalone t() stays in sync
+  if (!_sharedI18n) _sharedI18n = createI18n(props.initialLocale ?? "en");
+  else if (props.initialLocale) _sharedI18n.setLocale(props.initialLocale);
+  const i18n = _sharedI18n;
 
   return (
     // @ts-ignore — SolidJS JSX provider typing

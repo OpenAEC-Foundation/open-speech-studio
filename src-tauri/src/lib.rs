@@ -20,7 +20,6 @@ mod job_queue;
 mod meeting_writer;
 mod settings;
 mod speaker;
-mod spellcheck;
 mod transcriber;
 
 use serde::{Deserialize, Serialize};
@@ -92,7 +91,6 @@ pub struct AppState {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TranscriptionResult {
     pub text: String,
-    /// The raw text before spell-check corrections (None if spell-check is off)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub original_text: Option<String>,
     pub language: String,
@@ -315,18 +313,9 @@ async fn stop_recording(state: State<'_, AppState>) -> Result<TranscriptionResul
     let dict = state.dictionary.lock().map_err(|e| e.to_string())?;
     text = dict.apply_corrections(&text);
 
-    // Apply spell-check if enabled
-    let original_text = if settings.spell_check {
-        let before = text.clone();
-        text = spellcheck::correct(&text, &settings.language);
-        if text != before { Some(before) } else { None }
-    } else {
-        None
-    };
-
     Ok(TranscriptionResult {
         text,
-        original_text,
+        original_text: None,
         language: settings.language.clone(),
         duration_ms,
     })
@@ -523,18 +512,9 @@ async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<Transcription
     let dict = state.dictionary.lock().map_err(|e| e.to_string())?;
     text = dict.apply_corrections(&text);
 
-    // Apply spell-check if enabled
-    let original_text = if settings.spell_check {
-        let before = text.clone();
-        text = spellcheck::correct(&text, &settings.language);
-        if text != before { Some(before) } else { None }
-    } else {
-        None
-    };
-
     Ok(TranscriptionResult {
         text,
-        original_text,
+        original_text: None,
         language: settings.language.clone(),
         duration_ms,
     })

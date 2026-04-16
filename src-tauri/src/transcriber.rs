@@ -326,7 +326,7 @@ fn find_whisper_binary() -> Result<PathBuf, Box<dyn std::error::Error>> {
     }
 
     Err(format!(
-        "Whisper binary '{}' not found. Run 'node setup.js' to download it.",
+        "Whisper binary '{}' not found. Place it in the bin/ directory.",
         bin_name
     )
     .into())

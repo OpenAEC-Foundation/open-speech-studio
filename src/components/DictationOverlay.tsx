@@ -1,10 +1,12 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import { listen } from "@tauri-apps/api/event";
 import { likeLastSound } from "../lib/sounds";
+import { useI18n } from "../lib/i18n";
 
 type OverlayState = "recording" | "transcribing" | "done" | "error";
 
 export default function DictationOverlay() {
+  const { t } = useI18n();
   const [state, setState] = createSignal<OverlayState>("recording");
   const [text, setText] = createSignal("");
   const [audioLevel, setAudioLevel] = createSignal(0);
@@ -197,7 +199,7 @@ export default function DictationOverlay() {
               padding: "0 4px",
               opacity: 0.7,
             }}
-            title="Like this sound"
+            title={t("overlay.likeSound")}
           >
             👍
           </button>

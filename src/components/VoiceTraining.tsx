@@ -1,14 +1,8 @@
 import { createSignal, Show } from 'solid-js';
 import { api } from '../lib/api';
+import { useI18n } from '../lib/i18n';
 
-// Training texts per language with phonetically diverse content
-const TRAINING_TEXTS: Record<string, string> = {
-    nl: `De schrijver beschrijft hoe de schroevendraaier naast de schroef lag. Hij wist dat het niet klopte en ook niet zou kloppen. De ui en de uil stonden in het uurboek. Gereed of bereid, het verschil is verschrikkelijk klein. De acht nachten waren koud, maar de gracht bleef onbevroren. Scheveningse scholieren schrijven schitterende schaakstrategieën.`,
-    en: `The quick brown fox jumps over the lazy dog. She sells seashells by the seashore. Peter Piper picked a peck of pickled peppers. How much wood would a woodchuck chuck if a woodchuck could chuck wood? The sixth sick sheik's sixth sheep's sick. Unique New York.`,
-    de: `Fischers Fritz fischt frische Fische. Brautkleid bleibt Brautkleid und Blaukraut bleibt Blaukraut. Zwischen zwei Zwetschgenzweigen zwitschern zwei Schwalben.`,
-};
-
-const DEFAULT_TEXT = TRAINING_TEXTS['en'];
+// Training text is now fully localised via the i18n system
 
 interface Props {
     language: string;
@@ -17,6 +11,7 @@ interface Props {
 }
 
 export default function VoiceTraining(props: Props) {
+    const { t } = useI18n();
     const [step, setStep] = createSignal<1 | 2 | 3>(1);
     const [speakerName, setSpeakerName] = createSignal('');
     const [nameError, setNameError] = createSignal('');
@@ -27,15 +22,12 @@ export default function VoiceTraining(props: Props) {
     let progressInterval: ReturnType<typeof setInterval> | null = null;
     let autoStopTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    const trainingText = () => {
-        const lang = props.language?.toLowerCase();
-        return TRAINING_TEXTS[lang] ?? DEFAULT_TEXT;
-    };
+    const trainingText = () => t('voiceTraining.trainingText');
 
     const handleNextFromStep1 = () => {
         const name = speakerName().trim();
         if (!name) {
-            setNameError('Voer een naam in voor het stemprofiel.');
+            setNameError(t('voiceTraining.nameRequired'));
             return;
         }
         setNameError('');
@@ -64,7 +56,7 @@ export default function VoiceTraining(props: Props) {
                 stopRecording();
             }, totalMs);
         } catch (e) {
-            setError(`Opname starten mislukt: ${e}`);
+            setError(t('voiceTraining.startFailed', { error: String(e) }));
         }
     };
 
@@ -80,14 +72,14 @@ export default function VoiceTraining(props: Props) {
         try {
             const audio = await api.stopDictationRaw();
             if (!audio || audio.length === 0) {
-                setError('Geen audio opgenomen. Probeer opnieuw.');
+                setError(t('voiceTraining.noAudio'));
                 setProgress(0);
                 return;
             }
             await api.trainSpeaker(speakerName().trim(), audio);
             setStep(3);
         } catch (e) {
-            setError(`Stemprofiel opslaan mislukt: ${e}`);
+            setError(t('voiceTraining.saveFailed', { error: String(e) }));
             setProgress(0);
         }
     };
@@ -106,15 +98,15 @@ export default function VoiceTraining(props: Props) {
             {/* Step 1: Name input */}
             <Show when={step() === 1}>
                 <div class="wizard-content">
-                    <h3>Nieuw stemprofiel</h3>
-                    <p class="wizard-description">Geef een naam op voor het stemprofiel.</p>
+                    <h3>{t('voiceTraining.step1Title')}</h3>
+                    <p class="wizard-description">{t('voiceTraining.step1Description')}</p>
                     <div class="setting-row">
-                        <label>Naam</label>
+                        <label>{t('voiceTraining.nameLabel')}</label>
                         <input
                             type="text"
                             class="voice-training-name-input"
                             value={speakerName()}
-                            placeholder="Bijv. Jan Jansen"
+                            placeholder={t('voiceTraining.namePlaceholder')}
                             onInput={(e) => setSpeakerName(e.currentTarget.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleNextFromStep1(); }}
                         />
@@ -123,8 +115,8 @@ export default function VoiceTraining(props: Props) {
                         </Show>
                     </div>
                     <div class="wizard-actions">
-                        <button class="btn btn-secondary" onClick={props.onCancel}>Annuleren</button>
-                        <button class="btn btn-primary" onClick={handleNextFromStep1}>Volgende</button>
+                        <button class="btn btn-secondary" onClick={props.onCancel}>{t('voiceTraining.cancel')}</button>
+                        <button class="btn btn-primary" onClick={handleNextFromStep1}>{t('voiceTraining.next')}</button>
                     </div>
                 </div>
             </Show>
@@ -132,9 +124,9 @@ export default function VoiceTraining(props: Props) {
             {/* Step 2: Recording */}
             <Show when={step() === 2}>
                 <div class="wizard-content">
-                    <h3>Spreek de tekst in</h3>
+                    <h3>{t('voiceTraining.step2Title')}</h3>
                     <p class="wizard-description">
-                        Lees de onderstaande tekst luid en duidelijk voor. De opname stopt automatisch na 30 seconden.
+                        {t('voiceTraining.step2Description')}
                     </p>
                     <div class="training-text-box">
                         {trainingText()}
@@ -146,7 +138,7 @@ export default function VoiceTraining(props: Props) {
                                 style={{ width: `${progress()}%` }}
                             />
                         </div>
-                        <p class="recording-hint">Opname bezig... {progress()}%</p>
+                        <p class="recording-hint">{t('voiceTraining.recordingInProgress', { percent: progress() })}</p>
                     </Show>
                     <Show when={error()}>
                         <p class="error-text">{error()}</p>
@@ -157,16 +149,16 @@ export default function VoiceTraining(props: Props) {
                             onClick={props.onCancel}
                             disabled={isRecording()}
                         >
-                            Annuleren
+                            {t('voiceTraining.cancel')}
                         </button>
                         <Show when={!isRecording()}>
                             <button class="btn btn-primary btn-record" onClick={startRecording}>
-                                Opname starten
+                                {t('voiceTraining.startRecording')}
                             </button>
                         </Show>
                         <Show when={isRecording()}>
                             <button class="btn btn-danger" onClick={stopRecording}>
-                                Stoppen
+                                {t('voiceTraining.stopRecording')}
                             </button>
                         </Show>
                     </div>
@@ -177,12 +169,12 @@ export default function VoiceTraining(props: Props) {
             <Show when={step() === 3}>
                 <div class="wizard-content wizard-success">
                     <div class="wizard-checkmark">&#10003;</div>
-                    <h3>Stemprofiel opgeslagen!</h3>
+                    <h3>{t('voiceTraining.step3Title')}</h3>
                     <p class="wizard-description">
-                        Het stemprofiel voor <strong>{speakerName()}</strong> is succesvol aangemaakt.
+                        {t('voiceTraining.step3Description', { name: speakerName() })}
                     </p>
                     <div class="wizard-actions">
-                        <button class="btn btn-primary" onClick={props.onComplete}>Sluiten</button>
+                        <button class="btn btn-primary" onClick={props.onComplete}>{t('voiceTraining.close')}</button>
                     </div>
                 </div>
             </Show>

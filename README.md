@@ -1,125 +1,108 @@
 # Open Speech Studio
 
-**Open source spraakherkenning voor iedereen** - een lokaal AI-alternatief voor Wispr Flow.
+**Open source speech recognition for everyone** — a local AI alternative to Wispr Flow.
 
-Onderdeel van de [OpenAEC Foundation](https://github.com/OpenAEC-Foundation).
+Part of the [OpenAEC Foundation](https://github.com/OpenAEC-Foundation).
 
-## Kenmerken
+## Features
 
-- **100% Lokaal** - Alle spraakherkenning draait op uw eigen computer. Geen cloud, geen abonnement, volledige privacy.
-- **GPU & CPU** - Werkt op zowel GPU (CUDA/Vulkan) als CPU. Kies het model dat past bij uw hardware.
-- **Meertalig** - Ondersteunt 99+ talen waaronder Nederlands en Engels met automatische taaldetectie.
-- **Woordenboek** - Voeg eigen woorden, namen en vakjargon toe voor betere herkenning.
-- **Universele spraak** - Werkt in elke applicatie via een globale sneltoets.
-- **Spraakmodellen inbegrepen** - Tiny en base model worden automatisch meegeleverd en geladen.
-- **Open source** - Apache 2.0 licentie. Vrij te gebruiken, aan te passen en te verspreiden.
+- **100% Local** — All speech recognition runs on your own computer. No cloud, no subscription, full privacy.
+- **GPU & CPU** — Works on both GPU (CUDA/Vulkan) and CPU. Choose the model that fits your hardware.
+- **Multilingual** — Supports 99+ languages with automatic language detection.
+- **Dictionary** — Add your own words, names and jargon for better recognition.
+- **Universal speech** — Works in any application via a global hotkey.
+- **Open source** — Apache 2.0 license. Free to use, modify and distribute.
 
-## Installatie
+## Installation
 
-Eén commando, werkt op zowel Windows als Linux:
+Download the latest installer from the [Releases](https://github.com/OpenAEC-Foundation/open-speech-studio/releases) page.
 
-```bash
-git clone https://github.com/OpenAEC-Foundation/open-speech-studio.git
-cd open-speech-studio
-node setup.js
-```
-
-Dat is alles. Het setup script:
-1. Controleert en installeert alle vereisten (Node.js, Rust, systeembibliotheken)
-2. Installeert NPM dependencies
-3. Downloadt de Whisper AI spraakmodellen (tiny + base)
-4. Bouwt de applicatie met installer
-
-### Opties
-
-```bash
-node setup.js              # Volledige installatie + build
-node setup.js --dev        # Alleen dependencies (geen build)
-node setup.js --cuda       # Met NVIDIA GPU ondersteuning
-```
-
-Of via npm:
-```bash
-npm run setup              # Volledige installatie
-npm run setup:dev          # Development modus
-npm run setup:cuda         # Met CUDA
-```
-
-## Gebruik
-
-Na installatie werkt de app direct - het spraakmodel wordt automatisch geladen bij het opstarten.
+## Usage
 
 1. Start **Open Speech Studio**
-2. Druk op **Ctrl+Shift+Space** om te beginnen met spreken
-3. Spreek uw tekst in
-4. Druk nogmaals om te stoppen - tekst wordt automatisch ingevoegd
+2. Go to **Models** and download a speech model
+3. Press **Ctrl+Shift+Space** to start speaking
+4. Speak your text
+5. Press again to stop — text is automatically inserted
 
-### Woordenboek
+### Dictionary
 
-Ga naar het **Woordenboek** tabblad om:
-- Eigen woorden toe te voegen (namen, afkortingen, technische termen)
-- Vervangingen in te stellen (bijv. "OpenAEC" -> "OpenAEC Foundation")
+Go to the **Dictionary** tab to:
+- Add your own words (names, abbreviations, technical terms)
+- Set up replacements (e.g. "OpenAEC" -> "OpenAEC Foundation")
 
-### Grotere modellen
+### Models
 
-Via het **Modellen** tabblad kunt u extra modellen downloaden voor hogere nauwkeurigheid:
+Via the **Models** tab you can download models for speech recognition:
 
-| Model | Grootte | Snelheid | Nauwkeurigheid | Aanbevolen voor |
-|-------|---------|----------|----------------|-----------------|
-| tiny | 75 MB | Zeer snel | Basis | CPU, snelle notities |
-| **base** | **142 MB** | **Snel** | **Goed** | **CPU, dagelijks gebruik** |
-| small | 466 MB | Gemiddeld | Zeer goed | GPU of snelle CPU |
-| medium | 1.5 GB | Langzaam | Excellent | GPU |
-| large-v3 | 3.1 GB | Zeer langzaam | Beste | Krachtige GPU |
-| large-v3-turbo | 1.6 GB | Gemiddeld | Bijna beste | GPU |
+| Model | Size | Speed | Accuracy | Recommended for |
+|-------|------|-------|----------|-----------------|
+| tiny | 75 MB | Very fast | Basic | CPU, quick notes |
+| **base** | **142 MB** | **Fast** | **Good** | **CPU, daily use** |
+| small | 466 MB | Medium | Very good | GPU or fast CPU |
+| medium | 1.5 GB | Slow | Excellent | GPU |
+| large-v3 | 3.1 GB | Very slow | Best | Powerful GPU |
+| large-v3-turbo | 1.6 GB | Medium | Near best | GPU |
 
 ## Tech Stack
 
-| Component | Technologie |
-|-----------|------------|
+| Component | Technology |
+|-----------|-----------|
 | Framework | [Tauri 2](https://tauri.app) (Rust) |
 | Frontend | [SolidJS](https://solidjs.com) + Vite |
 | AI Model | [whisper.cpp](https://github.com/ggml-org/whisper.cpp) via whisper-rs |
 | Audio | cpal (Cross-Platform Audio Library) |
-| UI Stijl | Office-style ribbon (OpenAEC Foundation) |
+| UI Style | Office-style ribbon (OpenAEC Foundation) |
 
 ## Development
 
-```bash
-# Development server starten (na setup:dev)
-cargo tauri dev
+### Prerequisites
 
-# Productie build
+- [Node.js](https://nodejs.org/) (LTS)
+- [Rust](https://rustup.rs/)
+- Platform-specific dependencies: see [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
+
+### Getting started
+
+```bash
+git clone https://github.com/OpenAEC-Foundation/open-speech-studio.git
+cd open-speech-studio
+npm install
+cargo tauri dev
+```
+
+### Production build
+
+```bash
 cargo tauri build
 
-# Met GPU ondersteuning
+# With GPU support
 cargo tauri build --features cuda
 ```
 
-## Architectuur
+## Architecture
 
 ```
 open-speech-studio/
 ├── src/                    # SolidJS frontend
-│   ├── components/         # UI componenten (Ribbon, Settings, etc.)
+│   ├── components/         # UI components (Ribbon, Settings, etc.)
 │   ├── lib/                # API bindings
 │   └── styles/             # CSS
 ├── src-tauri/              # Rust backend
 │   └── src/
 │       ├── lib.rs          # Tauri commands & app state
-│       ├── transcriber.rs  # Whisper spraakherkenning
-│       ├── audio.rs        # Microfoon opname
-│       ├── settings.rs     # Configuratie & model auto-detectie
-│       └── dictionary.rs   # Woordenboek
-├── models/                 # Meegeleverde Whisper modellen (Git LFS)
-├── setup.js                # Universele installer
+│       ├── transcriber.rs  # Whisper speech recognition
+│       ├── audio.rs        # Microphone recording
+│       ├── settings.rs     # Configuration & model auto-detection
+│       └── dictionary.rs   # Dictionary
+├── models/                 # Whisper models (downloaded via app)
 └── index.html              # Entry point
 ```
 
-## Licentie
+## License
 
-Apache License 2.0 - zie [LICENSE](LICENSE)
+Apache License 2.0 — see [LICENSE](LICENSE)
 
-## Bijdragen
+## Contributing
 
-Bijdragen zijn welkom! Open een issue of pull request op GitHub.
+Contributions are welcome! Open an issue or pull request on GitHub.

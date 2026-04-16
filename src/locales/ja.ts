@@ -179,6 +179,8 @@ const ja: Record<string, string> = {
   "meeting.statusModelChangeFailed": "モデルの切り替え失敗：{error}",
   "meeting.emptyTranscript": "録音を開始すると、ここに文字起こしが表示されます。",
   "meeting.tip": "ヒント：録音中に'セグメント保存'をクリックすると、録音を停止せずに途中で文字起こしできます。",
+  "meeting.exportTranscriptHeading": "文字起こし",
+  "meeting.minuteAbbrev": "分",
   "meeting.exportSegment": "セグメント",
   "meeting.exportLanguage": "言語：",
   "meeting.exportDuration": "時間：",
@@ -236,8 +238,12 @@ const ja: Record<string, string> = {
   "micTest.resultLanguage": "言語：",
   "micTest.resultDuration": "時間：",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "最小化",
+  "titlebar.close": "閉じる",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "自動検出",
@@ -258,16 +264,31 @@ const ja: Record<string, string> = {
   "languages.ko": "韓国語",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "ブルガリア語 (Български)",
+  "languages.zhFull": "中国語 (中文)",
+  "languages.hrFull": "クロアチア語 (Hrvatski)",
+  "languages.csFull": "チェコ語 (Čeština)",
+  "languages.daFull": "デンマーク語 (Dansk)",
   "languages.nlFull": "オランダ語 (Nederlands)",
   "languages.enFull": "英語 (English)",
-  "languages.deFull": "ドイツ語 (Deutsch)",
+  "languages.fiFull": "フィンランド語 (Suomi)",
   "languages.frFull": "フランス語 (Français)",
-  "languages.esFull": "スペイン語 (Español)",
+  "languages.deFull": "ドイツ語 (Deutsch)",
+  "languages.elFull": "ギリシャ語 (Ελληνικά)",
+  "languages.huFull": "ハンガリー語 (Magyar)",
   "languages.itFull": "イタリア語 (Italiano)",
-  "languages.ptFull": "ポルトガル語 (Português)",
+  "languages.jaFull": "日本語",
+  "languages.koFull": "韓国語 (한국어)",
+  "languages.noFull": "ノルウェー語 (Norsk)",
   "languages.plFull": "ポーランド語 (Polski)",
-  "languages.jaFull": "日本語 (日本語)",
-  "languages.zhFull": "中国語 (中文)",
+  "languages.ptFull": "ポルトガル語 (Português)",
+  "languages.roFull": "ルーマニア語 (Română)",
+  "languages.ruFull": "ロシア語 (Русский)",
+  "languages.skFull": "スロバキア語 (Slovenčina)",
+  "languages.esFull": "スペイン語 (Español)",
+  "languages.svFull": "スウェーデン語 (Svenska)",
+  "languages.trFull": "トルコ語 (Türkçe)",
+  "languages.ukFull": "ウクライナ語 (Українська)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "自動",
@@ -290,17 +311,13 @@ const ja: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const ja: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "テキストファイル",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const ja: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "文字起こしに失敗しました",
+  "api.speechRecognitionUnavailable": "音声認識が利用できません。ローカルサーバーを起動してください: node server.js",
+  "api.microphoneAccessDenied": "マイクへのアクセスが拒否されました。",
+  "api.speechRecognitionStartFailed": "音声認識の開始に失敗しました: {error}",
+  "api.microphoneDevice": "マイク {id}",
+  "api.defaultMicrophone": "デフォルトマイク",
+
+  // ── VoiceTraining ─────────────────────────────────────
+  "voiceTraining.trainingText": "隣の客はよく柿食う客だ。赤巻紙青巻紙黄巻紙。生麦生米生卵。東京特許許可局。坊主が屏風に上手に坊主の絵を描いた。庭には二羽鶏がいる。",
+  "voiceTraining.nameRequired": "音声プロファイルの名前を入力してください。",
+  "voiceTraining.startFailed": "録音の開始に失敗しました：{error}",
+  "voiceTraining.noAudio": "音声が録音されていません。もう一度お試しください。",
+  "voiceTraining.saveFailed": "音声プロファイルの保存に失敗しました：{error}",
+  "voiceTraining.step1Title": "新しい音声プロファイル",
+  "voiceTraining.step1Description": "音声プロファイルの名前を指定してください。",
+  "voiceTraining.nameLabel": "名前",
+  "voiceTraining.namePlaceholder": "例：山田太郎",
+  "voiceTraining.cancel": "キャンセル",
+  "voiceTraining.next": "次へ",
+  "voiceTraining.step2Title": "テキストを読み上げる",
+  "voiceTraining.step2Description": "以下のテキストを大きくはっきりと読み上げてください。録音は30秒後に自動的に停止します。",
+  "voiceTraining.recordingInProgress": "録音中... {percent}%",
+  "voiceTraining.startRecording": "録音を開始",
+  "voiceTraining.stopRecording": "停止",
+  "voiceTraining.step3Title": "音声プロファイルを保存しました！",
+  "voiceTraining.step3Description": "{name} の音声プロファイルが正常に作成されました。",
+  "voiceTraining.close": "閉じる",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "音声プロファイル",
+  "settings.speakerTrained": "学習済み",
+  "settings.speakerDelete": "削除",
+  "settings.speakerNoProfiles": "音声プロファイルが作成されていません。",
+  "settings.speakerNewProfile": "+ 新しい音声プロファイル",
+  "overlay.likeSound": "この音を評価",
 };
 
 export default ja;

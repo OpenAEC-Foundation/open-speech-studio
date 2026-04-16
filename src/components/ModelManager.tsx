@@ -161,7 +161,7 @@ export default function ModelManager(props: ModelManagerProps) {
                       <span class="model-spec-value">{info.accuracy}</span>
                     </div>
                     <div class="model-spec">
-                      <span class="model-spec-label">RAM</span>
+                      <span class="model-spec-label">{t("models.specRam")}</span>
                       <span class="model-spec-value">{info.ram}</span>
                     </div>
                     <div class="model-spec">

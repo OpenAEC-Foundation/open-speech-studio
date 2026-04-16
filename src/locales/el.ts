@@ -179,6 +179,8 @@ const el: Record<string, string> = {
   "meeting.statusModelChangeFailed": "\u0397 \u03B1\u03BB\u03BB\u03B1\u03B3\u03AE \u03BC\u03BF\u03BD\u03C4\u03AD\u03BB\u03BF\u03C5 \u03B1\u03C0\u03AD\u03C4\u03C5\u03C7\u03B5: {error}",
   "meeting.emptyTranscript": "\u039E\u03B5\u03BA\u03B9\u03BD\u03AE\u03C3\u03C4\u03B5 \u03BC\u03B9\u03B1 \u03B5\u03B3\u03B3\u03C1\u03B1\u03C6\u03AE \u03B3\u03B9\u03B1 \u03BD\u03B1 \u03B4\u03B5\u03AF\u03C4\u03B5 \u03C4\u03B7\u03BD \u03B1\u03C0\u03BF\u03BC\u03B1\u03B3\u03BD\u03B7\u03C4\u03BF\u03C6\u03CE\u03BD\u03B7\u03C3\u03B7 \u03B5\u03B4\u03CE.",
   "meeting.tip": "\u03A3\u03C5\u03BC\u03B2\u03BF\u03C5\u03BB\u03AE: \u039A\u03AC\u03BD\u03C4\u03B5 \u03BA\u03BB\u03B9\u03BA \u03C3\u03C4\u03BF '\u0391\u03C0\u03BF\u03B8\u03AE\u03BA\u03B5\u03C5\u03C3\u03B7 \u03C4\u03BC\u03AE\u03BC\u03B1\u03C4\u03BF\u03C2' \u03BA\u03B1\u03C4\u03AC \u03C4\u03B7 \u03B4\u03B9\u03AC\u03C1\u03BA\u03B5\u03B9\u03B1 \u03C4\u03B7\u03C2 \u03B5\u03B3\u03B3\u03C1\u03B1\u03C6\u03AE\u03C2 \u03B3\u03B9\u03B1 \u03BD\u03B1 \u03B1\u03C0\u03BF\u03BC\u03B1\u03B3\u03BD\u03B7\u03C4\u03BF\u03C6\u03C9\u03BD\u03AE\u03C3\u03B5\u03C4\u03B5 \u03B5\u03BD\u03B4\u03B9\u03AC\u03BC\u03B5\u03C3\u03B1 \u03C7\u03C9\u03C1\u03AF\u03C2 \u03BD\u03B1 \u03C3\u03C4\u03B1\u03BC\u03B1\u03C4\u03AE\u03C3\u03B5\u03C4\u03B5 \u03C4\u03B7\u03BD \u03B5\u03B3\u03B3\u03C1\u03B1\u03C6\u03AE.",
+  "meeting.exportTranscriptHeading": "Μεταγραφή",
+  "meeting.minuteAbbrev": "λεπ",
   "meeting.exportSegment": "\u03A4\u03BC\u03AE\u03BC\u03B1",
   "meeting.exportLanguage": "\u0393\u03BB\u03CE\u03C3\u03C3\u03B1:",
   "meeting.exportDuration": "\u0394\u03B9\u03AC\u03C1\u03BA\u03B5\u03B9\u03B1:",
@@ -236,8 +238,12 @@ const el: Record<string, string> = {
   "micTest.resultLanguage": "\u0393\u03BB\u03CE\u03C3\u03C3\u03B1:",
   "micTest.resultDuration": "\u0394\u03B9\u03AC\u03C1\u03BA\u03B5\u03B9\u03B1:",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Ελαχιστοποίηση",
+  "titlebar.close": "Κλείσιμο",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0391\u03C5\u03C4\u03CC\u03BC\u03B1\u03C4\u03B7 \u03B1\u03BD\u03AF\u03C7\u03BD\u03B5\u03C5\u03C3\u03B7",
@@ -258,16 +264,31 @@ const el: Record<string, string> = {
   "languages.ko": "\u039A\u03BF\u03C1\u03B5\u03B1\u03C4\u03B9\u03BA\u03AC",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "\u0392\u03BF\u03C5\u03BB\u03B3\u03B1\u03C1\u03B9\u03BA\u03AC (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "\u039A\u03B9\u03BD\u03B5\u03B6\u03B9\u03BA\u03AC (\u4E2D\u6587)",
+  "languages.hrFull": "\u039A\u03C1\u03BF\u03B1\u03C4\u03B9\u03BA\u03AC (Hrvatski)",
+  "languages.csFull": "\u03A4\u03C3\u03B5\u03C7\u03B9\u03BA\u03AC (\u010Ce\u0161tina)",
+  "languages.daFull": "\u0394\u03B1\u03BD\u03B9\u03BA\u03AC (Dansk)",
   "languages.nlFull": "\u039F\u03BB\u03BB\u03B1\u03BD\u03B4\u03B9\u03BA\u03AC (Nederlands)",
   "languages.enFull": "\u0391\u03B3\u03B3\u03BB\u03B9\u03BA\u03AC (English)",
-  "languages.deFull": "\u0393\u03B5\u03C1\u03BC\u03B1\u03BD\u03B9\u03BA\u03AC (Deutsch)",
+  "languages.fiFull": "\u03A6\u03B9\u03BD\u03BB\u03B1\u03BD\u03B4\u03B9\u03BA\u03AC (Suomi)",
   "languages.frFull": "\u0393\u03B1\u03BB\u03BB\u03B9\u03BA\u03AC (Fran\u00E7ais)",
-  "languages.esFull": "\u0399\u03C3\u03C0\u03B1\u03BD\u03B9\u03BA\u03AC (Espa\u00F1ol)",
+  "languages.deFull": "\u0393\u03B5\u03C1\u03BC\u03B1\u03BD\u03B9\u03BA\u03AC (Deutsch)",
+  "languages.elFull": "\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC",
+  "languages.huFull": "\u039F\u03C5\u03B3\u03B3\u03C1\u03B9\u03BA\u03AC (Magyar)",
   "languages.itFull": "\u0399\u03C4\u03B1\u03BB\u03B9\u03BA\u03AC (Italiano)",
-  "languages.ptFull": "\u03A0\u03BF\u03C1\u03C4\u03BF\u03B3\u03B1\u03BB\u03B9\u03BA\u03AC (Portugu\u00EAs)",
-  "languages.plFull": "\u03A0\u03BF\u03BB\u03C9\u03BD\u03B9\u03BA\u03AC (Polski)",
   "languages.jaFull": "\u0399\u03B1\u03C0\u03C9\u03BD\u03B9\u03BA\u03AC (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "\u039A\u03B9\u03BD\u03B5\u03B6\u03B9\u03BA\u03AC (\u4E2D\u6587)",
+  "languages.koFull": "\u039A\u03BF\u03C1\u03B5\u03B1\u03C4\u03B9\u03BA\u03AC (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "\u039D\u03BF\u03C1\u03B2\u03B7\u03B3\u03B9\u03BA\u03AC (Norsk)",
+  "languages.plFull": "\u03A0\u03BF\u03BB\u03C9\u03BD\u03B9\u03BA\u03AC (Polski)",
+  "languages.ptFull": "\u03A0\u03BF\u03C1\u03C4\u03BF\u03B3\u03B1\u03BB\u03B9\u03BA\u03AC (Portugu\u00EAs)",
+  "languages.roFull": "\u03A1\u03BF\u03C5\u03BC\u03B1\u03BD\u03B9\u03BA\u03AC (Rom\u00E2n\u0103)",
+  "languages.ruFull": "\u03A1\u03C9\u03C3\u03B9\u03BA\u03AC (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "\u03A3\u03BB\u03BF\u03B2\u03B1\u03BA\u03B9\u03BA\u03AC (Sloven\u010Dina)",
+  "languages.esFull": "\u0399\u03C3\u03C0\u03B1\u03BD\u03B9\u03BA\u03AC (Espa\u00F1ol)",
+  "languages.svFull": "\u03A3\u03BF\u03C5\u03B7\u03B4\u03B9\u03BA\u03AC (Svenska)",
+  "languages.trFull": "\u03A4\u03BF\u03C5\u03C1\u03BA\u03B9\u03BA\u03AC (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "\u039F\u03C5\u03BA\u03C1\u03B1\u03BD\u03B9\u03BA\u03AC (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "\u0391\u03C5\u03C4\u03CC\u03BC\u03B1\u03C4\u03BF",
@@ -290,17 +311,13 @@ const el: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const el: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Αρχεία κειμένου",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const el: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Η μεταγραφή απέτυχε",
+  "api.speechRecognitionUnavailable": "Η αναγνώριση ομιλίας δεν είναι διαθέσιμη. Εκκινήστε τον τοπικό διακομιστή: node server.js",
+  "api.microphoneAccessDenied": "Η πρόσβαση στο μικρόφωνο απορρίφθηκε.",
+  "api.speechRecognitionStartFailed": "Αποτυχία εκκίνησης αναγνώρισης ομιλίας: {error}",
+  "api.microphoneDevice": "Μικρόφωνο {id}",
+  "api.defaultMicrophone": "Προεπιλεγμένο μικρόφωνο",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Μια πάπια μα ποια πάπια; Μια πάπια με παπιά. Παπά πάπια, παπά πάπια, και παπί, παπά, πια. Ο Πάπας ο παχύς έφαγε παχιά φακή.",
+  "voiceTraining.nameRequired": "Εισαγάγετε ένα όνομα για το προφίλ φωνής.",
+  "voiceTraining.startFailed": "Αποτυχία έναρξης εγγραφής: {error}",
+  "voiceTraining.noAudio": "Δεν καταγράφηκε ήχος. Δοκιμάστε ξανά.",
+  "voiceTraining.saveFailed": "Αποτυχία αποθήκευσης προφίλ φωνής: {error}",
+  "voiceTraining.step1Title": "Νέο προφίλ φωνής",
+  "voiceTraining.step1Description": "Δώστε ένα όνομα για το προφίλ φωνής.",
+  "voiceTraining.nameLabel": "Όνομα",
+  "voiceTraining.namePlaceholder": "Π.χ. Γιώργος Παπαδόπουλος",
+  "voiceTraining.cancel": "Ακύρωση",
+  "voiceTraining.next": "Επόμενο",
+  "voiceTraining.step2Title": "Προφέρετε το κείμενο",
+  "voiceTraining.step2Description": "Διαβάστε το παρακάτω κείμενο δυνατά και καθαρά. Η εγγραφή σταματά αυτόματα μετά από 30 δευτερόλεπτα.",
+  "voiceTraining.recordingInProgress": "Εγγραφή... {percent}%",
+  "voiceTraining.startRecording": "Έναρξη εγγραφής",
+  "voiceTraining.stopRecording": "Διακοπή",
+  "voiceTraining.step3Title": "Το προφίλ φωνής αποθηκεύτηκε!",
+  "voiceTraining.step3Description": "Το προφίλ φωνής για {name} δημιουργήθηκε με επιτυχία.",
+  "voiceTraining.close": "Κλείσιμο",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Προφίλ φωνής",
+  "settings.speakerTrained": "Εκπαιδευμένο",
+  "settings.speakerDelete": "Διαγραφή",
+  "settings.speakerNoProfiles": "Δεν έχουν δημιουργηθεί προφίλ φωνής.",
+  "settings.speakerNewProfile": "+ Νέο προφίλ φωνής",
+  "overlay.likeSound": "Μου αρέσει αυτός ο ήχος",
 };
 
 export default el;

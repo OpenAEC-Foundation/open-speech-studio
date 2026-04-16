@@ -179,6 +179,8 @@ const pt: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Falha ao alterar modelo: {error}",
   "meeting.emptyTranscript": "Inicie uma gravação para ver a transcrição aqui.",
   "meeting.tip": "Dica: Clique em \"Salvar Segmento\" durante a gravação para transcrever no meio sem parar a gravação.",
+  "meeting.exportTranscriptHeading": "Transcrição",
+  "meeting.minuteAbbrev": "min",
   "meeting.exportSegment": "Segmento",
   "meeting.exportLanguage": "Idioma:",
   "meeting.exportDuration": "Duração:",
@@ -236,8 +238,12 @@ const pt: Record<string, string> = {
   "micTest.resultLanguage": "Idioma:",
   "micTest.resultDuration": "Duração:",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Minimizar",
+  "titlebar.close": "Fechar",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Detectar automaticamente",
@@ -258,16 +264,31 @@ const pt: Record<string, string> = {
   "languages.ko": "Coreano",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Búlgaro (Български)",
+  "languages.zhFull": "Chinês (中文)",
+  "languages.hrFull": "Croata (Hrvatski)",
+  "languages.csFull": "Tcheco (Čeština)",
+  "languages.daFull": "Dinamarquês (Dansk)",
   "languages.nlFull": "Holandês (Nederlands)",
   "languages.enFull": "Inglês (English)",
-  "languages.deFull": "Alemão (Deutsch)",
+  "languages.fiFull": "Finlandês (Suomi)",
   "languages.frFull": "Francês (Français)",
-  "languages.esFull": "Espanhol (Español)",
-  "languages.itFull": "Italiano (Italiano)",
-  "languages.ptFull": "Português (Português)",
-  "languages.plFull": "Polonês (Polski)",
+  "languages.deFull": "Alemão (Deutsch)",
+  "languages.elFull": "Grego (Ελληνικά)",
+  "languages.huFull": "Húngaro (Magyar)",
+  "languages.itFull": "Italiano",
   "languages.jaFull": "Japonês (日本語)",
-  "languages.zhFull": "Chinês (中文)",
+  "languages.koFull": "Coreano (한국어)",
+  "languages.noFull": "Norueguês (Norsk)",
+  "languages.plFull": "Polonês (Polski)",
+  "languages.ptFull": "Português",
+  "languages.roFull": "Romeno (Română)",
+  "languages.ruFull": "Russo (Русский)",
+  "languages.skFull": "Eslovaco (Slovenčina)",
+  "languages.esFull": "Espanhol (Español)",
+  "languages.svFull": "Sueco (Svenska)",
+  "languages.trFull": "Turco (Türkçe)",
+  "languages.ukFull": "Ucraniano (Українська)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -290,17 +311,13 @@ const pt: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const pt: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Arquivos de texto",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const pt: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "A transcrição falhou",
+  "api.speechRecognitionUnavailable": "Reconhecimento de voz não disponível. Inicie o servidor local: node server.js",
+  "api.microphoneAccessDenied": "Acesso ao microfone negado.",
+  "api.speechRecognitionStartFailed": "Falha ao iniciar o reconhecimento de voz: {error}",
+  "api.microphoneDevice": "Microfone {id}",
+  "api.defaultMicrophone": "Microfone padrão",
+
+  // ── VoiceTraining ─────────────────────────────────────
+  "voiceTraining.trainingText": "O rato roeu a roupa do rei de Roma. A aranha arranha a rã. A rã arranha a aranha. Nem a aranha arranha a rã, nem a rã arranha a aranha. Pedro tem o prato de trigo e três tigres tristes.",
+  "voiceTraining.nameRequired": "Digite um nome para o perfil de voz.",
+  "voiceTraining.startFailed": "Falha ao iniciar a gravação: {error}",
+  "voiceTraining.noAudio": "Nenhum áudio gravado. Tente novamente.",
+  "voiceTraining.saveFailed": "Falha ao salvar o perfil de voz: {error}",
+  "voiceTraining.step1Title": "Novo perfil de voz",
+  "voiceTraining.step1Description": "Forneça um nome para o perfil de voz.",
+  "voiceTraining.nameLabel": "Nome",
+  "voiceTraining.namePlaceholder": "Ex. João Silva",
+  "voiceTraining.cancel": "Cancelar",
+  "voiceTraining.next": "Próximo",
+  "voiceTraining.step2Title": "Fale o texto",
+  "voiceTraining.step2Description": "Leia o texto abaixo em voz alta e clara. A gravação para automaticamente após 30 segundos.",
+  "voiceTraining.recordingInProgress": "Gravando... {percent}%",
+  "voiceTraining.startRecording": "Iniciar gravação",
+  "voiceTraining.stopRecording": "Parar",
+  "voiceTraining.step3Title": "Perfil de voz salvo!",
+  "voiceTraining.step3Description": "O perfil de voz para {name} foi criado com sucesso.",
+  "voiceTraining.close": "Fechar",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Perfis de voz",
+  "settings.speakerTrained": "Treinado",
+  "settings.speakerDelete": "Excluir",
+  "settings.speakerNoProfiles": "Nenhum perfil de voz criado.",
+  "settings.speakerNewProfile": "+ Novo perfil de voz",
+  "overlay.likeSound": "Curtir este som",
 };
 
 export default pt;

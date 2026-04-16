@@ -179,6 +179,8 @@ const uk: Record<string, string> = {
   "meeting.statusModelChangeFailed": "\u041F\u043E\u043C\u0438\u043B\u043A\u0430 \u0437\u043C\u0456\u043D\u0438 \u043C\u043E\u0434\u0435\u043B\u0456: {error}",
   "meeting.emptyTranscript": "\u041F\u043E\u0447\u043D\u0456\u0442\u044C \u0437\u0430\u043F\u0438\u0441, \u0449\u043E\u0431 \u043F\u043E\u0431\u0430\u0447\u0438\u0442\u0438 \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u043F\u0442 \u0442\u0443\u0442.",
   "meeting.tip": "\u041F\u043E\u0440\u0430\u0434\u0430: \u041D\u0430\u0442\u0438\u0441\u043D\u0456\u0442\u044C '\u0417\u0431\u0435\u0440\u0435\u0433\u0442\u0438 \u0441\u0435\u0433\u043C\u0435\u043D\u0442' \u043F\u0456\u0434 \u0447\u0430\u0441 \u0437\u0430\u043F\u0438\u0441\u0443, \u0449\u043E\u0431 \u0442\u0440\u0430\u043D\u0441\u043A\u0440\u0438\u0431\u0443\u0432\u0430\u0442\u0438 \u043F\u0440\u043E\u043C\u0456\u0436\u043D\u0438\u0439 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442 \u0431\u0435\u0437 \u0437\u0443\u043F\u0438\u043D\u043A\u0438 \u0437\u0430\u043F\u0438\u0441\u0443.",
+  "meeting.exportTranscriptHeading": "Транскрипція",
+  "meeting.minuteAbbrev": "хв",
   "meeting.exportSegment": "\u0421\u0435\u0433\u043C\u0435\u043D\u0442",
   "meeting.exportLanguage": "\u041C\u043E\u0432\u0430:",
   "meeting.exportDuration": "\u0422\u0440\u0438\u0432\u0430\u043B\u0456\u0441\u0442\u044C:",
@@ -237,7 +239,11 @@ const uk: Record<string, string> = {
   "micTest.resultDuration": "\u0422\u0440\u0438\u0432\u0430\u043B\u0456\u0441\u0442\u044C:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Згорнути",
+  "titlebar.close": "Закрити",
+
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0410\u0432\u0442\u043E\u0432\u0438\u0437\u043D\u0430\u0447\u0435\u043D\u043D\u044F",
@@ -258,16 +264,31 @@ const uk: Record<string, string> = {
   "languages.ko": "\u041A\u043E\u0440\u0435\u0439\u0441\u044C\u043A\u0430",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "\u0411\u043E\u043B\u0433\u0430\u0440\u0441\u044C\u043A\u0430 (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "\u041A\u0438\u0442\u0430\u0439\u0441\u044C\u043A\u0430 (\u4E2D\u6587)",
+  "languages.hrFull": "\u0425\u043E\u0440\u0432\u0430\u0442\u0441\u044C\u043A\u0430 (Hrvatski)",
+  "languages.csFull": "\u0427\u0435\u0441\u044C\u043A\u0430 (\u010Ce\u0161tina)",
+  "languages.daFull": "\u0414\u0430\u043D\u0441\u044C\u043A\u0430 (Dansk)",
   "languages.nlFull": "\u041D\u0456\u0434\u0435\u0440\u043B\u0430\u043D\u0434\u0441\u044C\u043A\u0430 (Nederlands)",
   "languages.enFull": "\u0410\u043D\u0433\u043B\u0456\u0439\u0441\u044C\u043A\u0430 (English)",
-  "languages.deFull": "\u041D\u0456\u043C\u0435\u0446\u044C\u043A\u0430 (Deutsch)",
+  "languages.fiFull": "\u0424\u0456\u043D\u0441\u044C\u043A\u0430 (Suomi)",
   "languages.frFull": "\u0424\u0440\u0430\u043D\u0446\u0443\u0437\u044C\u043A\u0430 (Fran\u00E7ais)",
-  "languages.esFull": "\u0406\u0441\u043F\u0430\u043D\u0441\u044C\u043A\u0430 (Espa\u00F1ol)",
+  "languages.deFull": "\u041D\u0456\u043C\u0435\u0446\u044C\u043A\u0430 (Deutsch)",
+  "languages.elFull": "\u0413\u0440\u0435\u0446\u044C\u043A\u0430 (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "\u0423\u0433\u043E\u0440\u0441\u044C\u043A\u0430 (Magyar)",
   "languages.itFull": "\u0406\u0442\u0430\u043B\u0456\u0439\u0441\u044C\u043A\u0430 (Italiano)",
-  "languages.ptFull": "\u041F\u043E\u0440\u0442\u0443\u0433\u0430\u043B\u044C\u0441\u044C\u043A\u0430 (Portugu\u00EAs)",
-  "languages.plFull": "\u041F\u043E\u043B\u044C\u0441\u044C\u043A\u0430 (Polski)",
   "languages.jaFull": "\u042F\u043F\u043E\u043D\u0441\u044C\u043A\u0430 (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "\u041A\u0438\u0442\u0430\u0439\u0441\u044C\u043A\u0430 (\u4E2D\u6587)",
+  "languages.koFull": "\u041A\u043E\u0440\u0435\u0439\u0441\u044C\u043A\u0430 (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "\u041D\u043E\u0440\u0432\u0435\u0437\u044C\u043A\u0430 (Norsk)",
+  "languages.plFull": "\u041F\u043E\u043B\u044C\u0441\u044C\u043A\u0430 (Polski)",
+  "languages.ptFull": "\u041F\u043E\u0440\u0442\u0443\u0433\u0430\u043B\u044C\u0441\u044C\u043A\u0430 (Portugu\u00EAs)",
+  "languages.roFull": "\u0420\u0443\u043C\u0443\u043D\u0441\u044C\u043A\u0430 (Rom\u00E2n\u0103)",
+  "languages.ruFull": "\u0420\u043E\u0441\u0456\u0439\u0441\u044C\u043A\u0430 (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "\u0421\u043B\u043E\u0432\u0430\u0446\u044C\u043A\u0430 (Sloven\u010Dina)",
+  "languages.esFull": "\u0406\u0441\u043F\u0430\u043D\u0441\u044C\u043A\u0430 (Espa\u00F1ol)",
+  "languages.svFull": "\u0428\u0432\u0435\u0434\u0441\u044C\u043A\u0430 (Svenska)",
+  "languages.trFull": "\u0422\u0443\u0440\u0435\u0446\u044C\u043A\u0430 (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "\u0410\u0432\u0442\u043E",
@@ -290,17 +311,13 @@ const uk: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const uk: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Текстові файли",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const uk: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Транскрипція не вдалася",
+  "api.speechRecognitionUnavailable": "Розпізнавання мовлення недоступне. Запустіть локальний сервер: node server.js",
+  "api.microphoneAccessDenied": "Доступ до мікрофона відхилено.",
+  "api.speechRecognitionStartFailed": "Не вдалося запустити розпізнавання мовлення: {error}",
+  "api.microphoneDevice": "Мікрофон {id}",
+  "api.defaultMicrophone": "Мікрофон за замовчуванням",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Ішов Прокіп, кипів окріп. Прийшов Прокіп, окріп окріп. Ішла Саша по шосе і сосала сушку. Бабин біб розцвів у дощ, буде бабі біб у борщ.",
+  "voiceTraining.nameRequired": "Введіть ім'я для голосового профілю.",
+  "voiceTraining.startFailed": "Не вдалося почати запис: {error}",
+  "voiceTraining.noAudio": "Аудіо не записано. Спробуйте ще раз.",
+  "voiceTraining.saveFailed": "Не вдалося зберегти голосовий профіль: {error}",
+  "voiceTraining.step1Title": "Новий голосовий профіль",
+  "voiceTraining.step1Description": "Вкажіть ім'я для голосового профілю.",
+  "voiceTraining.nameLabel": "Ім'я",
+  "voiceTraining.namePlaceholder": "Напр. Іван Петренко",
+  "voiceTraining.cancel": "Скасувати",
+  "voiceTraining.next": "Далі",
+  "voiceTraining.step2Title": "Вимовте текст",
+  "voiceTraining.step2Description": "Прочитайте текст нижче голосно і чітко. Запис автоматично зупиниться через 30 секунд.",
+  "voiceTraining.recordingInProgress": "Запис... {percent}%",
+  "voiceTraining.startRecording": "Почати запис",
+  "voiceTraining.stopRecording": "Зупинити",
+  "voiceTraining.step3Title": "Голосовий профіль збережено!",
+  "voiceTraining.step3Description": "Голосовий профіль для {name} успішно створено.",
+  "voiceTraining.close": "Закрити",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Голосові профілі",
+  "settings.speakerTrained": "Навчено",
+  "settings.speakerDelete": "Видалити",
+  "settings.speakerNoProfiles": "Голосові профілі не створено.",
+  "settings.speakerNewProfile": "+ Новий голосовий профіль",
+  "overlay.likeSound": "Подобається цей звук",
 };
 
 export default uk;

@@ -44,7 +44,7 @@ const ALL_KEYS = [
 type SettingsTab = "general" | "speech" | "controls" | "audio" | "files";
 
 export default function SettingsPanel(props: SettingsPanelProps) {
-  const { t, locale, setLocale } = useI18n();
+  const { t, locale, setLocale, availableLocales } = useI18n();
   const [tab, setTab] = createSignal<SettingsTab>("general");
   const [language, setLanguage] = createSignal("auto");
   const [useGpu, setUseGpu] = createSignal(false);
@@ -54,7 +54,6 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [fileAutoSave, setFileAutoSave] = createSignal(false);
   const [fileSaveDir, setFileSaveDir] = createSignal("");
   const [fileConfirmActions, setFileConfirmActions] = createSignal(true);
-  const [spellCheck, setSpellCheck] = createSignal(true);
   const [audioFeedback, setAudioFeedback] = createSignal(true);
   const [incrementalInterval, setIncrementalInterval] = createSignal(5);
   const [maxParallelWorkers, setMaxParallelWorkers] = createSignal(2);
@@ -88,7 +87,6 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setFileAutoSave(props.settings.file_auto_save ?? false);
       setFileSaveDir(props.settings.file_save_directory ?? "");
       setFileConfirmActions(props.settings.file_confirm_actions ?? true);
-      setSpellCheck(props.settings.spell_check ?? true);
       setAudioFeedback(props.settings.audio_feedback ?? true);
       setIncrementalInterval(props.settings.incremental_interval ?? 5);
       setMaxParallelWorkers(props.settings.max_parallel_workers ?? 2);
@@ -184,31 +182,9 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 api.updateTrayLanguage(newLang).catch(() => {});
               }}
             >
-              <option value="bg">Bulgarian (&#1041;&#1098;&#1083;&#1075;&#1072;&#1088;&#1089;&#1082;&#1080;)</option>
-              <option value="zh">Chinese (&#20013;&#25991;)</option>
-              <option value="hr">Croatian (Hrvatski)</option>
-              <option value="cs">Czech (&#268;e&#353;tina)</option>
-              <option value="da">Danish (Dansk)</option>
-              <option value="nl">Dutch (Nederlands)</option>
-              <option value="en">English</option>
-              <option value="fi">Finnish (Suomi)</option>
-              <option value="fr">French (Fran&#231;ais)</option>
-              <option value="de">German (Deutsch)</option>
-              <option value="el">Greek (&#917;&#955;&#955;&#951;&#957;&#953;&#954;&#940;)</option>
-              <option value="hu">Hungarian (Magyar)</option>
-              <option value="it">Italian (Italiano)</option>
-              <option value="ja">Japanese (&#26085;&#26412;&#35486;)</option>
-              <option value="ko">Korean (&#54620;&#44397;&#50612;)</option>
-              <option value="no">Norwegian (Norsk)</option>
-              <option value="pl">Polish (Polski)</option>
-              <option value="pt">Portuguese (Portugu&#234;s)</option>
-              <option value="ro">Romanian (Rom&#226;n&#259;)</option>
-              <option value="ru">Russian (&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;)</option>
-              <option value="sk">Slovak (Sloven&#269;ina)</option>
-              <option value="es">Spanish (Espa&#241;ol)</option>
-              <option value="sv">Swedish (Svenska)</option>
-              <option value="tr">Turkish (T&#252;rk&#231;e)</option>
-              <option value="uk">Ukrainian (&#1059;&#1082;&#1088;&#1072;&#1111;&#1085;&#1089;&#1100;&#1082;&#1072;)</option>
+              <For each={availableLocales}>{(lang) =>
+                <option value={lang}>{t(`languages.${lang}Full`)}</option>
+              }</For>
             </select>
             <span class="setting-hint">{t("settings.uiLanguageHint")}</span>
           </div>
@@ -264,7 +240,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                   {gpuInfo()!.name}
                 </div>
                 <Show when={gpuInfo()!.vram_mb > 0}>
-                  <div class="gpu-info-detail">VRAM: {gpuInfo()!.vram_mb >= 1024 ? `${(gpuInfo()!.vram_mb / 1024).toFixed(1)} GB` : `${gpuInfo()!.vram_mb} MB`}</div>
+                  <div class="gpu-info-detail">{t("settings.vram")}: {gpuInfo()!.vram_mb >= 1024 ? `${(gpuInfo()!.vram_mb / 1024).toFixed(1)} GB` : `${gpuInfo()!.vram_mb} MB`}</div>
                 </Show>
                 <Show when={gpuInfo()!.driver}>
                   <div class="gpu-info-detail">{t("settings.gpuDriver")}: {gpuInfo()!.driver}</div>
@@ -310,22 +286,6 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             </div>
           </div>
 
-          <div class="setting-row">
-            <label>{t("settings.spellCheck")}</label>
-            <div class="toggle-group">
-              <label class="toggle">
-                <input
-                  type="checkbox"
-                  checked={spellCheck()}
-                  onChange={(e) => { setSpellCheck(e.target.checked); autoSave({ spell_check: e.target.checked }); }}
-                />
-                <span class="toggle-slider" />
-              </label>
-              <span class="setting-hint">
-                {spellCheck() ? t("settings.spellCheckEnabled") : t("settings.spellCheckDisabled")}
-              </span>
-            </div>
-          </div>
 
           <div class="setting-row">
             <label>{t("settings.audioFeedback")}</label>
@@ -542,13 +502,13 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           </div>
 
           <div class="setting-row">
-            <label>Stemprofielen</label>
+            <label>{t("settings.speakerProfiles")}</label>
             <div class="speaker-profiles-list">
               <For each={speakerProfiles()}>
                 {(name) => (
                   <div class="speaker-profile-item">
                     <span class="speaker-profile-name">{name}</span>
-                    <span class="speaker-trained-badge">Getraind</span>
+                    <span class="speaker-trained-badge">{t("settings.speakerTrained")}</span>
                     <button
                       class="btn btn-small btn-danger-outline"
                       onClick={async () => {
@@ -558,13 +518,13 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                         } catch (_) {}
                       }}
                     >
-                      Verwijderen
+                      {t("settings.speakerDelete")}
                     </button>
                   </div>
                 )}
               </For>
               <Show when={speakerProfiles().length === 0}>
-                <span class="setting-hint">Geen stemprofielen aangemaakt.</span>
+                <span class="setting-hint">{t("settings.speakerNoProfiles")}</span>
               </Show>
             </div>
             <button
@@ -572,7 +532,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               style={{ "margin-top": "8px" }}
               onClick={() => setShowVoiceTraining(true)}
             >
-              + Nieuw stemprofiel
+              {t("settings.speakerNewProfile")}
             </button>
           </div>
 

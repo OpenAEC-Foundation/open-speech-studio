@@ -179,6 +179,8 @@ const hu: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Modellvaltas sikertelen: {error}",
   "meeting.emptyTranscript": "Indits el egy felvetelt, hogy itt lasd az atiratot.",
   "meeting.tip": "Tipp: Kattints a 'Szegmens mentese' gombra felvetel kozben az atiratozashoz a felvetel leallitasa nelkul.",
+  "meeting.exportTranscriptHeading": "Átirat",
+  "meeting.minuteAbbrev": "perc",
   "meeting.exportSegment": "Szegmens",
   "meeting.exportLanguage": "Nyelv:",
   "meeting.exportDuration": "Idotartam:",
@@ -237,7 +239,11 @@ const hu: Record<string, string> = {
   "micTest.resultDuration": "Idotartam:",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Kis méret",
+  "titlebar.close": "Bezárás",
+
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatikus felismeres",
@@ -258,16 +264,31 @@ const hu: Record<string, string> = {
   "languages.ko": "Koreai",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Bolg\u00E1r (\u0411\u044A\u043B\u0433\u0430\u0440\u0441\u043A\u0438)",
+  "languages.zhFull": "K\u00EDnai (\u4E2D\u6587)",
+  "languages.hrFull": "Horv\u00E1t (Hrvatski)",
+  "languages.csFull": "Cseh (\u010Ce\u0161tina)",
+  "languages.daFull": "D\u00E1n (Dansk)",
   "languages.nlFull": "Holland (Nederlands)",
   "languages.enFull": "Angol (English)",
-  "languages.deFull": "Nemet (Deutsch)",
+  "languages.fiFull": "Finn (Suomi)",
   "languages.frFull": "Francia (Fran\u00E7ais)",
-  "languages.esFull": "Spanyol (Espa\u00F1ol)",
+  "languages.deFull": "N\u00E9met (Deutsch)",
+  "languages.elFull": "G\u00F6r\u00F6g (\u0395\u03BB\u03BB\u03B7\u03BD\u03B9\u03BA\u03AC)",
+  "languages.huFull": "Magyar",
   "languages.itFull": "Olasz (Italiano)",
-  "languages.ptFull": "Portugal (Portugu\u00EAs)",
+  "languages.jaFull": "Jap\u00E1n (\u65E5\u672C\u8A9E)",
+  "languages.koFull": "Koreai (\uD55C\uAD6D\uC5B4)",
+  "languages.noFull": "Norv\u00E9g (Norsk)",
   "languages.plFull": "Lengyel (Polski)",
-  "languages.jaFull": "Japan (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "Kinai (\u4E2D\u6587)",
+  "languages.ptFull": "Portug\u00E1l (Portugu\u00EAs)",
+  "languages.roFull": "Rom\u00E1n (Rom\u00E2n\u0103)",
+  "languages.ruFull": "Orosz (\u0420\u0443\u0441\u0441\u043A\u0438\u0439)",
+  "languages.skFull": "Szlov\u00E1k (Sloven\u010Dina)",
+  "languages.esFull": "Spanyol (Espa\u00F1ol)",
+  "languages.svFull": "Sv\u00E9d (Svenska)",
+  "languages.trFull": "T\u00F6r\u00F6k (T\u00FCrk\u00E7e)",
+  "languages.ukFull": "Ukr\u00E1n (\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -290,17 +311,13 @@ const hu: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const hu: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "Szöveges fájlok",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const hu: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Az átírás sikertelen",
+  "api.speechRecognitionUnavailable": "A beszédfelismerés nem elérhető. Indítsa el a helyi szervert: node server.js",
+  "api.microphoneAccessDenied": "A mikrofon hozzáférése megtagadva.",
+  "api.speechRecognitionStartFailed": "A beszédfelismerés indítása sikertelen: {error}",
+  "api.microphoneDevice": "Mikrofon {id}",
+  "api.defaultMicrophone": "Alapértelmezett mikrofon",
+
+  // ── VoiceTraining ─────────────────────────────
+  "voiceTraining.trainingText": "Egy kupac kopasz kukac meg egy másik kupac kopasz kukac összekupackopaszkukacoztak. Mit sütsz kis szűcs? Tarka szőrű sertést sütsz kis szűcs?",
+  "voiceTraining.nameRequired": "Adjon meg egy nevet a hangprofilnak.",
+  "voiceTraining.startFailed": "A rögzítés indítása sikertelen: {error}",
+  "voiceTraining.noAudio": "Nem történt hangrögzítés. Próbálja újra.",
+  "voiceTraining.saveFailed": "A hangprofil mentése sikertelen: {error}",
+  "voiceTraining.step1Title": "Új hangprofil",
+  "voiceTraining.step1Description": "Adjon meg egy nevet a hangprofilnak.",
+  "voiceTraining.nameLabel": "Név",
+  "voiceTraining.namePlaceholder": "Pl. Kovács János",
+  "voiceTraining.cancel": "Mégse",
+  "voiceTraining.next": "Tovább",
+  "voiceTraining.step2Title": "Mondja ki a szöveget",
+  "voiceTraining.step2Description": "Olvassa fel az alábbi szöveget hangosan és érthetően. A rögzítés 30 másodperc után automatikusan leáll.",
+  "voiceTraining.recordingInProgress": "Rögzítés... {percent}%",
+  "voiceTraining.startRecording": "Rögzítés indítása",
+  "voiceTraining.stopRecording": "Leállítás",
+  "voiceTraining.step3Title": "Hangprofil mentve!",
+  "voiceTraining.step3Description": "A(z) {name} hangprofilja sikeresen létrehozva.",
+  "voiceTraining.close": "Bezárás",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Hangprofilok",
+  "settings.speakerTrained": "Betanítva",
+  "settings.speakerDelete": "Törlés",
+  "settings.speakerNoProfiles": "Nincsenek létrehozott hangprofilok.",
+  "settings.speakerNewProfile": "+ Új hangprofil",
+  "overlay.likeSound": "Tetszik ez a hang",
 };
 
 export default hu;

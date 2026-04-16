@@ -179,6 +179,8 @@ const it: Record<string, string> = {
   "meeting.statusModelChangeFailed": "Cambio modello fallito: {error}",
   "meeting.emptyTranscript": "Avvia una registrazione per vedere la trascrizione qui.",
   "meeting.tip": "Suggerimento: Clicca \"Salva segmento\" durante la registrazione per trascrivere nel frattempo senza fermare la registrazione.",
+  "meeting.exportTranscriptHeading": "Trascrizione",
+  "meeting.minuteAbbrev": "min",
   "meeting.exportSegment": "Segmento",
   "meeting.exportLanguage": "Lingua:",
   "meeting.exportDuration": "Durata:",
@@ -236,8 +238,12 @@ const it: Record<string, string> = {
   "micTest.resultLanguage": "Lingua:",
   "micTest.resultDuration": "Durata:",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "Riduci a icona",
+  "titlebar.close": "Chiudi",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Rilevamento automatico",
@@ -258,16 +264,31 @@ const it: Record<string, string> = {
   "languages.ko": "Coreano",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "Bulgaro (Български)",
+  "languages.zhFull": "Cinese (中文)",
+  "languages.hrFull": "Croato (Hrvatski)",
+  "languages.csFull": "Ceco (Čeština)",
+  "languages.daFull": "Danese (Dansk)",
   "languages.nlFull": "Olandese (Nederlands)",
   "languages.enFull": "Inglese (English)",
+  "languages.fiFull": "Finlandese (Suomi)",
+  "languages.frFull": "Francese (Français)",
   "languages.deFull": "Tedesco (Deutsch)",
-  "languages.frFull": "Francese (Fran\u00E7ais)",
-  "languages.esFull": "Spagnolo (Espa\u00F1ol)",
+  "languages.elFull": "Greco (Ελληνικά)",
+  "languages.huFull": "Ungherese (Magyar)",
   "languages.itFull": "Italiano",
-  "languages.ptFull": "Portoghese (Portugu\u00EAs)",
+  "languages.jaFull": "Giapponese (日本語)",
+  "languages.koFull": "Coreano (한국어)",
+  "languages.noFull": "Norvegese (Norsk)",
   "languages.plFull": "Polacco (Polski)",
-  "languages.jaFull": "Giapponese (\u65E5\u672C\u8A9E)",
-  "languages.zhFull": "Cinese (\u4E2D\u6587)",
+  "languages.ptFull": "Portoghese (Português)",
+  "languages.roFull": "Rumeno (Română)",
+  "languages.ruFull": "Russo (Русский)",
+  "languages.skFull": "Slovacco (Slovenčina)",
+  "languages.esFull": "Spagnolo (Español)",
+  "languages.svFull": "Svedese (Svenska)",
+  "languages.trFull": "Turco (Türkçe)",
+  "languages.ukFull": "Ucraino (Українська)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "Auto",
@@ -290,17 +311,13 @@ const it: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const it: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "File di testo",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const it: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "Trascrizione fallita",
+  "api.speechRecognitionUnavailable": "Riconoscimento vocale non disponibile. Avviare il server locale: node server.js",
+  "api.microphoneAccessDenied": "Accesso al microfono negato.",
+  "api.speechRecognitionStartFailed": "Avvio del riconoscimento vocale fallito: {error}",
+  "api.microphoneDevice": "Microfono {id}",
+  "api.defaultMicrophone": "Microfono predefinito",
+
+  // ── VoiceTraining ─────────────────────────────────────
+  "voiceTraining.trainingText": "Sopra la panca la capra campa, sotto la panca la capra crepa. Trentatré trentini entrarono a Trento, tutti e trentatré trotterellando. Se l'arcivescovo di Costantinopoli si disarcivescovicostantinopolizzasse, vi disarcivescovicostantinopolizzereste voi?",
+  "voiceTraining.nameRequired": "Inserisci un nome per il profilo vocale.",
+  "voiceTraining.startFailed": "Impossibile avviare la registrazione: {error}",
+  "voiceTraining.noAudio": "Nessun audio registrato. Riprova.",
+  "voiceTraining.saveFailed": "Impossibile salvare il profilo vocale: {error}",
+  "voiceTraining.step1Title": "Nuovo profilo vocale",
+  "voiceTraining.step1Description": "Fornisci un nome per il profilo vocale.",
+  "voiceTraining.nameLabel": "Nome",
+  "voiceTraining.namePlaceholder": "Es. Mario Rossi",
+  "voiceTraining.cancel": "Annulla",
+  "voiceTraining.next": "Avanti",
+  "voiceTraining.step2Title": "Pronuncia il testo",
+  "voiceTraining.step2Description": "Leggi il testo qui sotto ad alta voce e chiaramente. La registrazione si ferma automaticamente dopo 30 secondi.",
+  "voiceTraining.recordingInProgress": "Registrazione... {percent}%",
+  "voiceTraining.startRecording": "Avvia registrazione",
+  "voiceTraining.stopRecording": "Ferma",
+  "voiceTraining.step3Title": "Profilo vocale salvato!",
+  "voiceTraining.step3Description": "Il profilo vocale per {name} è stato creato con successo.",
+  "voiceTraining.close": "Chiudi",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "Profili vocali",
+  "settings.speakerTrained": "Addestrato",
+  "settings.speakerDelete": "Elimina",
+  "settings.speakerNoProfiles": "Nessun profilo vocale creato.",
+  "settings.speakerNewProfile": "+ Nuovo profilo vocale",
+  "overlay.likeSound": "Mi piace questo suono",
 };
 
 export default it;

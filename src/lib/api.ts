@@ -12,7 +12,6 @@ export interface Settings {
   file_auto_save: boolean;
   file_save_directory: string;
   file_confirm_actions: boolean;
-  spell_check: boolean;
   audio_feedback: boolean;
   // v0.7 new fields
   incremental_interval?: number;
@@ -57,6 +56,8 @@ export interface SessionInfo {
   total_chunks: number;
   current_progress_pct: number;
 }
+
+import { t } from "./i18n";
 
 // Detect if we're running inside Tauri or in a plain browser
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
@@ -168,7 +169,6 @@ function loadLocalSettings(): Settings {
     file_auto_save: false,
     file_save_directory: "",
     file_confirm_actions: true,
-    spell_check: true,
     audio_feedback: true,
   };
 }
@@ -321,7 +321,7 @@ async function stopServerRecording(): Promise<TranscriptionResult> {
 
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(err.error || "Transcriptie mislukt");
+    throw new Error(err.error || t("api.transcriptionFailed"));
   }
 
   const result = await res.json();
@@ -374,7 +374,7 @@ async function startWebSpeechRecording() {
     (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    throw new Error("Spraakherkenning niet beschikbaar. Start de lokale server: node server.js");
+    throw new Error(t("api.speechRecognitionUnavailable"));
   }
 
   return new Promise<void>((resolve, reject) => {
@@ -404,7 +404,7 @@ async function startWebSpeechRecording() {
 
     recognition.onerror = (event: any) => {
       if (event.error === "not-allowed") {
-        reject(new Error("Microfoon toegang geweigerd."));
+        reject(new Error(t("api.microphoneAccessDenied")));
       }
     };
 
@@ -413,7 +413,7 @@ async function startWebSpeechRecording() {
     try {
       recognition.start();
     } catch (e) {
-      reject(new Error(`Spraakherkenning starten mislukt: ${e}`));
+      reject(new Error(t("api.speechRecognitionStartFailed", { error: String(e) })));
     }
   });
 }
@@ -556,9 +556,9 @@ const browserApi = {
       const devices = await navigator.mediaDevices.enumerateDevices();
       return devices
         .filter((d) => d.kind === "audioinput")
-        .map((d) => d.label || `Microfoon ${d.deviceId.slice(0, 8)}`);
+        .map((d) => d.label || t("api.microphoneDevice", { id: d.deviceId.slice(0, 8) }));
     } catch {
-      return ["Standaard microfoon"];
+      return [t("api.defaultMicrophone")];
     }
   },
 

@@ -179,6 +179,8 @@ const zh: Record<string, string> = {
   "meeting.statusModelChangeFailed": "模型切换失败：{error}",
   "meeting.emptyTranscript": "开始录制以在此查看转录文本。",
   "meeting.tip": "提示：在录制过程中点击'保存片段'可以在不停止录制的情况下进行中间转录。",
+  "meeting.exportTranscriptHeading": "转录",
+  "meeting.minuteAbbrev": "分钟",
   "meeting.exportSegment": "片段",
   "meeting.exportLanguage": "语言：",
   "meeting.exportDuration": "时长：",
@@ -236,8 +238,12 @@ const zh: Record<string, string> = {
   "micTest.resultLanguage": "语言：",
   "micTest.resultDuration": "时长：",
 
+  // ── Titlebar ─────────────────────────────────────────────
+  "titlebar.minimize": "最小化",
+  "titlebar.close": "关闭",
+
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.7.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "自动检测",
@@ -258,16 +264,31 @@ const zh: Record<string, string> = {
   "languages.ko": "韩语",
 
   // ── Settings language options (with native name) ─────────
+  "languages.bgFull": "保加利亚语 (Български)",
+  "languages.zhFull": "中文",
+  "languages.hrFull": "克罗地亚语 (Hrvatski)",
+  "languages.csFull": "捷克语 (Čeština)",
+  "languages.daFull": "丹麦语 (Dansk)",
   "languages.nlFull": "荷兰语 (Nederlands)",
   "languages.enFull": "英语 (English)",
-  "languages.deFull": "德语 (Deutsch)",
+  "languages.fiFull": "芬兰语 (Suomi)",
   "languages.frFull": "法语 (Français)",
-  "languages.esFull": "西班牙语 (Español)",
+  "languages.deFull": "德语 (Deutsch)",
+  "languages.elFull": "希腊语 (Ελληνικά)",
+  "languages.huFull": "匈牙利语 (Magyar)",
   "languages.itFull": "意大利语 (Italiano)",
-  "languages.ptFull": "葡萄牙语 (Português)",
-  "languages.plFull": "波兰语 (Polski)",
   "languages.jaFull": "日语 (日本語)",
-  "languages.zhFull": "中文 (中文)",
+  "languages.koFull": "韩语 (한국어)",
+  "languages.noFull": "挪威语 (Norsk)",
+  "languages.plFull": "波兰语 (Polski)",
+  "languages.ptFull": "葡萄牙语 (Português)",
+  "languages.roFull": "罗马尼亚语 (Română)",
+  "languages.ruFull": "俄语 (Русский)",
+  "languages.skFull": "斯洛伐克语 (Slovenčina)",
+  "languages.esFull": "西班牙语 (Español)",
+  "languages.svFull": "瑞典语 (Svenska)",
+  "languages.trFull": "土耳其语 (Türkçe)",
+  "languages.ukFull": "乌克兰语 (Українська)",
 
   // ── MeetingRecorder language list (short auto label) ─────
   "languages.autoShort": "自动",
@@ -290,17 +311,13 @@ const zh: Record<string, string> = {
 
   // ── Missing translations (English fallback) ────────────
   "sidebar.transcribe": "Transcribe",
-  "transcription.original": "Original",
-  "transcription.spellChecked": "Spell-checked",
   "settings.tabGeneral": "General",
   "settings.tabSpeech": "Speech",
   "settings.tabControls": "Controls",
   "settings.tabAudio": "Audio",
   "settings.tabFiles": "Files",
+  "settings.vram": "VRAM",
   "settings.gpuDriver": "Driver",
-  "settings.spellCheck": "Spell check",
-  "settings.spellCheckEnabled": "Correct spelling after transcription",
-  "settings.spellCheckDisabled": "Raw transcription output",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",
@@ -407,6 +424,7 @@ const zh: Record<string, string> = {
   "fileTranscriber.audioVideoFiles": "Audio & Video files",
   "fileTranscriber.pickError": "Could not open file: {error}",
   "fileTranscriber.unsupportedFormat": "Unsupported file format. Use WAV, MP3, FLAC, OGG, M4A, MP4, MKV, AVI or MOV.",
+  "fileTranscriber.textFiles": "文本文件",
   "fileTranscriber.copied": "Copied to clipboard",
   "fileTranscriber.exportTxt": "Export .txt",
   "fileTranscriber.exported": "File exported successfully",
@@ -427,6 +445,43 @@ const zh: Record<string, string> = {
   "overlay.transcribing": "Transcribing",
   "overlay.done": "Done",
   "overlay.error": "Error",
+
+  // ── API error messages ───────────────────────────────
+  "api.transcriptionFailed": "转录失败",
+  "api.speechRecognitionUnavailable": "语音识别不可用。请启动本地服务器：node server.js",
+  "api.microphoneAccessDenied": "麦克风访问被拒绝。",
+  "api.speechRecognitionStartFailed": "语音识别启动失败：{error}",
+  "api.microphoneDevice": "麦克风 {id}",
+  "api.defaultMicrophone": "默认麦克风",
+
+  // ── VoiceTraining ─────────────────────────────────────
+  "voiceTraining.trainingText": "四是四，十是十，十四是十四，四十是四十。吃葡萄不吐葡萄皮，不吃葡萄倒吐葡萄皮。黑化肥发灰会挥发，灰化肥挥发会发黑。",
+  "voiceTraining.nameRequired": "请输入语音配置文件的名称。",
+  "voiceTraining.startFailed": "无法开始录音：{error}",
+  "voiceTraining.noAudio": "未录制到音频。请重试。",
+  "voiceTraining.saveFailed": "无法保存语音配置文件：{error}",
+  "voiceTraining.step1Title": "新建语音配置文件",
+  "voiceTraining.step1Description": "请为语音配置文件提供名称。",
+  "voiceTraining.nameLabel": "名称",
+  "voiceTraining.namePlaceholder": "例如：张三",
+  "voiceTraining.cancel": "取消",
+  "voiceTraining.next": "下一步",
+  "voiceTraining.step2Title": "朗读文本",
+  "voiceTraining.step2Description": "请大声清晰地朗读下面的文本。录音将在 30 秒后自动停止。",
+  "voiceTraining.recordingInProgress": "录音中...{percent}%",
+  "voiceTraining.startRecording": "开始录音",
+  "voiceTraining.stopRecording": "停止",
+  "voiceTraining.step3Title": "语音配置文件已保存！",
+  "voiceTraining.step3Description": "{name} 的语音配置文件已成功创建。",
+  "voiceTraining.close": "关闭",
+
+  // ── Speaker profiles & overlay extras ─────────────────
+  "settings.speakerProfiles": "语音配置文件",
+  "settings.speakerTrained": "已训练",
+  "settings.speakerDelete": "删除",
+  "settings.speakerNoProfiles": "未创建语音配置文件。",
+  "settings.speakerNewProfile": "+ 新建语音配置文件",
+  "overlay.likeSound": "喜欢这个声音",
 };
 
 export default zh;

@@ -1,13 +1,9 @@
 {
   "name": "open-speech-studio",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Open source local AI speech-to-text for every app",
   "type": "module",
   "scripts": {
-    "setup": "node setup.js",
-    "setup:dev": "node setup.js --dev",
-    "setup:cuda": "node setup.js --cuda",
-    "server": "node server.cjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
