@@ -2,14 +2,11 @@ name: Auto-assign issues to product owner
 on:
   issues:
     types: [opened]
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   assign:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v8
         with:
           script: |
             await github.rest.issues.addAssignees({
