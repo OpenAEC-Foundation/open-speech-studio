@@ -107,8 +107,16 @@ jobs:
         shell: bash
         run: mkdir -p bin
 
-      - name: Build whisper.cpp (Linux/macOS)
+      - name: Cache whisper.cpp binary
         if: runner.os != 'Windows'
+        id: whisper-cache
+        uses: actions/cache@v5
+        with:
+          path: bin/whisper-cli
+          key: whisper-v1.8.3-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Build whisper.cpp (Linux/macOS)
+        if: runner.os != 'Windows' && steps.whisper-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           git clone --depth 1 --branch v1.8.3 https://github.com/ggml-org/whisper.cpp.git _whisper_build
