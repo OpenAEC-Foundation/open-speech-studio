@@ -243,7 +243,7 @@ const ja: Record<string, string> = {
   "titlebar.close": "閉じる",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "自動検出",
@@ -501,6 +501,11 @@ const ja: Record<string, string> = {
   "login.creditsResetsAt": "{date} にリセット",
   "login.upgrade": "アップグレード",
   "login.manageAccount": "アカウント管理",
+  "settings.remoteServerSignInHint": "クラウド文字起こしを有効にするにはサインインしてください。",
+  "settings.remoteServerSignInBtn": "サインイン",
+  "login.promptTitle": "Impertio Accounts にサインイン",
+  "login.promptBody": "サインインをクリックするとシステムブラウザが開きます。そこでサインインすると、このウィンドウが自動的にセッションを引き継ぎます。",
+  "login.createAccount": "アカウントをお持ちでない? 作成する",
 };
 
 export default ja;

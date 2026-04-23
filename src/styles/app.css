@@ -904,10 +904,29 @@ body {
   transform: translateX(16px);
 }
 
+.toggle-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .setting-hint {
   font-size: 11px;
   color: var(--theme-text-muted);
 }
+
+.setting-inline-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0 0 0 2px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: #D97706;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.setting-inline-btn:hover { color: #b45309; }
 
 /* GPU info card */
 .gpu-info-card {
@@ -2392,41 +2411,37 @@ html:has(.dictation-overlay) #app {
   border-bottom: 2px solid rgba(239, 68, 68, 0.6);
 }
 
-/* ── Titlebar auth pill ───────────────────────────────────── */
+/* ── Titlebar auth ────────────────────────────────────────── */
 .titlebar-auth-wrap { position: relative; display: inline-block; }
-.titlebar-auth {
-  font-size: 11px;
-  line-height: 1;
-  padding: 4px 10px;
-  border: 1px solid rgba(217, 119, 6, 0.5);
-  border-radius: 999px;
-  background: transparent;
-  color: #F5F0EB;
-  white-space: nowrap;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.titlebar-auth:hover:not([disabled]) {
-  background: rgba(217, 119, 6, 0.15);
-  border-color: #D97706;
-}
-.titlebar-auth[disabled] { opacity: 0.6; }
 .titlebar-avatar {
   width: 22px;
   height: 22px;
   padding: 0;
-  border: 1px solid rgba(217, 119, 6, 0.5);
-  border-radius: 50%;
-  background: rgba(217, 119, 6, 0.18);
-  color: #F5F0EB;
+  border: none;
+  border-radius: 0;
+  background: #D97706;
+  color: #fff;
   overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
 }
-.titlebar-avatar:hover { border-color: #D97706; background: rgba(217, 119, 6, 0.28); }
+.titlebar-avatar:hover:not([disabled]) { background: #b45309; }
+.titlebar-avatar[disabled] { opacity: 0.55; }
+
+/* Signed-out state: same squared shape, but hollow so it reads as a
+   CTA rather than an already-assigned avatar. */
+.titlebar-avatar-signed-out {
+  background: transparent;
+  color: #F5F0EB;
+  border: 1px solid rgba(245, 240, 235, 0.35);
+}
+.titlebar-avatar-signed-out:hover:not([disabled]) {
+  background: rgba(217, 119, 6, 0.2);
+  border-color: #D97706;
+}
+.titlebar-avatar-signed-out svg { display: block; }
 .titlebar-avatar-initial {
   font-size: 11px;
   font-weight: 600;
@@ -2442,15 +2457,70 @@ html:has(.dictation-overlay) #app {
 .titlebar-auth-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 6px);
+  top: calc(100% + 4px);
   width: 260px;
   background: #4a4242;
   border: 1px solid rgba(217, 119, 6, 0.3);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 0;
   z-index: 100;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
   overflow: hidden;
+}
+
+/* Signed-out mini-dropdown: shown when the user clicks the titlebar
+   icon while not signed in. Explains the consequence of a click before
+   we open the system browser. */
+.titlebar-auth-menu-signedout {
+  width: 240px;
+  padding: 14px 14px 12px;
+}
+.titlebar-auth-menu-signedout-title {
+  color: #F5F0EB;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.titlebar-auth-menu-signedout-body {
+  color: #F5F0EB;
+  opacity: 0.7;
+  font-size: 11px;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+.titlebar-auth-menu-signin-btn {
+  display: block;
+  width: 100%;
+  padding: 7px 12px;
+  background: #D97706;
+  color: #1e1818;
+  border: 1px solid #D97706;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.titlebar-auth-menu-signin-btn:hover:not([disabled]) { background: #b45309; border-color: #b45309; }
+.titlebar-auth-menu-signin-btn[disabled] { opacity: 0.6; cursor: default; }
+.titlebar-auth-menu-createacct {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: #D97706;
+  text-decoration: none;
+  margin-top: 10px;
+}
+.titlebar-auth-menu-createacct:hover { text-decoration: underline; }
+.titlebar-auth-menu-error {
+  margin-top: 10px;
+  padding: 6px 8px;
+  background: #4a3636;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fecaca;
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: pointer;
+  word-break: break-word;
 }
 
 /* Header: avatar + name + email */

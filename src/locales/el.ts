@@ -243,7 +243,7 @@ const el: Record<string, string> = {
   "titlebar.close": "Κλείσιμο",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0391\u03C5\u03C4\u03CC\u03BC\u03B1\u03C4\u03B7 \u03B1\u03BD\u03AF\u03C7\u03BD\u03B5\u03C5\u03C3\u03B7",
@@ -501,6 +501,11 @@ const el: Record<string, string> = {
   "login.creditsResetsAt": "Επαναφορά {date}",
   "login.upgrade": "Αναβάθμιση",
   "login.manageAccount": "Διαχείριση λογαριασμού",
+  "settings.remoteServerSignInHint": "Συνδεθείτε για να ενεργοποιήσετε τη μεταγραφή στο cloud.",
+  "settings.remoteServerSignInBtn": "Σύνδεση",
+  "login.promptTitle": "Σύνδεση στο Impertio Accounts",
+  "login.promptBody": "Κάνοντας κλικ στο Σύνδεση θα ανοίξει το πρόγραμμα περιήγησης του συστήματος. Αφού συνδεθείτε εκεί, αυτό το παράθυρο θα αναλάβει αυτόματα τη συνεδρία.",
+  "login.createAccount": "Δεν έχετε λογαριασμό; Δημιουργήστε έναν",
 };
 
 export default el;

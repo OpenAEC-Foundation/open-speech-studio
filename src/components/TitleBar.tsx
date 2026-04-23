@@ -1,6 +1,7 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { useI18n } from "../lib/i18n";
 import { auth, type UserInfo, type UserProfile } from "../lib/api";
+import { authUser, setAuthUser, initAuth } from "../lib/authStore";
 import appIcon from "../assets/icon.png";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
@@ -13,7 +14,10 @@ const USERINFO_DEBOUNCE_MS = 5000;
 
 export default function TitleBar() {
   const { t } = useI18n();
-  const [user, setUser] = createSignal<UserProfile | null>(null);
+  // Auth lives in the shared authStore so other components (SettingsPanel,
+  // etc.) react to login/logout without their own refresh plumbing.
+  const user = authUser;
+  const setUser = setAuthUser;
   const [info, setInfo] = createSignal<UserInfo | null>(null);
   const [busy, setBusy] = createSignal(false);
   const [menuOpen, setMenuOpen] = createSignal(false);
@@ -39,11 +43,8 @@ export default function TitleBar() {
 
   onMount(async () => {
     if (!isTauri) return;
-    try {
-      const u = await auth.currentUser();
-      setUser(u);
-      if (u) refreshUserInfo();
-    } catch (_) {}
+    await initAuth();
+    if (user()) refreshUserInfo();
   });
 
   const login = async () => {
@@ -135,30 +136,27 @@ export default function TitleBar() {
       {isMac && <div class="titlebar-mac-spacer" data-tauri-drag-region />}
       <img class="titlebar-icon" src={appIcon} alt="" width="16" height="16" data-tauri-drag-region />
       <div class="titlebar-title" data-tauri-drag-region>
-        Open Speech Studio <span class="titlebar-version">v0.9.0</span>
+        Open Speech Studio <span class="titlebar-version">v0.10.0</span>
       </div>
       <div class="titlebar-buttons">
-        <Show
-          when={user()}
-          fallback={
-            <div class="titlebar-auth-wrap">
-              <button class="titlebar-auth" onClick={login} disabled={busy()}>
-                {busy() ? t("login.loading") : t("login.signIn")}
-              </button>
-              <Show when={loginError()}>
-                <div class="titlebar-auth-error" onClick={dismissError}>
-                  {loginError()}
-                </div>
-              </Show>
-            </div>
-          }
-        >
-          <div class="titlebar-auth-wrap">
-            <button
-              class="titlebar-avatar"
-              onClick={openMenu}
-              title={tooltip()}
-              aria-label={displayName()}
+        <div class="titlebar-auth-wrap">
+          <button
+            class="titlebar-avatar"
+            classList={{ "titlebar-avatar-signed-out": !user() }}
+            onClick={openMenu}
+            disabled={busy()}
+            title={user() ? tooltip() : t("login.signIn")}
+            aria-label={user() ? displayName() : t("login.signIn")}
+          >
+            <Show
+              when={user()}
+              fallback={
+                // Signed-out: same button shape, user-silhouette icon.
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              }
             >
               <Show
                 when={user()?.picture}
@@ -171,7 +169,44 @@ export default function TitleBar() {
                   referrerPolicy="no-referrer"
                 />
               </Show>
-            </button>
+            </Show>
+          </button>
+
+          {/* Signed-OUT dropdown: explain what a click on Sign in does
+              (opens system browser) before firing the OIDC flow, so the
+              user isn't surprised by a sudden browser window. */}
+          <Show when={!user() && menuOpen()}>
+            <div class="titlebar-auth-menu titlebar-auth-menu-signedout" onMouseLeave={() => setMenuOpen(false)}>
+              <div class="titlebar-auth-menu-signedout-title">{t("login.promptTitle")}</div>
+              <div class="titlebar-auth-menu-signedout-body">{t("login.promptBody")}</div>
+              <button
+                class="titlebar-auth-menu-signin-btn"
+                disabled={busy()}
+                onClick={async () => {
+                  setMenuOpen(false);
+                  await login();
+                }}
+              >
+                {busy() ? t("login.loading") : t("login.signIn")}
+              </button>
+              <a
+                class="titlebar-auth-menu-createacct"
+                href="https://account.impertio.app/signup"
+                target="_blank"
+                rel="noopener"
+                onClick={() => setMenuOpen(false)}
+              >
+                {t("login.createAccount")}
+              </a>
+              <Show when={loginError()}>
+                <div class="titlebar-auth-menu-error" onClick={dismissError}>
+                  {loginError()}
+                </div>
+              </Show>
+            </div>
+          </Show>
+
+          <Show when={user()}>
             <Show when={menuOpen()}>
               <div class="titlebar-auth-menu" onMouseLeave={() => setMenuOpen(false)}>
                 <div class="titlebar-auth-menu-header">
@@ -239,8 +274,8 @@ export default function TitleBar() {
                 </div>
               </div>
             </Show>
-          </div>
-        </Show>
+          </Show>
+        </div>
         <a
           class="titlebar-feedback"
           href="https://github.com/OpenAEC-Foundation/open-speech-studio/issues"

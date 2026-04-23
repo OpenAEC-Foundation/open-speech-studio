@@ -243,7 +243,7 @@ const fi: Record<string, string> = {
   "titlebar.close": "Sulje",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automaattinen tunnistus",
@@ -501,6 +501,11 @@ const fi: Record<string, string> = {
   "login.creditsResetsAt": "Nollautuu {date}",
   "login.upgrade": "Päivitä",
   "login.manageAccount": "Hallitse tiliä",
+  "settings.remoteServerSignInHint": "Kirjaudu sisään ottaaksesi käyttöön pilvitranskription.",
+  "settings.remoteServerSignInBtn": "Kirjaudu sisään",
+  "login.promptTitle": "Kirjaudu Impertio Accountsiin",
+  "login.promptBody": "Napsauttamalla Kirjaudu sisään avaa järjestelmäselaimen. Kun olet kirjautunut siellä, tämä ikkuna ottaa istunnon automaattisesti haltuunsa.",
+  "login.createAccount": "Ei tiliä? Luo yksi",
 };
 
 export default fi;

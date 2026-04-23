@@ -243,7 +243,7 @@ const cs: Record<string, string> = {
   "titlebar.minimize": "Minimalizovat",
   "titlebar.close": "Zavřít",
 
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatick\u00E1 detekce",
@@ -501,6 +501,11 @@ const cs: Record<string, string> = {
   "login.creditsResetsAt": "Obnovení {date}",
   "login.upgrade": "Upgradovat",
   "login.manageAccount": "Spravovat účet",
+  "settings.remoteServerSignInHint": "Přihlaste se pro povolení cloudové transkripce.",
+  "settings.remoteServerSignInBtn": "Přihlásit se",
+  "login.promptTitle": "Přihlásit se k Impertio Accounts",
+  "login.promptBody": "Kliknutím na Přihlásit se otevřete systémový prohlížeč. Po přihlášení tam toto okno relaci automaticky převezme.",
+  "login.createAccount": "Nemáte účet? Vytvořte si ho",
 };
 
 export default cs;

@@ -243,7 +243,7 @@ const zh: Record<string, string> = {
   "titlebar.close": "关闭",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "自动检测",
@@ -501,6 +501,11 @@ const zh: Record<string, string> = {
   "login.creditsResetsAt": "{date} 重置",
   "login.upgrade": "升级",
   "login.manageAccount": "管理账户",
+  "settings.remoteServerSignInHint": "登录以启用云端转录。",
+  "settings.remoteServerSignInBtn": "登录",
+  "login.promptTitle": "登录 Impertio Accounts",
+  "login.promptBody": "点击登录将打开您的系统浏览器。在那里登录后，此窗口将自动接管会话。",
+  "login.createAccount": "没有账户？创建一个",
 };
 
 export default zh;

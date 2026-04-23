@@ -243,7 +243,7 @@ const no: Record<string, string> = {
   "titlebar.close": "Lukk",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk gjenkjenning",
@@ -501,6 +501,11 @@ const no: Record<string, string> = {
   "login.creditsResetsAt": "Tilbakestilles {date}",
   "login.upgrade": "Oppgrader",
   "login.manageAccount": "Administrer konto",
+  "settings.remoteServerSignInHint": "Logg inn for å aktivere sky-transkribering.",
+  "settings.remoteServerSignInBtn": "Logg inn",
+  "login.promptTitle": "Logg inn på Impertio Accounts",
+  "login.promptBody": "Å klikke Logg inn åpner systemnettleseren. Etter at du har logget inn der, tar dette vinduet automatisk over økten.",
+  "login.createAccount": "Ingen konto? Opprett en",
 };
 
 export default no;

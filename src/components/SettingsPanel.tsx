@@ -1,6 +1,7 @@
 import { createSignal, onMount, For, Show } from "solid-js";
-import { api, type Settings } from "../lib/api";
+import { api, auth, type Settings } from "../lib/api";
 import { useI18n, getLanguageOptions, type Locale } from "../lib/i18n";
+import { isAuthenticated, setAuthUser, initAuth } from "../lib/authStore";
 import VoiceTraining from "./VoiceTraining";
 
 interface SettingsPanelProps {
@@ -80,6 +81,10 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const hotkey = () => buildHotkey(key1(), key2(), key3());
 
   onMount(async () => {
+    // Mirror whatever the Rust store says about the current user, so the
+    // "Use remote server" toggle below reflects reality even if
+    // SettingsPanel opened before TitleBar mounted.
+    initAuth();
     if (props.settings) {
       setLanguage(props.settings.language);
       setUseGpu(props.settings.use_gpu);
@@ -621,15 +626,55 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           <div class="setting-row">
             <label>{t("settings.remoteServerEnabled")}</label>
             <div class="toggle-group">
-              <label class="toggle">
+              <label
+                class="toggle"
+                classList={{ "toggle-disabled": !isAuthenticated() }}
+                title={!isAuthenticated() ? t("settings.remoteServerSignInHint") : ""}
+              >
                 <input
                   type="checkbox"
-                  checked={remoteServerEnabled()}
-                  onChange={(e) => { setRemoteServerEnabled(e.target.checked); autoSave({ remote_server_enabled: e.target.checked }); }}
+                  checked={isAuthenticated() && remoteServerEnabled()}
+                  disabled={!isAuthenticated()}
+                  onChange={(e) => {
+                    if (!isAuthenticated()) {
+                      // Can't happen while `disabled` is honored, but belt & braces.
+                      (e.target as HTMLInputElement).checked = false;
+                      return;
+                    }
+                    setRemoteServerEnabled(e.target.checked);
+                    autoSave({ remote_server_enabled: e.target.checked });
+                  }}
                 />
                 <span class="toggle-slider" />
               </label>
-              <span class="setting-hint">{t("settings.remoteServerEnabledHint")}</span>
+              <Show
+                when={isAuthenticated()}
+                fallback={
+                  <span class="setting-hint">
+                    {t("settings.remoteServerSignInHint")}{" "}
+                    <button
+                      class="setting-inline-btn"
+                      onClick={async () => {
+                        try {
+                          const u = await auth.login();
+                          setAuthUser(u);
+                          // After a fresh sign-in, turn the toggle on so the
+                          // user doesn't have to click it a second time —
+                          // that's why they clicked Sign in in the first place.
+                          setRemoteServerEnabled(true);
+                          autoSave({ remote_server_enabled: true });
+                        } catch (_) {
+                          // user dismissed the browser flow; stay signed-out
+                        }
+                      }}
+                    >
+                      {t("settings.remoteServerSignInBtn")}
+                    </button>
+                  </span>
+                }
+              >
+                <span class="setting-hint">{t("settings.remoteServerEnabledHint")}</span>
+              </Show>
             </div>
           </div>
 

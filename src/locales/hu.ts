@@ -243,7 +243,7 @@ const hu: Record<string, string> = {
   "titlebar.minimize": "Kis méret",
   "titlebar.close": "Bezárás",
 
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatikus felismeres",
@@ -501,6 +501,11 @@ const hu: Record<string, string> = {
   "login.creditsResetsAt": "Visszaállítás: {date}",
   "login.upgrade": "Frissítés",
   "login.manageAccount": "Fiók kezelése",
+  "settings.remoteServerSignInHint": "Jelentkezzen be a felhő-átírás engedélyezéséhez.",
+  "settings.remoteServerSignInBtn": "Bejelentkezés",
+  "login.promptTitle": "Bejelentkezés az Impertio Accountsba",
+  "login.promptBody": "A Bejelentkezés gombra kattintva megnyílik a rendszer böngészője. Miután ott bejelentkezett, ez az ablak automatikusan átveszi a munkamenetet.",
+  "login.createAccount": "Nincs fiókja? Hozzon létre egyet",
 };
 
 export default hu;

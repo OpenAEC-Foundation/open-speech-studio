@@ -243,7 +243,7 @@ const ko: Record<string, string> = {
   "titlebar.minimize": "최소화",
   "titlebar.close": "닫기",
 
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "자동 감지",
@@ -501,6 +501,11 @@ const ko: Record<string, string> = {
   "login.creditsResetsAt": "{date}에 재설정",
   "login.upgrade": "업그레이드",
   "login.manageAccount": "계정 관리",
+  "settings.remoteServerSignInHint": "클라우드 전사를 활성화하려면 로그인하세요.",
+  "settings.remoteServerSignInBtn": "로그인",
+  "login.promptTitle": "Impertio Accounts에 로그인",
+  "login.promptBody": "로그인을 클릭하면 시스템 브라우저가 열립니다. 그곳에서 로그인하면 이 창이 자동으로 세션을 이어받습니다.",
+  "login.createAccount": "계정이 없으신가요? 만들기",
 };
 
 export default ko;

@@ -243,7 +243,7 @@ const tr: Record<string, string> = {
   "titlebar.minimize": "Küçült",
   "titlebar.close": "Kapat",
 
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Otomatik algıla",
@@ -501,6 +501,11 @@ const tr: Record<string, string> = {
   "login.creditsResetsAt": "Sıfırlanma: {date}",
   "login.upgrade": "Yükselt",
   "login.manageAccount": "Hesabı yönet",
+  "settings.remoteServerSignInHint": "Bulut transkripsiyonunu etkinleştirmek için giriş yapın.",
+  "settings.remoteServerSignInBtn": "Giriş yap",
+  "login.promptTitle": "Impertio Accounts'a giriş yap",
+  "login.promptBody": "Giriş yap'a tıklamak sistem tarayıcınızı açar. Orada giriş yaptıktan sonra bu pencere oturumu otomatik olarak devralır.",
+  "login.createAccount": "Hesabınız yok mu? Oluşturun",
 };
 
 export default tr;

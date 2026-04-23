@@ -243,7 +243,7 @@ const ro: Record<string, string> = {
   "titlebar.minimize": "Minimizare",
   "titlebar.close": "Închide",
 
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Detectare automat\u0103",
@@ -501,6 +501,11 @@ const ro: Record<string, string> = {
   "login.creditsResetsAt": "Resetare {date}",
   "login.upgrade": "Actualizează",
   "login.manageAccount": "Gestionează contul",
+  "settings.remoteServerSignInHint": "Conectați-vă pentru a activa transcrierea în cloud.",
+  "settings.remoteServerSignInBtn": "Conectare",
+  "login.promptTitle": "Conectare la Impertio Accounts",
+  "login.promptBody": "Făcând clic pe Conectare se va deschide browserul sistemului. După ce vă conectați acolo, această fereastră va prelua automat sesiunea.",
+  "login.createAccount": "Nu aveți cont? Creați unul",
 };
 
 export default ro;

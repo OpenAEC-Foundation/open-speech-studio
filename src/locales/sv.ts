@@ -243,7 +243,7 @@ const sv: Record<string, string> = {
   "titlebar.minimize": "Minimera",
   "titlebar.close": "Stäng",
 
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk identifiering",
@@ -501,6 +501,11 @@ const sv: Record<string, string> = {
   "login.creditsResetsAt": "Återställs {date}",
   "login.upgrade": "Uppgradera",
   "login.manageAccount": "Hantera konto",
+  "settings.remoteServerSignInHint": "Logga in för att aktivera molntranskribering.",
+  "settings.remoteServerSignInBtn": "Logga in",
+  "login.promptTitle": "Logga in på Impertio Accounts",
+  "login.promptBody": "Om du klickar på Logga in öppnas systemwebbläsaren. När du loggat in där tar det här fönstret automatiskt över sessionen.",
+  "login.createAccount": "Inget konto? Skapa ett",
 };
 
 export default sv;

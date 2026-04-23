@@ -105,6 +105,8 @@ const en: Record<string, string> = {
   "settings.fileConfirmDisabled": "Cancel and remove without asking",
   "settings.remoteServerEnabled": "Use remote server",
   "settings.remoteServerEnabledHint": "Send file transcriptions to a remote GPU server instead of running locally",
+  "settings.remoteServerSignInHint": "Sign in to enable cloud transcription.",
+  "settings.remoteServerSignInBtn": "Sign in",
   "settings.save": "Save",
   "settings.display": "Display",
   "settings.uiLanguage": "Interface language",
@@ -291,7 +293,7 @@ const en: Record<string, string> = {
   "titlebar.close": "Close",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Auto-detect",
@@ -519,6 +521,9 @@ const en: Record<string, string> = {
   "login.notConfigured": "Login not configured — ask the operator for the client_id and fill it into src-tauri/src/auth.rs.",
   "login.signedInAs": "Signed in as",
   "login.signOut": "Sign out",
+  "login.promptTitle": "Sign in to Impertio Accounts",
+  "login.promptBody": "Clicking Sign in opens your system browser. After you sign in there, this window will pick up the session automatically.",
+  "login.createAccount": "Don't have an account? Create one",
   "login.plan": "Plan",
   "login.planFree": "Free",
   "login.planPro": "Pro",

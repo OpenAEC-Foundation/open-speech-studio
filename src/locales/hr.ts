@@ -243,7 +243,7 @@ const hr: Record<string, string> = {
   "titlebar.close": "Zatvori",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatsko prepoznavanje",
@@ -501,6 +501,11 @@ const hr: Record<string, string> = {
   "login.creditsResetsAt": "Resetira se {date}",
   "login.upgrade": "Nadogradi",
   "login.manageAccount": "Upravljaj računom",
+  "settings.remoteServerSignInHint": "Prijavite se za omogućavanje transkripcije u oblaku.",
+  "settings.remoteServerSignInBtn": "Prijavi se",
+  "login.promptTitle": "Prijava na Impertio Accounts",
+  "login.promptBody": "Klikom na Prijava otvara se vaš sustav preglednik. Nakon prijave tamo, ovaj prozor automatski preuzima sesiju.",
+  "login.createAccount": "Nemate račun? Stvorite ga",
 };
 
 export default hr;

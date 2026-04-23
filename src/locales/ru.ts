@@ -243,7 +243,7 @@ const ru: Record<string, string> = {
   "titlebar.minimize": "Свернуть",
   "titlebar.close": "Закрыть",
 
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Автоопределение",
@@ -501,6 +501,11 @@ const ru: Record<string, string> = {
   "login.creditsResetsAt": "Обновление {date}",
   "login.upgrade": "Улучшить",
   "login.manageAccount": "Управление аккаунтом",
+  "settings.remoteServerSignInHint": "Войдите, чтобы включить облачную транскрипцию.",
+  "settings.remoteServerSignInBtn": "Войти",
+  "login.promptTitle": "Войти в Impertio Accounts",
+  "login.promptBody": "При нажатии Войти откроется системный браузер. После входа это окно автоматически подхватит сессию.",
+  "login.createAccount": "Нет учётной записи? Создайте её",
 };
 
 export default ru;

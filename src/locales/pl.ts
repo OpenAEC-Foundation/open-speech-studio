@@ -243,7 +243,7 @@ const pl: Record<string, string> = {
   "titlebar.close": "Zamknij",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatyczne wykrywanie",
@@ -501,6 +501,11 @@ const pl: Record<string, string> = {
   "login.creditsResetsAt": "Reset {date}",
   "login.upgrade": "Ulepsz",
   "login.manageAccount": "Zarządzaj kontem",
+  "settings.remoteServerSignInHint": "Zaloguj się, aby włączyć transkrypcję w chmurze.",
+  "settings.remoteServerSignInBtn": "Zaloguj się",
+  "login.promptTitle": "Zaloguj się do Impertio Accounts",
+  "login.promptBody": "Kliknięcie Zaloguj się otworzy przeglądarkę systemową. Po zalogowaniu to okno automatycznie przejmie sesję.",
+  "login.createAccount": "Nie masz konta? Utwórz je",
 };
 
 export default pl;

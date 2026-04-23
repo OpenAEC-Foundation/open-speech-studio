@@ -105,6 +105,8 @@ const nl: Record<string, string> = {
   "settings.fileConfirmDisabled": "Annuleren en verwijderen zonder te vragen",
   "settings.remoteServerEnabled": "Gebruik externe server",
   "settings.remoteServerEnabledHint": "Stuur bestandstranscripties naar een externe GPU-server in plaats van lokaal te draaien",
+  "settings.remoteServerSignInHint": "Meld u aan om cloudtranscriptie in te schakelen.",
+  "settings.remoteServerSignInBtn": "Aanmelden",
   "settings.save": "Opslaan",
   "settings.display": "Weergave",
   "settings.uiLanguage": "Interfacetaal",
@@ -291,7 +293,7 @@ const nl: Record<string, string> = {
   "titlebar.close": "Sluiten",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Automatisch detecteren",
@@ -519,6 +521,9 @@ const nl: Record<string, string> = {
   "login.notConfigured": "Aanmelding niet geconfigureerd — vraag de operator om de client_id en vul die in src-tauri/src/auth.rs.",
   "login.signedInAs": "Aangemeld als",
   "login.signOut": "Afmelden",
+  "login.promptTitle": "Aanmelden bij Impertio Accounts",
+  "login.promptBody": "Als u op Aanmelden klikt, wordt uw systeembrowser geopend. Nadat u daar bent ingelogd, neemt dit venster de sessie automatisch over.",
+  "login.createAccount": "Nog geen account? Maak er een aan",
   "login.plan": "Abonnement",
   "login.planFree": "Gratis",
   "login.planPro": "Pro",

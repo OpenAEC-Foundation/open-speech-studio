@@ -243,7 +243,7 @@ const bg: Record<string, string> = {
   "titlebar.close": "Затваряне",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0435",
@@ -501,6 +501,11 @@ const bg: Record<string, string> = {
   "login.creditsResetsAt": "Нулиране {date}",
   "login.upgrade": "Надстройте",
   "login.manageAccount": "Управление на акаунта",
+  "settings.remoteServerSignInHint": "Влезте, за да активирате облачна транскрипция.",
+  "settings.remoteServerSignInBtn": "Влизане",
+  "login.promptTitle": "Влизане в Impertio Accounts",
+  "login.promptBody": "Кликването върху Влизане отваря системния браузър. След като влезете там, този прозорец автоматично ще поеме сесията.",
+  "login.createAccount": "Нямате акаунт? Създайте го",
 };
 
 export default bg;

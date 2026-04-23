@@ -243,7 +243,7 @@ const da: Record<string, string> = {
   "titlebar.close": "Luk",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk genkendelse",
@@ -501,6 +501,11 @@ const da: Record<string, string> = {
   "login.creditsResetsAt": "Nulstilles {date}",
   "login.upgrade": "Opgrader",
   "login.manageAccount": "Administrer konto",
+  "settings.remoteServerSignInHint": "Log ind for at aktivere cloud-transskribering.",
+  "settings.remoteServerSignInBtn": "Log ind",
+  "login.promptTitle": "Log ind på Impertio Accounts",
+  "login.promptBody": "Ved at klikke på Log ind åbnes din systembrowser. Når du er logget ind dér, overtager dette vindue automatisk sessionen.",
+  "login.createAccount": "Ingen konto? Opret en",
 };
 
 export default da;
