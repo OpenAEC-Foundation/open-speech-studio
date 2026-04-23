@@ -1,22 +1,21 @@
-name: Build & Release
+name: Release
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # ── 1. Quick check ────────────────────────────────────────
+  # ── 1. Pre-flight check ───────────────────────────────────
+  # Fail fast before we burn 3h of multi-platform build time on code
+  # that doesn't even compile.
   check:
     name: Check
     runs-on: ubuntu-latest
@@ -34,13 +33,8 @@ jobs:
       - run: npm run build
 
   # ── 2. Build installers ───────────────────────────────────
-  # Installers are expensive (~3h multi-platform matrix). Only build them
-  # when we're actually cutting a release (tag push) or when an operator
-  # manually triggers the workflow. Main-branch pushes get the cheap
-  # `check` job above and nothing else.
   build:
     needs: check
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -206,9 +200,9 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  # ── 3. Publish release ────────────────────────────────────
-  # Tag-only. Released as a draft so the operator can review/edit notes
-  # before making it public.
+  # ── 3. Publish draft release ──────────────────────────────
+  # Creates a DRAFT so the operator can review/edit notes before going
+  # public. Only runs for tag pushes, not manual dispatch.
   publish:
     name: Publish Release
     needs: build
