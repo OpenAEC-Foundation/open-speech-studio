@@ -930,12 +930,11 @@ fn start_remote_file_job(
     language: String,
     dict: dictionary::Dictionary,
 ) -> Result<(), String> {
-    // Server splits transcription into three ops by max audio length:
-    //   .short (≤60s), .long (≤10min), .huge (≤60min).
-    // We try .long first (covers the common dictation/meeting case at the
-    // cheaper credit rate); on 413 audio_too_long we auto-retry with .huge
-    // if the server-reported duration still fits that tier.
-    let base = base_url.trim_end_matches('/').to_string();
+    // Single-endpoint transcribe: the AI server probes the file's duration
+    // on arrival and picks the correct op tier (short/long/huge) internally,
+    // so the client never sees or cares about credit buckets. No retry
+    // dance, no double billing on mis-sized files.
+    let url = format!("{}/api/v1/transcribe", base_url.trim_end_matches('/'));
 
     {
         let mut jobs = file_jobs.lock().map_err(|e| e.to_string())?;
@@ -944,21 +943,7 @@ fn start_remote_file_job(
 
     tokio::spawn(async move {
         let start = std::time::Instant::now();
-        let url_long = format!("{base}/api/v1/transcribe.long");
-        let mut result = upload_to_remote(&url_long, &token, &file_path, &language).await;
-
-        if let Err(err) = &result {
-            if let Some(actual) = parse_audio_too_long(err) {
-                if actual <= 3600.0 {
-                    log::info!(
-                        "[remote] audio is {actual:.1}s — retrying on transcribe.huge"
-                    );
-                    let url_huge = format!("{base}/api/v1/transcribe.huge");
-                    result = upload_to_remote(&url_huge, &token, &file_path, &language).await;
-                }
-            }
-        }
-
+        let result = upload_to_remote(&url, &token, &file_path, &language).await;
         let duration_ms = start.elapsed().as_millis() as u64;
 
         if let Ok(mut jobs) = file_jobs.lock() {
@@ -995,23 +980,6 @@ fn start_remote_file_job(
 
 fn is_discoverable_failure(err: &str) -> bool {
     err.starts_with("Network error") || err.contains("Server returned 5")
-}
-
-/// Extract `actual_seconds` from a server error body that looks like
-/// `{"error_code":"audio_too_long", ..., "actual_seconds":740.3}` so the
-/// caller can decide whether to retry on the next tier (`.huge`, ≤60 min).
-fn parse_audio_too_long(err: &str) -> Option<f64> {
-    if !err.contains("audio_too_long") {
-        return None;
-    }
-    let start = err.find("\"actual_seconds\"")?;
-    let after = &err[start..];
-    let colon = after.find(':')?;
-    let tail = after[colon + 1..].trim_start();
-    let end = tail
-        .find(|c: char| c != '-' && c != '.' && !c.is_ascii_digit())
-        .unwrap_or(tail.len());
-    tail[..end].parse::<f64>().ok()
 }
 
 async fn upload_to_remote(
