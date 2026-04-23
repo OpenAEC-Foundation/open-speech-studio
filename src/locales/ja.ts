@@ -243,7 +243,7 @@ const ja: Record<string, string> = {
   "titlebar.close": "閉じる",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "自動検出",
@@ -482,6 +482,25 @@ const ja: Record<string, string> = {
   "settings.speakerNoProfiles": "音声プロファイルが作成されていません。",
   "settings.speakerNewProfile": "+ 新しい音声プロファイル",
   "overlay.likeSound": "この音を評価",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Impertio アカウントでサインイン",
+  "login.signIn": "サインイン",
+  "login.signUp": "アカウント作成",
+  "login.loading": "ブラウザを開いています…",
+  "login.browserHint": "サインインを完了するためにブラウザが開きます。",
+  "login.notConfigured": "サインインが未設定です — 運営者から client_id を取得し、src-tauri/src/auth.rs に記入してください。",
+  "login.signedInAs": "サインイン中:",
+  "login.signOut": "サインアウト",
+  "login.plan": "プラン",
+  "login.planFree": "無料",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "クレジット",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "{date} にリセット",
+  "login.upgrade": "アップグレード",
+  "login.manageAccount": "アカウント管理",
 };
 
 export default ja;

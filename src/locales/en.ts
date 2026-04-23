@@ -103,6 +103,8 @@ const en: Record<string, string> = {
   "settings.fileConfirmActions": "Confirm cancel & remove",
   "settings.fileConfirmEnabled": "Ask for confirmation before cancelling or removing jobs",
   "settings.fileConfirmDisabled": "Cancel and remove without asking",
+  "settings.remoteServerEnabled": "Use remote server",
+  "settings.remoteServerEnabledHint": "Send file transcriptions to a remote GPU server instead of running locally",
   "settings.save": "Save",
   "settings.display": "Display",
   "settings.uiLanguage": "Interface language",
@@ -289,7 +291,7 @@ const en: Record<string, string> = {
   "titlebar.close": "Close",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Auto-detect",
@@ -507,6 +509,25 @@ const en: Record<string, string> = {
   "settings.speakerNoProfiles": "No voice profiles created.",
   "settings.speakerNewProfile": "+ New voice profile",
   "overlay.likeSound": "Like this sound",
+
+  // ── Login ───────────────────────────────────────────────
+  "login.subtitle": "Sign in with your Impertio account",
+  "login.signIn": "Sign in",
+  "login.signUp": "Create account",
+  "login.loading": "Opening browser…",
+  "login.browserHint": "Your browser will open to complete sign-in.",
+  "login.notConfigured": "Login not configured — ask the operator for the client_id and fill it into src-tauri/src/auth.rs.",
+  "login.signedInAs": "Signed in as",
+  "login.signOut": "Sign out",
+  "login.plan": "Plan",
+  "login.planFree": "Free",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "credits",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Resets {date}",
+  "login.upgrade": "Upgrade",
+  "login.manageAccount": "Manage account",
 };
 
 export default en;

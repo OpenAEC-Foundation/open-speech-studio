@@ -1,6 +1,6 @@
 [package]
 name = "open-speech-studio"
-version = "0.8.0"
+version = "0.9.0"
 description = "Open source local AI speech-to-text"
 authors = ["OpenAEC Foundation"]
 license = "Apache-2.0"
@@ -38,6 +38,13 @@ chrono = { version = "0.4", features = ["serde"] }
 symphonia = { version = "0.5", default-features = false, features = ["mp3", "aac", "flac", "wav", "pcm"] }
 ort = { version = "=2.0.0-rc.11", default-features = false, features = ["std", "ndarray", "load-dynamic"] }
 ndarray = "0.17"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "multipart", "json"] }
+oauth2 = { version = "4", default-features = false, features = ["reqwest", "rustls-tls"] }
+tiny_http = "0.12"
+url = "2"
+rand = "0.8"
+sha2 = "0.10"
+base64 = "0.22"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.60", features = ["Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Foundation"] }

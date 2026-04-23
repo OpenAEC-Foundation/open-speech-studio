@@ -103,6 +103,8 @@ const nl: Record<string, string> = {
   "settings.fileConfirmActions": "Bevestig annuleren & verwijderen",
   "settings.fileConfirmEnabled": "Vraag bevestiging voor annuleren of verwijderen van taken",
   "settings.fileConfirmDisabled": "Annuleren en verwijderen zonder te vragen",
+  "settings.remoteServerEnabled": "Gebruik externe server",
+  "settings.remoteServerEnabledHint": "Stuur bestandstranscripties naar een externe GPU-server in plaats van lokaal te draaien",
   "settings.save": "Opslaan",
   "settings.display": "Weergave",
   "settings.uiLanguage": "Interfacetaal",
@@ -289,7 +291,7 @@ const nl: Record<string, string> = {
   "titlebar.close": "Sluiten",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Automatisch detecteren",
@@ -507,6 +509,25 @@ const nl: Record<string, string> = {
   "settings.speakerNoProfiles": "Geen stemprofielen aangemaakt.",
   "settings.speakerNewProfile": "+ Nieuw stemprofiel",
   "overlay.likeSound": "Dit geluid leuk vinden",
+
+  // ── Login ───────────────────────────────────────────────
+  "login.subtitle": "Meld je aan met je Impertio-account",
+  "login.signIn": "Aanmelden",
+  "login.signUp": "Account aanmaken",
+  "login.loading": "Browser openen…",
+  "login.browserHint": "Je browser opent om de aanmelding te voltooien.",
+  "login.notConfigured": "Aanmelding niet geconfigureerd — vraag de operator om de client_id en vul die in src-tauri/src/auth.rs.",
+  "login.signedInAs": "Aangemeld als",
+  "login.signOut": "Afmelden",
+  "login.plan": "Abonnement",
+  "login.planFree": "Gratis",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "credits",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Reset op {date}",
+  "login.upgrade": "Upgraden",
+  "login.manageAccount": "Account beheren",
 };
 
 export default nl;

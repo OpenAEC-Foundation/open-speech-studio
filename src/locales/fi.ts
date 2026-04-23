@@ -243,7 +243,7 @@ const fi: Record<string, string> = {
   "titlebar.close": "Sulje",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automaattinen tunnistus",
@@ -482,6 +482,25 @@ const fi: Record<string, string> = {
   "settings.speakerNoProfiles": "Ei luotuja ääniprofiileja.",
   "settings.speakerNewProfile": "+ Uusi ääniprofiili",
   "overlay.likeSound": "Pidän tästä äänestä",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Kirjaudu Impertio-tilillä",
+  "login.signIn": "Kirjaudu sisään",
+  "login.signUp": "Luo tili",
+  "login.loading": "Avataan selainta…",
+  "login.browserHint": "Selain avautuu kirjautumisen viimeistelemiseksi.",
+  "login.notConfigured": "Kirjautumista ei ole määritetty — pyydä client_id operaattorilta ja lisää se tiedostoon src-tauri/src/auth.rs.",
+  "login.signedInAs": "Kirjautunut käyttäjänä",
+  "login.signOut": "Kirjaudu ulos",
+  "login.plan": "Tilaus",
+  "login.planFree": "Ilmainen",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "krediittejä",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Nollautuu {date}",
+  "login.upgrade": "Päivitä",
+  "login.manageAccount": "Hallitse tiliä",
 };
 
 export default fi;

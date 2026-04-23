@@ -243,7 +243,7 @@ const hr: Record<string, string> = {
   "titlebar.close": "Zatvori",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatsko prepoznavanje",
@@ -482,6 +482,25 @@ const hr: Record<string, string> = {
   "settings.speakerNoProfiles": "Nisu kreirani glasovni profili.",
   "settings.speakerNewProfile": "+ Novi glasovni profil",
   "overlay.likeSound": "Sviđa mi se ovaj zvuk",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Prijavite se računom Impertio",
+  "login.signIn": "Prijava",
+  "login.signUp": "Stvori račun",
+  "login.loading": "Otvaranje preglednika…",
+  "login.browserHint": "Otvorit će se preglednik za dovršetak prijave.",
+  "login.notConfigured": "Prijava nije konfigurirana — zatražite client_id od operatera i unesite ga u src-tauri/src/auth.rs.",
+  "login.signedInAs": "Prijavljeni kao",
+  "login.signOut": "Odjava",
+  "login.plan": "Plan",
+  "login.planFree": "Besplatan",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "krediti",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Resetira se {date}",
+  "login.upgrade": "Nadogradi",
+  "login.manageAccount": "Upravljaj računom",
 };
 
 export default hr;

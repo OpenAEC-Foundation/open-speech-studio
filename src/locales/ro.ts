@@ -243,7 +243,7 @@ const ro: Record<string, string> = {
   "titlebar.minimize": "Minimizare",
   "titlebar.close": "Închide",
 
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Detectare automat\u0103",
@@ -482,6 +482,25 @@ const ro: Record<string, string> = {
   "settings.speakerNoProfiles": "Nu au fost create profiluri vocale.",
   "settings.speakerNewProfile": "+ Profil vocal nou",
   "overlay.likeSound": "Îmi place acest sunet",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Conectează-te cu contul Impertio",
+  "login.signIn": "Conectare",
+  "login.signUp": "Creează cont",
+  "login.loading": "Se deschide browserul…",
+  "login.browserHint": "Se va deschide browserul pentru a finaliza conectarea.",
+  "login.notConfigured": "Conectarea nu este configurată — cere client_id de la operator și completează-l în src-tauri/src/auth.rs.",
+  "login.signedInAs": "Conectat ca",
+  "login.signOut": "Deconectare",
+  "login.plan": "Plan",
+  "login.planFree": "Gratuit",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "credite",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Resetare {date}",
+  "login.upgrade": "Actualizează",
+  "login.manageAccount": "Gestionează contul",
 };
 
 export default ro;

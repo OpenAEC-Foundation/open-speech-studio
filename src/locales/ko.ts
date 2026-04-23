@@ -243,7 +243,7 @@ const ko: Record<string, string> = {
   "titlebar.minimize": "최소화",
   "titlebar.close": "닫기",
 
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "자동 감지",
@@ -482,6 +482,25 @@ const ko: Record<string, string> = {
   "settings.speakerNoProfiles": "음성 프로필이 없습니다.",
   "settings.speakerNewProfile": "+ 새 음성 프로필",
   "overlay.likeSound": "이 소리 좋아요",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Impertio 계정으로 로그인",
+  "login.signIn": "로그인",
+  "login.signUp": "계정 만들기",
+  "login.loading": "브라우저를 여는 중…",
+  "login.browserHint": "로그인을 완료하려면 브라우저가 열립니다.",
+  "login.notConfigured": "로그인이 설정되지 않았습니다 — 운영자에게 client_id를 받아 src-tauri/src/auth.rs에 입력하세요.",
+  "login.signedInAs": "로그인됨:",
+  "login.signOut": "로그아웃",
+  "login.plan": "요금제",
+  "login.planFree": "무료",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "크레딧",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "{date}에 재설정",
+  "login.upgrade": "업그레이드",
+  "login.manageAccount": "계정 관리",
 };
 
 export default ko;

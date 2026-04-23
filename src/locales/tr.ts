@@ -243,7 +243,7 @@ const tr: Record<string, string> = {
   "titlebar.minimize": "Küçült",
   "titlebar.close": "Kapat",
 
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Otomatik algıla",
@@ -482,6 +482,25 @@ const tr: Record<string, string> = {
   "settings.speakerNoProfiles": "Ses profili oluşturulmadı.",
   "settings.speakerNewProfile": "+ Yeni ses profili",
   "overlay.likeSound": "Bu sesi beğen",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Impertio hesabınla oturum aç",
+  "login.signIn": "Oturum aç",
+  "login.signUp": "Hesap oluştur",
+  "login.loading": "Tarayıcı açılıyor…",
+  "login.browserHint": "Oturum açmayı tamamlamak için tarayıcı açılacak.",
+  "login.notConfigured": "Oturum açma yapılandırılmadı — operatörden client_id iste ve src-tauri/src/auth.rs dosyasına gir.",
+  "login.signedInAs": "Oturum açıldı:",
+  "login.signOut": "Çıkış yap",
+  "login.plan": "Plan",
+  "login.planFree": "Ücretsiz",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "kredi",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Sıfırlanma: {date}",
+  "login.upgrade": "Yükselt",
+  "login.manageAccount": "Hesabı yönet",
 };
 
 export default tr;

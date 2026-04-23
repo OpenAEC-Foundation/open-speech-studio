@@ -243,7 +243,7 @@ const uk: Record<string, string> = {
   "titlebar.minimize": "Згорнути",
   "titlebar.close": "Закрити",
 
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0410\u0432\u0442\u043E\u0432\u0438\u0437\u043D\u0430\u0447\u0435\u043D\u043D\u044F",
@@ -482,6 +482,25 @@ const uk: Record<string, string> = {
   "settings.speakerNoProfiles": "Голосові профілі не створено.",
   "settings.speakerNewProfile": "+ Новий голосовий профіль",
   "overlay.likeSound": "Подобається цей звук",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Увійдіть в обліковий запис Impertio",
+  "login.signIn": "Увійти",
+  "login.signUp": "Створити обліковий запис",
+  "login.loading": "Відкриваємо браузер…",
+  "login.browserHint": "Відкриється браузер для завершення входу.",
+  "login.notConfigured": "Вхід не налаштовано — запитайте client_id в оператора й додайте його в src-tauri/src/auth.rs.",
+  "login.signedInAs": "Ви увійшли як",
+  "login.signOut": "Вийти",
+  "login.plan": "Тариф",
+  "login.planFree": "Безкоштовний",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "кредити",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Оновлення {date}",
+  "login.upgrade": "Оновити",
+  "login.manageAccount": "Керувати обліковим записом",
 };
 
 export default uk;

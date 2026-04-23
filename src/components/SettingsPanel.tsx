@@ -63,6 +63,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [floatingIndicator, setFloatingIndicator] = createSignal(true);
   const [soundPack, setSoundPack] = createSignal("retro");
   const [soundVolume, setSoundVolume] = createSignal(80);
+  const [remoteServerEnabled, setRemoteServerEnabled] = createSignal(false);
   const [speakerProfiles, setSpeakerProfiles] = createSignal<string[]>([]);
   const [showVoiceTraining, setShowVoiceTraining] = createSignal(false);
 
@@ -96,6 +97,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setFloatingIndicator(props.settings.floating_indicator ?? true);
       setSoundPack(props.settings.sound_pack ?? "retro");
       setSoundVolume(props.settings.sound_volume ?? 80);
+      setRemoteServerEnabled(props.settings.remote_server_enabled ?? false);
       const parsed = parseHotkey(props.settings.hotkey || "Ctrl+Super");
       setKey1(parsed.key1);
       setKey2(parsed.key2);
@@ -615,6 +617,22 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               </span>
             </div>
           </div>
+
+          <div class="setting-row">
+            <label>{t("settings.remoteServerEnabled")}</label>
+            <div class="toggle-group">
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  checked={remoteServerEnabled()}
+                  onChange={(e) => { setRemoteServerEnabled(e.target.checked); autoSave({ remote_server_enabled: e.target.checked }); }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <span class="setting-hint">{t("settings.remoteServerEnabledHint")}</span>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

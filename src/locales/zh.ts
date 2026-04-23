@@ -243,7 +243,7 @@ const zh: Record<string, string> = {
   "titlebar.close": "关闭",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "自动检测",
@@ -482,6 +482,25 @@ const zh: Record<string, string> = {
   "settings.speakerNoProfiles": "未创建语音配置文件。",
   "settings.speakerNewProfile": "+ 新建语音配置文件",
   "overlay.likeSound": "喜欢这个声音",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "使用 Impertio 账号登录",
+  "login.signIn": "登录",
+  "login.signUp": "创建账号",
+  "login.loading": "正在打开浏览器…",
+  "login.browserHint": "将打开浏览器以完成登录。",
+  "login.notConfigured": "登录未配置 — 向运营方索取 client_id，并填入 src-tauri/src/auth.rs。",
+  "login.signedInAs": "已登录:",
+  "login.signOut": "退出登录",
+  "login.plan": "方案",
+  "login.planFree": "免费",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "积分",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "{date} 重置",
+  "login.upgrade": "升级",
+  "login.manageAccount": "管理账户",
 };
 
 export default zh;

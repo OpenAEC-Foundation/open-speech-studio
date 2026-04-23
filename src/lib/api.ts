@@ -22,6 +22,7 @@ export interface Settings {
   floating_indicator?: boolean;
   sound_pack?: string;
   sound_volume?: number;
+  remote_server_enabled?: boolean;
 }
 
 export interface ModelInfo {
@@ -590,3 +591,69 @@ const browserApi = {
 };
 
 export const api = isTauri ? tauriApi : browserApi;
+
+// ─── Auth ────────────────────────────────────────────────────
+
+export interface UserProfile {
+  sub: string;
+  email?: string;
+  name?: string;
+  picture?: string;
+}
+
+export type SubscriptionTier = "free" | "pro" | "studio";
+export type SubscriptionStatus =
+  | "active"
+  | "canceled"
+  | "past_due"
+  | "unpaid"
+  | "trialing"
+  | "incomplete";
+
+export interface Subscription {
+  tier?: SubscriptionTier;
+  status?: SubscriptionStatus;
+}
+
+export interface Credits {
+  total: number;
+  monthly: number;
+  topup: number;
+  resets_at?: string | null;
+}
+
+export interface UserInfo {
+  sub: string;
+  email?: string | null;
+  email_verified?: boolean | null;
+  name?: string | null;
+  picture?: string | null;
+  subscription?: Subscription | null;
+  credits?: Credits | null;
+}
+
+export const auth = {
+  isConfigured: () => tauriInvoke<boolean>("auth_is_configured"),
+  login: () => tauriInvoke<UserProfile>("auth_login"),
+  logout: () => tauriInvoke<void>("auth_logout"),
+  currentUser: () => tauriInvoke<UserProfile | null>("auth_current_user"),
+  getAccessToken: () => tauriInvoke<string | null>("auth_get_access_token"),
+  userInfo: () => tauriInvoke<UserInfo>("auth_userinfo"),
+};
+
+// ─── App config (service discovery) ─────────────────────────
+
+export interface AiServer {
+  url: string;
+}
+
+export interface AppConfig {
+  client_id?: string | null;
+  ai_servers: AiServer[];
+  operations: unknown;
+}
+
+export const appConfig = {
+  get: () => tauriInvoke<AppConfig>("get_app_config"),
+  invalidate: () => tauriInvoke<void>("invalidate_app_config"),
+};

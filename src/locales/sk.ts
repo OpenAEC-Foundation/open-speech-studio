@@ -243,7 +243,7 @@ const sk: Record<string, string> = {
   "titlebar.close": "Zavrieť",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatick\u00E9 rozpoznanie",
@@ -482,6 +482,25 @@ const sk: Record<string, string> = {
   "settings.speakerNoProfiles": "Neboli vytvorené žiadne hlasové profily.",
   "settings.speakerNewProfile": "+ Nový hlasový profil",
   "overlay.likeSound": "Páči sa mi tento zvuk",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Prihláste sa účtom Impertio",
+  "login.signIn": "Prihlásiť sa",
+  "login.signUp": "Vytvoriť účet",
+  "login.loading": "Otváranie prehliadača…",
+  "login.browserHint": "Otvorí sa prehliadač na dokončenie prihlásenia.",
+  "login.notConfigured": "Prihlásenie nie je nakonfigurované — vyžiadajte si client_id od operátora a vyplňte ho v src-tauri/src/auth.rs.",
+  "login.signedInAs": "Prihlásený ako",
+  "login.signOut": "Odhlásiť sa",
+  "login.plan": "Plán",
+  "login.planFree": "Zdarma",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "kredity",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Obnovenie {date}",
+  "login.upgrade": "Vylepšiť",
+  "login.manageAccount": "Spravovať účet",
 };
 
 export default sk;

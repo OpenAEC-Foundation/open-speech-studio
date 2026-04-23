@@ -243,7 +243,7 @@ const ru: Record<string, string> = {
   "titlebar.minimize": "Свернуть",
   "titlebar.close": "Закрыть",
 
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Автоопределение",
@@ -482,6 +482,25 @@ const ru: Record<string, string> = {
   "settings.speakerNoProfiles": "Голосовые профили не созданы.",
   "settings.speakerNewProfile": "+ Новый голосовой профиль",
   "overlay.likeSound": "Нравится этот звук",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Войдите с аккаунтом Impertio",
+  "login.signIn": "Войти",
+  "login.signUp": "Создать аккаунт",
+  "login.loading": "Открываем браузер…",
+  "login.browserHint": "Откроется браузер для завершения входа.",
+  "login.notConfigured": "Вход не настроен — запросите client_id у оператора и укажите его в src-tauri/src/auth.rs.",
+  "login.signedInAs": "Вы вошли как",
+  "login.signOut": "Выйти",
+  "login.plan": "Тариф",
+  "login.planFree": "Бесплатный",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "кредиты",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Обновление {date}",
+  "login.upgrade": "Улучшить",
+  "login.manageAccount": "Управление аккаунтом",
 };
 
 export default ru;

@@ -243,7 +243,7 @@ const pl: Record<string, string> = {
   "titlebar.close": "Zamknij",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatyczne wykrywanie",
@@ -482,6 +482,25 @@ const pl: Record<string, string> = {
   "settings.speakerNoProfiles": "Nie utworzono profili głosowych.",
   "settings.speakerNewProfile": "+ Nowy profil głosowy",
   "overlay.likeSound": "Polub ten dźwięk",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Zaloguj się kontem Impertio",
+  "login.signIn": "Zaloguj się",
+  "login.signUp": "Utwórz konto",
+  "login.loading": "Otwieram przeglądarkę…",
+  "login.browserHint": "Otworzy się przeglądarka, aby dokończyć logowanie.",
+  "login.notConfigured": "Logowanie nie skonfigurowane — poproś operatora o client_id i wpisz go w src-tauri/src/auth.rs.",
+  "login.signedInAs": "Zalogowano jako",
+  "login.signOut": "Wyloguj się",
+  "login.plan": "Plan",
+  "login.planFree": "Darmowy",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "kredyty",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Reset {date}",
+  "login.upgrade": "Ulepsz",
+  "login.manageAccount": "Zarządzaj kontem",
 };
 
 export default pl;

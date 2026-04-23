@@ -243,7 +243,7 @@ const hu: Record<string, string> = {
   "titlebar.minimize": "Kis méret",
   "titlebar.close": "Bezárás",
 
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatikus felismeres",
@@ -482,6 +482,25 @@ const hu: Record<string, string> = {
   "settings.speakerNoProfiles": "Nincsenek létrehozott hangprofilok.",
   "settings.speakerNewProfile": "+ Új hangprofil",
   "overlay.likeSound": "Tetszik ez a hang",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Jelentkezz be az Impertio fiókoddal",
+  "login.signIn": "Bejelentkezés",
+  "login.signUp": "Fiók létrehozása",
+  "login.loading": "Böngésző megnyitása…",
+  "login.browserHint": "A böngésző megnyílik a bejelentkezés befejezéséhez.",
+  "login.notConfigured": "A bejelentkezés nincs beállítva — kérd a client_id értékét az üzemeltetőtől, és írd be a src-tauri/src/auth.rs fájlba.",
+  "login.signedInAs": "Bejelentkezve mint",
+  "login.signOut": "Kijelentkezés",
+  "login.plan": "Csomag",
+  "login.planFree": "Ingyenes",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "kreditek",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Visszaállítás: {date}",
+  "login.upgrade": "Frissítés",
+  "login.manageAccount": "Fiók kezelése",
 };
 
 export default hu;

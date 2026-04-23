@@ -243,7 +243,7 @@ const bg: Record<string, string> = {
   "titlebar.close": "Затваряне",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u043D\u043E \u0440\u0430\u0437\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0435",
@@ -482,6 +482,25 @@ const bg: Record<string, string> = {
   "settings.speakerNoProfiles": "Не са създадени гласови профили.",
   "settings.speakerNewProfile": "+ Нов гласов профил",
   "overlay.likeSound": "Харесвам този звук",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Влезте с вашия акаунт в Impertio",
+  "login.signIn": "Вход",
+  "login.signUp": "Създаване на акаунт",
+  "login.loading": "Отваряне на браузъра…",
+  "login.browserHint": "Браузърът ще се отвори, за да завършите входа.",
+  "login.notConfigured": "Входът не е конфигуриран — поискайте client_id от оператора и го впишете в src-tauri/src/auth.rs.",
+  "login.signedInAs": "Влезли сте като",
+  "login.signOut": "Изход",
+  "login.plan": "План",
+  "login.planFree": "Безплатен",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "кредити",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Нулиране {date}",
+  "login.upgrade": "Надстройте",
+  "login.manageAccount": "Управление на акаунта",
 };
 
 export default bg;

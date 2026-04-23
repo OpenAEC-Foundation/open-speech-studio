@@ -243,7 +243,7 @@ const el: Record<string, string> = {
   "titlebar.close": "Κλείσιμο",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0391\u03C5\u03C4\u03CC\u03BC\u03B1\u03C4\u03B7 \u03B1\u03BD\u03AF\u03C7\u03BD\u03B5\u03C5\u03C3\u03B7",
@@ -482,6 +482,25 @@ const el: Record<string, string> = {
   "settings.speakerNoProfiles": "Δεν έχουν δημιουργηθεί προφίλ φωνής.",
   "settings.speakerNewProfile": "+ Νέο προφίλ φωνής",
   "overlay.likeSound": "Μου αρέσει αυτός ο ήχος",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Συνδεθείτε με τον λογαριασμό σας Impertio",
+  "login.signIn": "Σύνδεση",
+  "login.signUp": "Δημιουργία λογαριασμού",
+  "login.loading": "Άνοιγμα προγράμματος περιήγησης…",
+  "login.browserHint": "Το πρόγραμμα περιήγησης θα ανοίξει για να ολοκληρωθεί η σύνδεση.",
+  "login.notConfigured": "Η σύνδεση δεν έχει ρυθμιστεί — ζητήστε το client_id από τον διαχειριστή και συμπληρώστε το στο src-tauri/src/auth.rs.",
+  "login.signedInAs": "Συνδεδεμένος ως",
+  "login.signOut": "Αποσύνδεση",
+  "login.plan": "Πλάνο",
+  "login.planFree": "Δωρεάν",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "πιστώσεις",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Επαναφορά {date}",
+  "login.upgrade": "Αναβάθμιση",
+  "login.manageAccount": "Διαχείριση λογαριασμού",
 };
 
 export default el;

@@ -47,6 +47,12 @@ pub struct Settings {
     pub sound_pack: String,
     #[serde(default = "default_sound_volume")]
     pub sound_volume: f32,
+
+    // Remote transcription server. URL + bearer token are resolved at call
+    // time from the OIDC session (see crate::app_config); only the on/off
+    // toggle is a user choice.
+    #[serde(default)]
+    pub remote_server_enabled: bool,
 }
 
 impl Default for Settings {
@@ -82,6 +88,7 @@ impl Default for Settings {
             floating_indicator: true,
             sound_pack: "retro".to_string(),
             sound_volume: 0.7,
+            remote_server_enabled: false,
         }
     }
 }

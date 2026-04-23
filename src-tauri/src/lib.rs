@@ -12,7 +12,9 @@ macro_rules! dbg_log {
     }};
 }
 
+mod app_config;
 mod audio;
+mod auth;
 mod autocorrect;
 mod convert;
 mod dictionary;
@@ -745,6 +747,31 @@ async fn start_file_job(
     use std::process::{Command, Stdio};
     use std::io::{BufRead, BufReader};
 
+    // Snapshot remote-server settings; if enabled, route to the cloud endpoint
+    // and bypass the local whisper.cpp pipeline entirely.
+    let (remote_enabled, language_for_remote, dict_for_remote) = {
+        let settings = state.settings.lock().map_err(|e| e.to_string())?;
+        let d = state.dictionary.lock().map_err(|e| e.to_string())?.clone();
+        (settings.remote_server_enabled, settings.language.clone(), d)
+    };
+
+    if remote_enabled {
+        let url = app_config::get_ai_server_url(&app).await?;
+        let token = auth::auth_get_access_token(app.clone())
+            .await?
+            .ok_or("Sign in to use the cloud transcription server")?;
+        return start_remote_file_job(
+            app,
+            state.file_jobs.clone(),
+            job_id,
+            file_path,
+            url,
+            token,
+            language_for_remote,
+            dict_for_remote,
+        );
+    }
+
     // Gather what we need without holding locks long
     let (whisper_bin, model_path, language, use_gpu, dict) = {
         let settings = state.settings.lock().map_err(|e| e.to_string())?;
@@ -889,6 +916,162 @@ async fn start_file_job(
     });
 
     Ok(())
+}
+
+/// Send a file to the remote transcription server and emit `file-job-done`.
+/// Returns immediately; the upload + transcription happens on a background task.
+fn start_remote_file_job(
+    app: tauri::AppHandle,
+    file_jobs: Arc<Mutex<HashMap<String, u32>>>,
+    job_id: String,
+    file_path: String,
+    base_url: String,
+    token: String,
+    language: String,
+    dict: dictionary::Dictionary,
+) -> Result<(), String> {
+    // Server splits transcription into three ops by max audio length:
+    //   .short (≤60s), .long (≤10min), .huge (≤60min).
+    // We try .long first (covers the common dictation/meeting case at the
+    // cheaper credit rate); on 413 audio_too_long we auto-retry with .huge
+    // if the server-reported duration still fits that tier.
+    let base = base_url.trim_end_matches('/').to_string();
+
+    {
+        let mut jobs = file_jobs.lock().map_err(|e| e.to_string())?;
+        jobs.insert(job_id.clone(), 0);
+    }
+
+    tokio::spawn(async move {
+        let start = std::time::Instant::now();
+        let url_long = format!("{base}/api/v1/transcribe.long");
+        let mut result = upload_to_remote(&url_long, &token, &file_path, &language).await;
+
+        if let Err(err) = &result {
+            if let Some(actual) = parse_audio_too_long(err) {
+                if actual <= 3600.0 {
+                    log::info!(
+                        "[remote] audio is {actual:.1}s — retrying on transcribe.huge"
+                    );
+                    let url_huge = format!("{base}/api/v1/transcribe.huge");
+                    result = upload_to_remote(&url_huge, &token, &file_path, &language).await;
+                }
+            }
+        }
+
+        let duration_ms = start.elapsed().as_millis() as u64;
+
+        if let Ok(mut jobs) = file_jobs.lock() {
+            jobs.remove(&job_id);
+        }
+
+        let (text, lang_out, error) = match result {
+            Ok((text, lang)) => (dict.apply_corrections(&text), lang, None),
+            Err(e) => {
+                // Self-heal: if the AI server returned 5xx or the network
+                // tripped, the discovered URL may have moved. Invalidate so
+                // the next request refetches /v1/app-config.
+                if is_discoverable_failure(&e) {
+                    let _ = app_config::invalidate_app_config(app.clone()).await;
+                }
+                (String::new(), language.clone(), Some(e))
+            }
+        };
+
+        let _ = app.emit(
+            "file-job-done",
+            FileJobResult {
+                job_id,
+                text,
+                language: lang_out,
+                duration_ms,
+                error,
+            },
+        );
+    });
+
+    Ok(())
+}
+
+fn is_discoverable_failure(err: &str) -> bool {
+    err.starts_with("Network error") || err.contains("Server returned 5")
+}
+
+/// Extract `actual_seconds` from a server error body that looks like
+/// `{"error_code":"audio_too_long", ..., "actual_seconds":740.3}` so the
+/// caller can decide whether to retry on the next tier (`.huge`, ≤60 min).
+fn parse_audio_too_long(err: &str) -> Option<f64> {
+    if !err.contains("audio_too_long") {
+        return None;
+    }
+    let start = err.find("\"actual_seconds\"")?;
+    let after = &err[start..];
+    let colon = after.find(':')?;
+    let tail = after[colon + 1..].trim_start();
+    let end = tail
+        .find(|c: char| c != '-' && c != '.' && !c.is_ascii_digit())
+        .unwrap_or(tail.len());
+    tail[..end].parse::<f64>().ok()
+}
+
+async fn upload_to_remote(
+    url: &str,
+    token: &str,
+    file_path: &str,
+    language: &str,
+) -> Result<(String, String), String> {
+    let bytes = tokio::fs::read(file_path)
+        .await
+        .map_err(|e| format!("Read failed: {}", e))?;
+    let filename = std::path::Path::new(file_path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("audio")
+        .to_string();
+
+    let part = reqwest::multipart::Part::bytes(bytes)
+        .file_name(filename)
+        .mime_str("application/octet-stream")
+        .map_err(|e| e.to_string())?;
+    let mut form = reqwest::multipart::Form::new().part("audio", part);
+    if !language.is_empty() && language != "auto" {
+        form = form.text("language", language.to_string());
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(600))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client
+        .post(url)
+        .bearer_auth(token)
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {}", e))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("Server returned {}: {}", status, body));
+    }
+
+    let json: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Invalid JSON from server: {}", e))?;
+    let text = json
+        .get("text")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let lang = json
+        .get("language")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    Ok((text, lang))
 }
 
 /// Cancel a running file transcription job.
@@ -1218,7 +1401,8 @@ fn delete_speaker_profile(state: State<'_, AppState>, name: String) -> Result<()
 }
 
 pub fn run() {
-    env_logger::init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .init();
 
     // Add the bundled bin/ resource directory to the library search path
     if let Ok(exe_path) = std::env::current_exe() {
@@ -1349,6 +1533,14 @@ pub fn run() {
             train_speaker,
             list_speaker_profiles,
             delete_speaker_profile,
+            auth::auth_is_configured,
+            auth::auth_login,
+            auth::auth_logout,
+            auth::auth_current_user,
+            auth::auth_get_access_token,
+            auth::auth_userinfo,
+            app_config::get_app_config,
+            app_config::invalidate_app_config,
         ])
         .setup(move |app| {
             // Config has decorations:true + titleBarStyle:overlay for macOS traffic lights.

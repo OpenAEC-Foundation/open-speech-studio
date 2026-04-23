@@ -243,7 +243,7 @@ const no: Record<string, string> = {
   "titlebar.close": "Lukk",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.9.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk gjenkjenning",
@@ -482,6 +482,25 @@ const no: Record<string, string> = {
   "settings.speakerNoProfiles": "Ingen stemmeprofiler opprettet.",
   "settings.speakerNewProfile": "+ Ny stemmeprofil",
   "overlay.likeSound": "Liker denne lyden",
+
+  // ── Login ───────────────────────────────
+  "login.subtitle": "Logg inn med Impertio-kontoen din",
+  "login.signIn": "Logg inn",
+  "login.signUp": "Opprett konto",
+  "login.loading": "Åpner nettleseren…",
+  "login.browserHint": "Nettleseren åpnes for å fullføre innloggingen.",
+  "login.notConfigured": "Innlogging er ikke konfigurert — be operatøren om client_id og legg den inn i src-tauri/src/auth.rs.",
+  "login.signedInAs": "Logget inn som",
+  "login.signOut": "Logg ut",
+  "login.plan": "Abonnement",
+  "login.planFree": "Gratis",
+  "login.planPro": "Pro",
+  "login.planStudio": "Studio",
+  "login.credits": "kreditter",
+  "login.creditsValue": "{n}",
+  "login.creditsResetsAt": "Tilbakestilles {date}",
+  "login.upgrade": "Oppgrader",
+  "login.manageAccount": "Administrer konto",
 };
 
 export default no;

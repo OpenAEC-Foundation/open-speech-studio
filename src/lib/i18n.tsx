@@ -41,7 +41,7 @@ export function createI18n(initialLocale: Locale = "en") {
    * Look up a translation key.
    *
    * 1. Try the current locale
-   * 2. Fall back to Dutch ("nl") if the key is missing
+   * 2. Fall back to English if the key is missing
    * 3. Return the raw key if it exists in neither locale
    *
    * Supports `{param}` interpolation:
@@ -50,6 +50,7 @@ export function createI18n(initialLocale: Locale = "en") {
   const t = (key: string, params?: Record<string, string | number>): string => {
     let value =
       locales[locale()]?.[key] ??
+      locales.en?.[key] ??
       key;
 
     if (params) {
