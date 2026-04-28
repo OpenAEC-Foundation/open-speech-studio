@@ -1,6 +1,6 @@
 {
   "name": "open-speech-studio",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Open source local AI speech-to-text for every app",
   "type": "module",
   "scripts": {

@@ -5,6 +5,48 @@ use std::thread;
 use std::time::Instant;
 use uuid::Uuid;
 
+fn run_one(
+    job: &TranscriptionJob,
+    transcriber: &Option<Transcriber>,
+    app: &Option<tauri::AppHandle>,
+    runtime: &Option<tokio::runtime::Handle>,
+) -> String {
+    if job.remote {
+        match (app, runtime) {
+            (Some(app), Some(rt)) => {
+                let app = app.clone();
+                let lang = job.language.clone();
+                let audio = job.audio.clone();
+                match rt.block_on(crate::transcribe_buffer_remote(&app, &audio, &lang)) {
+                    Ok((text, _lang)) => text,
+                    Err(e) => {
+                        log::error!("Remote transcription failed for job {}: {}", job.id, e);
+                        String::new()
+                    }
+                }
+            }
+            _ => {
+                log::warn!("Remote requested for job {} but no app/runtime", job.id);
+                String::new()
+            }
+        }
+    } else {
+        match transcriber {
+            Some(t) => match t.transcribe(&job.audio, &job.language) {
+                Ok(text) => text,
+                Err(e) => {
+                    log::error!("Transcription failed for job {}: {}", job.id, e);
+                    String::new()
+                }
+            },
+            None => {
+                log::warn!("No transcriber available for job {}", job.id);
+                String::new()
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum JobType {
     Dictation,
@@ -30,6 +72,9 @@ pub struct TranscriptionJob {
     pub session_id: Uuid,
     pub created_at: Instant,
     pub status: JobStatus,
+    /// When true, send the audio to the configured AI server instead of
+    /// running it through the local whisper.cpp transcriber.
+    pub remote: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -121,10 +166,17 @@ pub struct JobQueue {
     max_workers: usize,
     active_worker_count: Arc<Mutex<usize>>,
     transcriber: Arc<Mutex<Option<Transcriber>>>,
+    app: Option<tauri::AppHandle>,
+    runtime: Option<tokio::runtime::Handle>,
 }
 
 impl JobQueue {
-    pub fn new(max_workers: usize, transcriber: Option<Transcriber>) -> Self {
+    pub fn new(
+        max_workers: usize,
+        transcriber: Option<Transcriber>,
+        app: Option<tauri::AppHandle>,
+        runtime: Option<tokio::runtime::Handle>,
+    ) -> Self {
         Self {
             queue: Arc::new(Mutex::new(VecDeque::new())),
             active: Arc::new(Mutex::new(HashMap::new())),
@@ -133,6 +185,8 @@ impl JobQueue {
             max_workers: max_workers.clamp(1, 3),
             active_worker_count: Arc::new(Mutex::new(0)),
             transcriber: Arc::new(Mutex::new(transcriber)),
+            app,
+            runtime,
         }
     }
 
@@ -219,6 +273,8 @@ impl JobQueue {
             let active_ref = Arc::clone(&self.active);
             let worker_count_ref = Arc::clone(&self.active_worker_count);
             let queue_ref = Arc::clone(&self.queue);
+            let app_ref = self.app.clone();
+            let runtime_ref = self.runtime.clone();
 
             thread::spawn(move || {
                 let start = Instant::now();
@@ -226,23 +282,9 @@ impl JobQueue {
                     let guard = transcriber_ref.lock().unwrap();
                     guard.clone()
                 };
-                dbg_log!("[DEBUG] worker: starting transcription for job {} ({} samples)", job_id, job.audio.len());
-                let result_text = match transcriber {
-                    Some(t) => match t.transcribe(&job.audio, &job.language) {
-                        Ok(text) => {
-                            dbg_log!("[DEBUG] worker: transcription done, text='{}'", &text[..text.len().min(80)]);
-                            text
-                        }
-                        Err(e) => {
-                            dbg_log!("[DEBUG] worker: transcription FAILED: {}", e);
-                            String::new()
-                        }
-                    },
-                    None => {
-                        log::warn!("No transcriber available for job {}", job_id);
-                        String::new()
-                    }
-                };
+                dbg_log!("[DEBUG] worker: starting transcription for job {} ({} samples, remote={})", job_id, job.audio.len(), job.remote);
+                let result_text = run_one(&job, &transcriber, &app_ref, &runtime_ref);
+                dbg_log!("[DEBUG] worker: transcription done, text='{}'", &result_text[..result_text.len().min(80)]);
                 let duration_ms = start.elapsed().as_millis() as u64;
 
                 // Update session with result
@@ -302,22 +344,13 @@ impl JobQueue {
                     active_ref.lock().unwrap().insert(next_job_id, next_session_id);
                     *worker_count_ref.lock().unwrap() += 1;
 
-                    // Recursive inline — spawn another worker for the next job
+                    // Recursive inline — process the next job on this worker
                     let start = Instant::now();
                     let transcriber = {
                         let guard = transcriber_ref.lock().unwrap();
                         guard.clone()
                     };
-                    let result_text = match transcriber {
-                        Some(t) => match t.transcribe(&next_job.audio, &next_job.language) {
-                            Ok(text) => text,
-                            Err(e) => {
-                                log::error!("Transcription failed for job {}: {}", next_job_id, e);
-                                String::new()
-                            }
-                        },
-                        None => String::new(),
-                    };
+                    let result_text = run_one(&next_job, &transcriber, &app_ref, &runtime_ref);
                     let duration_ms = start.elapsed().as_millis() as u64;
 
                     {

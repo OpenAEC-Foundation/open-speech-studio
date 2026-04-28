@@ -177,6 +177,61 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       <div class="settings-tab-content" style={{ display: tab() === "general" ? "block" : "none" }}>
         <div class="settings-section">
           <div class="setting-row">
+            <label>{t("settings.remoteServerEnabled")}</label>
+            <div class="toggle-group">
+              <label
+                class="toggle"
+                classList={{ "toggle-disabled": !isAuthenticated() }}
+                title={!isAuthenticated() ? t("settings.remoteServerSignInHint") : ""}
+              >
+                <input
+                  type="checkbox"
+                  checked={isAuthenticated() && remoteServerEnabled()}
+                  disabled={!isAuthenticated()}
+                  onChange={(e) => {
+                    if (!isAuthenticated()) {
+                      // Can't happen while `disabled` is honored, but belt & braces.
+                      (e.target as HTMLInputElement).checked = false;
+                      return;
+                    }
+                    setRemoteServerEnabled(e.target.checked);
+                    autoSave({ remote_server_enabled: e.target.checked });
+                  }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <Show
+                when={isAuthenticated()}
+                fallback={
+                  <span class="setting-hint">
+                    {t("settings.remoteServerSignInHint")}{" "}
+                    <button
+                      class="setting-inline-btn"
+                      onClick={async () => {
+                        try {
+                          const u = await auth.login();
+                          setAuthUser(u);
+                          // After a fresh sign-in, turn the toggle on so the
+                          // user doesn't have to click it a second time —
+                          // that's why they clicked Sign in in the first place.
+                          setRemoteServerEnabled(true);
+                          autoSave({ remote_server_enabled: true });
+                        } catch (_) {
+                          // user dismissed the browser flow; stay signed-out
+                        }
+                      }}
+                    >
+                      {t("settings.remoteServerSignInBtn")}
+                    </button>
+                  </span>
+                }
+              >
+                <span class="setting-hint">{t("settings.remoteServerEnabledHint")}</span>
+              </Show>
+            </div>
+          </div>
+
+          <div class="setting-row">
             <label>{t("settings.uiLanguage")}</label>
             <select
               value={locale()}
@@ -620,61 +675,6 @@ export default function SettingsPanel(props: SettingsPanelProps) {
               <span class="setting-hint">
                 {fileConfirmActions() ? t("settings.fileConfirmEnabled") : t("settings.fileConfirmDisabled")}
               </span>
-            </div>
-          </div>
-
-          <div class="setting-row">
-            <label>{t("settings.remoteServerEnabled")}</label>
-            <div class="toggle-group">
-              <label
-                class="toggle"
-                classList={{ "toggle-disabled": !isAuthenticated() }}
-                title={!isAuthenticated() ? t("settings.remoteServerSignInHint") : ""}
-              >
-                <input
-                  type="checkbox"
-                  checked={isAuthenticated() && remoteServerEnabled()}
-                  disabled={!isAuthenticated()}
-                  onChange={(e) => {
-                    if (!isAuthenticated()) {
-                      // Can't happen while `disabled` is honored, but belt & braces.
-                      (e.target as HTMLInputElement).checked = false;
-                      return;
-                    }
-                    setRemoteServerEnabled(e.target.checked);
-                    autoSave({ remote_server_enabled: e.target.checked });
-                  }}
-                />
-                <span class="toggle-slider" />
-              </label>
-              <Show
-                when={isAuthenticated()}
-                fallback={
-                  <span class="setting-hint">
-                    {t("settings.remoteServerSignInHint")}{" "}
-                    <button
-                      class="setting-inline-btn"
-                      onClick={async () => {
-                        try {
-                          const u = await auth.login();
-                          setAuthUser(u);
-                          // After a fresh sign-in, turn the toggle on so the
-                          // user doesn't have to click it a second time —
-                          // that's why they clicked Sign in in the first place.
-                          setRemoteServerEnabled(true);
-                          autoSave({ remote_server_enabled: true });
-                        } catch (_) {
-                          // user dismissed the browser flow; stay signed-out
-                        }
-                      }}
-                    >
-                      {t("settings.remoteServerSignInBtn")}
-                    </button>
-                  </span>
-                }
-              >
-                <span class="setting-hint">{t("settings.remoteServerEnabledHint")}</span>
-              </Show>
             </div>
           </div>
 

@@ -273,18 +273,23 @@ async fn start_recording(state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn stop_recording(state: State<'_, AppState>) -> Result<TranscriptionResult, String> {
-    let mut is_recording = state.is_recording.lock().map_err(|e| e.to_string())?;
-    if !*is_recording {
-        return Err("Not recording".to_string());
-    }
-
+async fn stop_recording(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<TranscriptionResult, String> {
     let is_dictating = *state.is_dictating.lock().map_err(|e| e.to_string())?;
 
-    // Get audio data — if dictation is active, keep the recorder alive
+    // Take audio + flip the is_recording flag inside a scope so all
+    // MutexGuards are released before we hit any `.await` below — std
+    // MutexGuard isn't `Send` and tauri commands require Send futures.
     let audio_data = {
+        let mut is_recording = state.is_recording.lock().map_err(|e| e.to_string())?;
+        if !*is_recording {
+            return Err("Not recording".to_string());
+        }
+
         let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
-        if is_dictating {
+        let data = if is_dictating {
             // Dictation still using the recorder — just take the main buffer
             let recorder = rec.as_ref().ok_or("No recorder")?;
             recorder.take_buffer()
@@ -292,23 +297,28 @@ async fn stop_recording(state: State<'_, AppState>) -> Result<TranscriptionResul
             // No dictation — destroy recorder as before
             let mut recorder = rec.take().ok_or("No recorder")?;
             recorder.stop().map_err(|e| e.to_string())?
-        }
-    };
+        };
 
-    *is_recording = false;
-
-    // Clone transcriber and drop lock so dictation can transcribe in parallel
-    let transcriber = {
-        let guard = state.transcriber.lock().map_err(|e| e.to_string())?;
-        guard.as_ref().ok_or("Model not loaded")?.clone()
+        *is_recording = false;
+        data
     };
 
     let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
 
     let start = std::time::Instant::now();
-    let mut text = transcriber
-        .transcribe(&audio_data, &settings.language)
-        .map_err(|e| e.to_string())?;
+    let mut text = if settings.remote_server_enabled {
+        let (t, _lang) =
+            transcribe_buffer_remote(&app, &audio_data, &settings.language).await?;
+        t
+    } else {
+        let transcriber = {
+            let guard = state.transcriber.lock().map_err(|e| e.to_string())?;
+            guard.as_ref().ok_or("Model not loaded")?.clone()
+        };
+        transcriber
+            .transcribe(&audio_data, &settings.language)
+            .map_err(|e| e.to_string())?
+    };
     let duration_ms = start.elapsed().as_millis() as u64;
 
     // Apply dictionary corrections
@@ -447,6 +457,7 @@ async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
                         session_id: session_uuid,
                         created_at: std::time::Instant::now(),
                         status: job_queue::JobStatus::Queued,
+                        remote: false,
                     };
                     queue.submit(job);
                     chunk_index += 1;
@@ -463,16 +474,20 @@ async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
 /// Synchronous stop-dictation: transcribes immediately and returns the result.
 /// Kept for backward compatibility (e.g. file transcription flows).
 #[tauri::command]
-async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<TranscriptionResult, String> {
-    let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
-    if !*is_dictating {
-        return Err("Not dictating".to_string());
-    }
-
-    let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
-
-    // Get dictation audio
+async fn stop_dictation_sync(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<TranscriptionResult, String> {
+    // Take audio + flip the is_dictating flag inside a scope so all std
+    // MutexGuards are released before any `.await` (they're not `Send`).
     let audio_data = {
+        let mut is_dictating = state.is_dictating.lock().map_err(|e| e.to_string())?;
+        if !*is_dictating {
+            return Err("Not dictating".to_string());
+        }
+
+        let is_recording = *state.is_recording.lock().map_err(|e| e.to_string())?;
+
         let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
         let recorder = rec.as_ref().ok_or("No recorder")?;
         let data = recorder.stop_dictation();
@@ -483,10 +498,9 @@ async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<Transcription
             let _ = recorder.stop();
         }
 
+        *is_dictating = false;
         data
     };
-
-    *is_dictating = false;
 
     // Restore dictation source window for type_text
     #[cfg(target_os = "windows")]
@@ -496,18 +510,22 @@ async fn stop_dictation_sync(state: State<'_, AppState>) -> Result<Transcription
         *sw = dsw;
     }
 
-    // Clone transcriber and drop lock so meeting can transcribe in parallel
-    let transcriber = {
-        let guard = state.transcriber.lock().map_err(|e| e.to_string())?;
-        guard.as_ref().ok_or("Model not loaded")?.clone()
-    };
-
     let settings = state.settings.lock().map_err(|e| e.to_string())?.clone();
 
     let start = std::time::Instant::now();
-    let mut text = transcriber
-        .transcribe(&audio_data, &settings.language)
-        .map_err(|e| e.to_string())?;
+    let mut text = if settings.remote_server_enabled {
+        let (t, _lang) =
+            transcribe_buffer_remote(&app, &audio_data, &settings.language).await?;
+        t
+    } else {
+        let transcriber = {
+            let guard = state.transcriber.lock().map_err(|e| e.to_string())?;
+            guard.as_ref().ok_or("Model not loaded")?.clone()
+        };
+        transcriber
+            .transcribe(&audio_data, &settings.language)
+            .map_err(|e| e.to_string())?
+    };
     let duration_ms = start.elapsed().as_millis() as u64;
 
     // Apply dictionary corrections
@@ -592,6 +610,7 @@ async fn stop_dictation(state: State<'_, AppState>, session_id: String) -> Resul
                 session_id: session_uuid,
                 created_at: std::time::Instant::now(),
                 status: job_queue::JobStatus::Queued,
+                remote: settings.remote_server_enabled,
             };
             queue.submit(job);
             queue.finalize_session_chunks(session_uuid, already_submitted + 1);
@@ -996,10 +1015,28 @@ async fn upload_to_remote(
         .and_then(|s| s.to_str())
         .unwrap_or("audio")
         .to_string();
+    upload_audio_bytes_to_remote(
+        url,
+        token,
+        bytes,
+        filename,
+        "application/octet-stream",
+        language,
+    )
+    .await
+}
 
+async fn upload_audio_bytes_to_remote(
+    url: &str,
+    token: &str,
+    bytes: Vec<u8>,
+    filename: String,
+    content_type: &str,
+    language: &str,
+) -> Result<(String, String), String> {
     let part = reqwest::multipart::Part::bytes(bytes)
         .file_name(filename)
-        .mime_str("application/octet-stream")
+        .mime_str(content_type)
         .map_err(|e| e.to_string())?;
     let mut form = reqwest::multipart::Form::new().part("audio", part);
     if !language.is_empty() && language != "auto" {
@@ -1040,6 +1077,63 @@ async fn upload_to_remote(
         .unwrap_or("")
         .to_string();
     Ok((text, lang))
+}
+
+/// Encode 16 kHz mono f32 samples as a WAV/PCM-16 in-memory blob.
+fn wav_encode_pcm16(samples: &[f32], sample_rate: u32) -> Vec<u8> {
+    use std::io::Write;
+    let num_samples = samples.len() as u32;
+    let byte_rate = sample_rate * 2;
+    let data_size = num_samples * 2;
+    let mut out = Vec::with_capacity(44 + data_size as usize);
+    out.write_all(b"RIFF").unwrap();
+    out.write_all(&(36u32 + data_size).to_le_bytes()).unwrap();
+    out.write_all(b"WAVE").unwrap();
+    out.write_all(b"fmt ").unwrap();
+    out.write_all(&16u32.to_le_bytes()).unwrap();
+    out.write_all(&1u16.to_le_bytes()).unwrap();
+    out.write_all(&1u16.to_le_bytes()).unwrap();
+    out.write_all(&sample_rate.to_le_bytes()).unwrap();
+    out.write_all(&byte_rate.to_le_bytes()).unwrap();
+    out.write_all(&2u16.to_le_bytes()).unwrap();
+    out.write_all(&16u16.to_le_bytes()).unwrap();
+    out.write_all(b"data").unwrap();
+    out.write_all(&data_size.to_le_bytes()).unwrap();
+    for &s in samples {
+        let i = (s.clamp(-1.0, 1.0) * 32767.0) as i16;
+        out.write_all(&i.to_le_bytes()).unwrap();
+    }
+    out
+}
+
+/// Send a PCM f32 buffer (16 kHz mono) to the AI server's /api/v1/transcribe.
+/// Returns (text, detected_language).
+pub(crate) async fn transcribe_buffer_remote(
+    app: &tauri::AppHandle,
+    samples: &[f32],
+    language: &str,
+) -> Result<(String, String), String> {
+    let base_url = app_config::get_ai_server_url(app).await?;
+    let token = auth::auth_get_access_token(app.clone())
+        .await?
+        .ok_or("Sign in to use the cloud transcription server")?;
+    let url = format!("{}/api/v1/transcribe", base_url.trim_end_matches('/'));
+    let bytes = wav_encode_pcm16(samples, 16000);
+    let result = upload_audio_bytes_to_remote(
+        &url,
+        &token,
+        bytes,
+        "buffer.wav".to_string(),
+        "audio/wav",
+        language,
+    )
+    .await;
+    if let Err(e) = &result {
+        if is_discoverable_failure(e) {
+            let _ = app_config::invalidate_app_config(app.clone()).await;
+        }
+    }
+    result
 }
 
 /// Cancel a running file transcription job.
@@ -1271,7 +1365,10 @@ async fn type_text(state: State<'_, AppState>, text: String) -> Result<(), Strin
 }
 
 #[tauri::command]
-fn init_job_queue(state: State<'_, AppState>) -> Result<(), String> {
+async fn init_job_queue(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let settings = state.settings.lock().map_err(|e| e.to_string())?;
     let max_workers = settings.max_workers;
     drop(settings);
@@ -1280,7 +1377,12 @@ fn init_job_queue(state: State<'_, AppState>) -> Result<(), String> {
     let transcriber = transcriber_guard.clone();
     drop(transcriber_guard);
 
-    let queue = job_queue::JobQueue::new(max_workers, transcriber);
+    let queue = job_queue::JobQueue::new(
+        max_workers,
+        transcriber,
+        Some(app),
+        Some(tokio::runtime::Handle::current()),
+    );
     *state.job_queue.lock().map_err(|e| e.to_string())? = Some(queue);
     Ok(())
 }

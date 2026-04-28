@@ -104,7 +104,7 @@ const nl: Record<string, string> = {
   "settings.fileConfirmEnabled": "Vraag bevestiging voor annuleren of verwijderen van taken",
   "settings.fileConfirmDisabled": "Annuleren en verwijderen zonder te vragen",
   "settings.remoteServerEnabled": "Gebruik externe server",
-  "settings.remoteServerEnabledHint": "Stuur bestandstranscripties naar een externe GPU-server in plaats van lokaal te draaien",
+  "settings.remoteServerEnabledHint": "Voer alle transcriptie uit op de cloud-GPU-server in plaats van lokaal op dit apparaat.",
   "settings.remoteServerSignInHint": "Meld u aan om cloudtranscriptie in te schakelen.",
   "settings.remoteServerSignInBtn": "Aanmelden",
   "settings.save": "Opslaan",

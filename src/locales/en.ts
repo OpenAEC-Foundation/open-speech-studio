@@ -104,7 +104,7 @@ const en: Record<string, string> = {
   "settings.fileConfirmEnabled": "Ask for confirmation before cancelling or removing jobs",
   "settings.fileConfirmDisabled": "Cancel and remove without asking",
   "settings.remoteServerEnabled": "Use remote server",
-  "settings.remoteServerEnabledHint": "Send file transcriptions to a remote GPU server instead of running locally",
+  "settings.remoteServerEnabledHint": "Run all transcription on the cloud GPU server instead of locally on this device.",
   "settings.remoteServerSignInHint": "Sign in to enable cloud transcription.",
   "settings.remoteServerSignInBtn": "Sign in",
   "settings.save": "Save",
