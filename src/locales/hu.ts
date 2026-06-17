@@ -243,7 +243,7 @@ const hu: Record<string, string> = {
   "titlebar.minimize": "Kis méret",
   "titlebar.close": "Bezárás",
 
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.1 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatikus felismeres",

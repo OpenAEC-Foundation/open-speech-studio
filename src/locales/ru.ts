@@ -243,7 +243,7 @@ const ru: Record<string, string> = {
   "titlebar.minimize": "Свернуть",
   "titlebar.close": "Закрыть",
 
-  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.1 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Автоопределение",
