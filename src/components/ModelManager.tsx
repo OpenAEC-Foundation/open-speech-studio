@@ -18,6 +18,17 @@ export default function ModelManager(props: ModelManagerProps) {
   const [loading, setLoading] = createSignal<string | null>(null);
   const [statusMsg, setStatusMsg] = createSignal("");
   const [activeModelName, setActiveModelName] = createSignal(props.activeModel);
+  const [progress, setProgress] = createSignal<number>(0);
+  const [progressMb, setProgressMb] = createSignal<{ done: number; total: number } | null>(null);
+  const [downloadDir, setDownloadDir] = createSignal<string>("");
+
+  const notify = async (title: string, body: string) => {
+    if (!isTauri) return;
+    try {
+      const { sendNotification } = await import("@tauri-apps/plugin-notification");
+      sendNotification({ title, body });
+    } catch (_) {}
+  };
 
   onMount(async () => {
     try {
@@ -30,9 +41,21 @@ export default function ModelManager(props: ModelManagerProps) {
     if (isTauri) {
       try {
         const { listen } = await import("@tauri-apps/api/event");
-        listen("model-download-complete", () => {
-          setDownloading(null);
+        listen<{ name: string; dir: string }>("model-download-start", (e) => {
+          setDownloadDir(e.payload.dir);
+          setProgress(0);
+          setProgressMb(null);
+        });
+        listen<{ name: string; pct: number; downloaded_mb: number; total_mb: number }>(
+          "model-download-progress",
+          (e) => {
+            setProgress(e.payload.pct);
+            setProgressMb({ done: e.payload.downloaded_mb, total: e.payload.total_mb });
+          }
+        );
+        listen<{ name: string; path: string }>("model-download-complete", (e) => {
           refreshModels();
+          notify(t("models.notifyDoneTitle"), t("models.notifyDoneBody", { name: e.payload.name }));
         });
       } catch (_) {}
     }
@@ -47,6 +70,8 @@ export default function ModelManager(props: ModelManagerProps) {
 
   const downloadModel = async (name: string) => {
     setDownloading(name);
+    setProgress(0);
+    setProgressMb(null);
     setStatusMsg(t("models.downloading", { name }));
     try {
       const path = await api.downloadModel(name);
@@ -61,6 +86,7 @@ export default function ModelManager(props: ModelManagerProps) {
       setStatusMsg(t("models.downloadFailed", { error: String(e) }));
     }
     setDownloading(null);
+    setProgressMb(null);
   };
 
   const loadModel = async (model: ModelInfo) => {
@@ -138,6 +164,26 @@ export default function ModelManager(props: ModelManagerProps) {
       </div>
 
       {statusMsg() && <div class="status-msg">{statusMsg()}</div>}
+
+      <Show when={downloading()}>
+        <div class="download-panel">
+          <div class="download-panel-head">
+            <span class="download-panel-name">{t("models.downloading", { name: downloading()! })}</span>
+            <span class="download-panel-pct">{progress()}%</span>
+          </div>
+          <div class="download-bar-track">
+            <div class="download-bar-fill" style={{ width: `${progress()}%` }} />
+          </div>
+          <Show when={progressMb()}>
+            <div class="download-panel-meta">
+              {progressMb()!.done} / {progressMb()!.total} MB
+            </div>
+          </Show>
+          <Show when={downloadDir()}>
+            <div class="download-panel-dir">{t("models.savingTo")}: <code>{downloadDir()}</code></div>
+          </Show>
+        </div>
+      </Show>
 
       <div class="model-grid">
         <For each={models()}>

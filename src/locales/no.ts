@@ -243,7 +243,7 @@ const no: Record<string, string> = {
   "titlebar.close": "Lukk",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk gjenkjenning",
@@ -298,7 +298,7 @@ const no: Record<string, string> = {
   "about.license": "Lisens",
   "about.developer": "Utvikler",
   "about.source": "Kildekode",
-  "about.copyright": "\u00A9 2025 OpenAEC Foundation. Alle rettigheter forbeholdt.",
+  "about.copyright": "© 2026 OpenAEC Foundation. Alle rettigheter forbeholdt.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "Vis",

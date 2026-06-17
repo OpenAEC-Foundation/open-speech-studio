@@ -1,7 +1,7 @@
 import { Show } from "solid-js";
 import { useI18n } from "../lib/i18n";
 
-type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "transcribe" | "about";
+type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "transcribe" | "tts" | "about";
 
 interface SidebarProps {
   currentView: View;
@@ -84,6 +84,18 @@ export default function Sidebar(props: SidebarProps) {
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
           </svg>
           <span>{t("sidebar.dictionary")}</span>
+        </button>
+
+        <button
+          class={`sidebar-item ${props.currentView === "tts" ? "active" : ""}`}
+          onClick={() => props.onViewChange("tts")}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          </svg>
+          <span>{t("sidebar.tts")}</span>
         </button>
 
         <div class="sidebar-divider" />

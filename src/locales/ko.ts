@@ -243,7 +243,7 @@ const ko: Record<string, string> = {
   "titlebar.minimize": "최소화",
   "titlebar.close": "닫기",
 
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "자동 감지",
@@ -298,7 +298,7 @@ const ko: Record<string, string> = {
   "about.license": "라이선스",
   "about.developer": "개발자",
   "about.source": "소스 코드",
-  "about.copyright": "\u00A9 2025 OpenAEC Foundation. 모든 권리 보유.",
+  "about.copyright": "© 2026 OpenAEC Foundation. 모든 권리 보유.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "표시",

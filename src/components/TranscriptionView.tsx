@@ -1,5 +1,5 @@
-import type { TranscriptionResult } from "../lib/api";
-import { For, Show } from "solid-js";
+import { api, type TranscriptionResult } from "../lib/api";
+import { createSignal, For, Show } from "solid-js";
 import { useI18n } from "../lib/i18n";
 
 interface TranscriptionViewProps {
@@ -11,8 +11,40 @@ interface TranscriptionViewProps {
   modelName: string;
 }
 
+let currentAudio: HTMLAudioElement | null = null;
+let currentUrl: string | null = null;
+
+function stopSpeak() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  if (currentUrl) {
+    URL.revokeObjectURL(currentUrl);
+    currentUrl = null;
+  }
+}
+
+/** Synthesize and play text. Resolves when playback finishes or is stopped. */
+async function speakText(text: string): Promise<void> {
+  stopSpeak();
+  // Uses the voice configured on the Text-to-Speech page (default if unset).
+  const audioBytes = await api.ttsSpeak(text);
+  const blob = new Blob([new Uint8Array(audioBytes)], { type: "audio/wav" });
+  const url = URL.createObjectURL(blob);
+  currentUrl = url;
+  const audio = new Audio(url);
+  currentAudio = audio;
+  await new Promise<void>((resolve) => {
+    audio.onended = () => { stopSpeak(); resolve(); };
+    audio.onerror = () => { stopSpeak(); resolve(); };
+    audio.play().catch(() => { stopSpeak(); resolve(); });
+  });
+}
+
 export default function TranscriptionView(props: TranscriptionViewProps) {
   const { t } = useI18n();
+  const [speakingIdx, setSpeakingIdx] = createSignal<number | null>(null);
   return (
     <div class="home-view">
       <Show
@@ -59,6 +91,29 @@ export default function TranscriptionView(props: TranscriptionViewProps) {
                     onClick={() => navigator.clipboard.writeText(result.text)}
                   >
                     {t("transcription.copy")}
+                  </button>
+                  <button
+                    class="btn btn-small"
+                    onClick={async () => {
+                      const idx = props.transcriptions.indexOf(result);
+                      // Clicking the active row stops playback.
+                      if (speakingIdx() === idx) {
+                        stopSpeak();
+                        setSpeakingIdx(null);
+                        return;
+                      }
+                      try {
+                        setSpeakingIdx(idx);
+                        await speakText(result.text);
+                      } catch (e: any) {
+                        console.error("TTS error:", e);
+                      } finally {
+                        setSpeakingIdx(null);
+                      }
+                    }}
+                    disabled={speakingIdx() !== null && speakingIdx() !== props.transcriptions.indexOf(result)}
+                  >
+                    {speakingIdx() === props.transcriptions.indexOf(result) ? t("tts.stop") : t("tts.speak")}
                   </button>
                 </div>
               </div>

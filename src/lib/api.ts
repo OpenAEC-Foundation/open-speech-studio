@@ -23,6 +23,11 @@ export interface Settings {
   sound_pack?: string;
   sound_volume?: number;
   remote_server_enabled?: boolean;
+  // TTS (Higgs Audio v3, local server)
+  tts_enabled?: boolean;
+  tts_server_url?: string;
+  tts_voice?: string;
+  tts_allow_install?: boolean;
 }
 
 export interface ModelInfo {
@@ -41,6 +46,49 @@ export interface TranscriptionResult {
 
 export interface Dictionary {
   words: Record<string, string | null>;
+}
+
+export interface ProcessInfo {
+  pid: number;
+  name: string;
+  memory_mb: number;
+}
+
+export interface DownloadStart {
+  name: string;
+  dir: string;
+}
+
+export interface DownloadProgress {
+  name: string;
+  pct: number;
+  downloaded_mb: number;
+  total_mb: number;
+}
+
+export interface DownloadComplete {
+  name: string;
+  path: string;
+}
+
+export interface PiperVoiceInfo {
+  id: string;
+  name: string;
+  language: string;
+  quality: string;
+  size: string;
+  downloaded: boolean;
+}
+
+export interface PiperStatus {
+  binary_installed: boolean;
+  dir: string;
+}
+
+export interface TtsOptions {
+  speed?: number;
+  expressiveness?: number;
+  sentencePause?: number;
 }
 
 export interface QueueStatus {
@@ -121,6 +169,20 @@ const tauriApi = {
     tauriInvoke<string[]>("list_speaker_profiles"),
   deleteSpeakerProfile: (name: string) =>
     tauriInvoke<void>("delete_speaker_profile", { name }),
+  ttsSpeak: (text: string, voice?: string, options?: TtsOptions) =>
+    tauriInvoke<number[]>("tts_speak", { text, voice: voice ?? null, options: options ?? null }),
+  ttsGetVoices: () =>
+    tauriInvoke<PiperVoiceInfo[]>("tts_get_voices"),
+  ttsDownloadVoice: (voiceId: string) =>
+    tauriInvoke<void>("tts_download_voice", { voiceId }),
+  ttsDeleteVoice: (voiceId: string) =>
+    tauriInvoke<void>("tts_delete_voice", { voiceId }),
+  ttsStatus: () =>
+    tauriInvoke<PiperStatus>("tts_status"),
+  getRunningProcesses: () =>
+    tauriInvoke<ProcessInfo[]>("get_running_processes"),
+  killProcess: (pid: number) =>
+    tauriInvoke<void>("kill_process", { pid }),
 };
 
 // ─── Local server detection ──────────────────────────────────
@@ -588,6 +650,14 @@ const browserApi = {
   trainSpeaker: (_name: string, _audio: number[]) => Promise.resolve(),
   listSpeakerProfiles: (): Promise<string[]> => Promise.resolve([]),
   deleteSpeakerProfile: (_name: string) => Promise.resolve(),
+  ttsSpeak: (_text: string, _voice?: string, _options?: TtsOptions): Promise<number[]> =>
+    Promise.reject(new Error("TTS is not available in browser mode.")),
+  ttsGetVoices: (): Promise<PiperVoiceInfo[]> => Promise.resolve([]),
+  ttsDownloadVoice: (_voiceId: string): Promise<void> => Promise.reject(new Error("Not available in browser mode.")),
+  ttsDeleteVoice: (_voiceId: string): Promise<void> => Promise.reject(new Error("Not available in browser mode.")),
+  ttsStatus: (): Promise<PiperStatus> => Promise.resolve({ binary_installed: false, dir: "" }),
+  getRunningProcesses: (): Promise<ProcessInfo[]> => Promise.resolve([]),
+  killProcess: (_pid: number): Promise<void> => Promise.resolve(),
 };
 
 export const api = isTauri ? tauriApi : browserApi;

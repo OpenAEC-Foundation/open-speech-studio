@@ -23,6 +23,7 @@ mod meeting_writer;
 mod settings;
 mod speaker;
 mod transcriber;
+mod tts;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -107,6 +108,26 @@ pub struct ModelInfo {
     pub path: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DownloadStart {
+    pub name: String,
+    pub dir: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DownloadProgress {
+    pub name: String,
+    pub pct: u32,
+    pub downloaded_mb: u64,
+    pub total_mb: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DownloadComplete {
+    pub name: String,
+    pub path: String,
+}
+
 #[tauri::command]
 async fn get_settings(state: State<'_, AppState>) -> Result<settings::Settings, String> {
     let settings = state.settings.lock().map_err(|e| e.to_string())?;
@@ -172,30 +193,89 @@ async fn download_model(
         model_name
     );
 
-    // Emit download start event
-    let _ = app.emit("model-download-start", &model_name);
+    // Tell the UI where the file is going and that we've started.
+    let _ = app.emit(
+        "model-download-start",
+        DownloadStart {
+            name: model_name.clone(),
+            dir: models_dir.to_string_lossy().to_string(),
+        },
+    );
 
-    // Download using curl (hidden window on Windows)
-    let mut cmd = std::process::Command::new("curl");
-    cmd.args(["-L", "-o", &dest.to_string_lossy(), "--progress-bar", &url]);
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
+    // Stream the file with reqwest so we can report real byte-level progress.
+    let client = reqwest::Client::builder()
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Download failed: server returned {}", resp.status()));
     }
-    let output = cmd
-        .output()
-        .map_err(|e| format!("Failed to download model: {}", e))?;
 
-    if !output.status.success() {
-        return Err(format!(
-            "Download failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
+    let total = resp.content_length().unwrap_or(0);
+    let total_mb = total / (1024 * 1024);
+
+    // Write to a temp file first; only rename into place once complete so a
+    // cancelled/half download never looks like a valid model.
+    let tmp = dest.with_extension("bin.part");
+    let mut file = tokio::fs::File::create(&tmp)
+        .await
+        .map_err(|e| format!("Cannot create file: {}", e))?;
+
+    use tokio::io::AsyncWriteExt;
+    let mut downloaded: u64 = 0;
+    let mut last_pct: u32 = u32::MAX;
+
+    while let Some(chunk) = resp.chunk().await.map_err(|e| format!("Download error: {}", e))? {
+        file.write_all(&chunk)
+            .await
+            .map_err(|e| format!("Write error: {}", e))?;
+        downloaded += chunk.len() as u64;
+
+        let pct = if total > 0 {
+            ((downloaded * 100) / total) as u32
+        } else {
+            0
+        };
+        // Only emit when the integer percentage changes — avoids event spam.
+        if pct != last_pct {
+            last_pct = pct;
+            let _ = app.emit(
+                "model-download-progress",
+                DownloadProgress {
+                    name: model_name.clone(),
+                    pct,
+                    downloaded_mb: downloaded / (1024 * 1024),
+                    total_mb,
+                },
+            );
+        }
     }
 
-    let _ = app.emit("model-download-complete", &model_name);
+    file.flush().await.map_err(|e| e.to_string())?;
+    drop(file);
+
+    // Reject obviously-failed downloads (e.g. an HTML error page).
+    if downloaded < 1024 {
+        let _ = tokio::fs::remove_file(&tmp).await;
+        return Err("Download produced an empty file".into());
+    }
+
+    tokio::fs::rename(&tmp, &dest)
+        .await
+        .map_err(|e| format!("Cannot finalize file: {}", e))?;
+
+    let _ = app.emit(
+        "model-download-complete",
+        DownloadComplete {
+            name: model_name.clone(),
+            path: dest.to_string_lossy().to_string(),
+        },
+    );
 
     Ok(dest.to_string_lossy().to_string())
 }
@@ -1611,6 +1691,13 @@ pub fn run() {
             auth::auth_userinfo,
             app_config::get_app_config,
             app_config::invalidate_app_config,
+            tts::tts_speak,
+            tts::tts_get_voices,
+            tts::tts_download_voice,
+            tts::tts_delete_voice,
+            tts::tts_status,
+            tts::get_running_processes,
+            tts::kill_process,
         ])
         .setup(move |app| {
             // Config has decorations:true + titleBarStyle:overlay for macOS traffic lights.

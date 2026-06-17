@@ -243,7 +243,7 @@ const tr: Record<string, string> = {
   "titlebar.minimize": "Küçült",
   "titlebar.close": "Kapat",
 
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Otomatik algıla",
@@ -298,7 +298,7 @@ const tr: Record<string, string> = {
   "about.license": "Lisans",
   "about.developer": "Geliştirici",
   "about.source": "Kaynak kodu",
-  "about.copyright": "\u00A9 2025 OpenAEC Foundation. Tüm hakları saklıdır.",
+  "about.copyright": "© 2026 OpenAEC Foundation. Tüm hakları saklıdır.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "Göster",

@@ -243,7 +243,7 @@ const fi: Record<string, string> = {
   "titlebar.close": "Sulje",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automaattinen tunnistus",
@@ -298,7 +298,7 @@ const fi: Record<string, string> = {
   "about.license": "Lisenssi",
   "about.developer": "Kehitt\u00E4j\u00E4",
   "about.source": "L\u00E4hdekoodi",
-  "about.copyright": "\u00A9 2025 OpenAEC Foundation. Kaikki oikeudet pid\u00E4tet\u00E4\u00E4n.",
+  "about.copyright": "© 2026 OpenAEC Foundation. Kaikki oikeudet pid\u00E4tet\u00E4\u00E4n.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "N\u00E4yt\u00E4",

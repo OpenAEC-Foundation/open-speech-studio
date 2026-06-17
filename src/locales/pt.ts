@@ -243,7 +243,7 @@ const pt: Record<string, string> = {
   "titlebar.close": "Fechar",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Detectar automaticamente",
@@ -298,7 +298,7 @@ const pt: Record<string, string> = {
   "about.license": "Licença",
   "about.developer": "Desenvolvedor",
   "about.source": "Código-fonte",
-  "about.copyright": "© 2025 OpenAEC Foundation. Todos os direitos reservados.",
+  "about.copyright": "© 2026 OpenAEC Foundation. Todos os direitos reservados.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "Mostrar",

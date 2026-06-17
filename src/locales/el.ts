@@ -243,7 +243,7 @@ const el: Record<string, string> = {
   "titlebar.close": "Κλείσιμο",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0391\u03C5\u03C4\u03CC\u03BC\u03B1\u03C4\u03B7 \u03B1\u03BD\u03AF\u03C7\u03BD\u03B5\u03C5\u03C3\u03B7",
@@ -298,7 +298,7 @@ const el: Record<string, string> = {
   "about.license": "\u0386\u03B4\u03B5\u03B9\u03B1",
   "about.developer": "\u03A0\u03C1\u03BF\u03B3\u03C1\u03B1\u03BC\u03BC\u03B1\u03C4\u03B9\u03C3\u03C4\u03AE\u03C2",
   "about.source": "\u03A0\u03B7\u03B3\u03B1\u03AF\u03BF\u03C2 \u03BA\u03CE\u03B4\u03B9\u03BA\u03B1\u03C2",
-  "about.copyright": "\u00A9 2025 OpenAEC Foundation. \u039C\u03B5 \u03B5\u03C0\u03B9\u03C6\u03CD\u03BB\u03B1\u03BE\u03B7 \u03C0\u03B1\u03BD\u03C4\u03CC\u03C2 \u03B4\u03B9\u03BA\u03B1\u03B9\u03CE\u03BC\u03B1\u03C4\u03BF\u03C2.",
+  "about.copyright": "© 2026 OpenAEC Foundation. \u039C\u03B5 \u03B5\u03C0\u03B9\u03C6\u03CD\u03BB\u03B1\u03BE\u03B7 \u03C0\u03B1\u03BD\u03C4\u03CC\u03C2 \u03B4\u03B9\u03BA\u03B1\u03B9\u03CE\u03BC\u03B1\u03C4\u03BF\u03C2.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "\u0395\u03BC\u03C6\u03AC\u03BD\u03B9\u03C3\u03B7",

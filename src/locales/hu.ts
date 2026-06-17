@@ -243,7 +243,7 @@ const hu: Record<string, string> = {
   "titlebar.minimize": "Kis méret",
   "titlebar.close": "Bezárás",
 
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatikus felismeres",
@@ -298,7 +298,7 @@ const hu: Record<string, string> = {
   "about.license": "Licenc",
   "about.developer": "Fejleszto",
   "about.source": "Forraskod",
-  "about.copyright": "\u00A9 2025 OpenAEC Foundation. Minden jog fenntartva.",
+  "about.copyright": "© 2026 OpenAEC Foundation. Minden jog fenntartva.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "Megjelenes",

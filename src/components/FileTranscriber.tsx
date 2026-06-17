@@ -1,6 +1,6 @@
 import { createSignal, onMount, onCleanup, Show, For } from "solid-js";
 import { createStore, produce } from "solid-js/store";
-import { api, type TranscriptionResult } from "../lib/api";
+import { api, type TranscriptionResult, type ModelInfo } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
@@ -52,11 +52,22 @@ export default function FileTranscriber() {
   const [dragOver, setDragOver] = createSignal(false);
   const [statusMsg, setStatusMsg] = createSignal("");
   const [previewJob, setPreviewJob] = createSignal<FileJob | null>(null);
+  const [models, setModels] = createSignal<ModelInfo[]>([]);
+  const [activeModel, setActiveModel] = createSignal("");
+  const [loadingModel, setLoadingModel] = createSignal(false);
 
   let unlisten: (() => void)[] = [];
   let timerInterval: ReturnType<typeof setInterval> | null = null;
 
   onMount(async () => {
+    // Load available models and detect active one
+    try {
+      const m = await api.getAvailableModels();
+      setModels(m);
+      const settings = await api.getSettings();
+      setActiveModel(settings.model_name || "");
+    } catch (_) {}
+
     if (!isTauri) return;
 
     // Listen for Tauri drag-drop events
@@ -326,6 +337,40 @@ export default function FileTranscriber() {
     <div class="file-transcriber">
       <h2>{t("fileTranscriber.title")}</h2>
       <p class="section-description">{t("fileTranscriber.description")}</p>
+
+      {/* Model selector */}
+      <div class="model-language-row" style={{ "margin-bottom": "12px" }}>
+        <label>{t("meeting.model")}</label>
+        <select
+          value={activeModel()}
+          onChange={async (e) => {
+            const name = e.target.value;
+            const model = models().find(m => m.name === name);
+            if (!model?.path) return;
+            setLoadingModel(true);
+            setStatusMsg(t("models.loading", { name }));
+            try {
+              await api.loadModel(model.path);
+              setActiveModel(name);
+              const s = await api.getSettings();
+              await api.saveSettings({ ...s, model_name: name, model_path: model.path });
+              await api.initJobQueue();
+              setStatusMsg(t("models.loadedReady", { name }));
+            } catch (err) {
+              setStatusMsg(t("models.loadFailed", { error: String(err) }));
+            }
+            setLoadingModel(false);
+          }}
+          disabled={loadingModel()}
+        >
+          <For each={models().filter(m => m.downloaded)}>
+            {(m) => <option value={m.name}>{m.name} ({m.size})</option>}
+          </For>
+        </select>
+        <Show when={loadingModel()}>
+          <span class="setting-hint">{t("models.activating")}</span>
+        </Show>
+      </div>
 
       {/* Drop zone — always clickable */}
       <div

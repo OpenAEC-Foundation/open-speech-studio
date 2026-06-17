@@ -243,7 +243,7 @@ const ro: Record<string, string> = {
   "titlebar.minimize": "Minimizare",
   "titlebar.close": "Închide",
 
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Detectare automat\u0103",
@@ -298,7 +298,7 @@ const ro: Record<string, string> = {
   "about.license": "Licen\u021B\u0103",
   "about.developer": "Dezvoltator",
   "about.source": "Cod surs\u0103",
-  "about.copyright": "\u00A9 2025 OpenAEC Foundation. Toate drepturile rezervate.",
+  "about.copyright": "© 2026 OpenAEC Foundation. Toate drepturile rezervate.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "Arat\u0103",

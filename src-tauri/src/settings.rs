@@ -53,6 +53,18 @@ pub struct Settings {
     // toggle is a user choice.
     #[serde(default)]
     pub remote_server_enabled: bool,
+
+    // Text-to-Speech (Higgs Audio v3, local server)
+    #[serde(default)]
+    pub tts_enabled: bool,
+    #[serde(default)]
+    pub tts_server_url: String,
+    #[serde(default = "default_tts_voice")]
+    pub tts_voice: String,
+    /// Opt-in: allow the app to download/install Python dependencies
+    /// (CUDA PyTorch, serving engine) on the user's machine via pip.
+    #[serde(default)]
+    pub tts_allow_install: bool,
 }
 
 impl Default for Settings {
@@ -89,8 +101,16 @@ impl Default for Settings {
             sound_pack: "retro".to_string(),
             sound_volume: 0.7,
             remote_server_enabled: false,
+            tts_enabled: false,
+            tts_server_url: String::new(),
+            tts_voice: "chloe".to_string(),
+            tts_allow_install: false,
         }
     }
+}
+
+fn default_tts_voice() -> String {
+    "chloe".to_string()
 }
 
 fn default_ui_language() -> String {

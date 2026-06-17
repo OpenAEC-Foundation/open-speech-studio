@@ -243,7 +243,7 @@ const zh: Record<string, string> = {
   "titlebar.close": "关闭",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "自动检测",
@@ -298,7 +298,7 @@ const zh: Record<string, string> = {
   "about.license": "许可证",
   "about.developer": "开发者",
   "about.source": "源代码",
-  "about.copyright": "© 2025 OpenAEC Foundation. 保留所有权利。",
+  "about.copyright": "© 2026 OpenAEC Foundation. 保留所有权利。",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "显示",

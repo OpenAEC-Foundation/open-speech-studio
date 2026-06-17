@@ -243,7 +243,7 @@ const ja: Record<string, string> = {
   "titlebar.close": "閉じる",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "自動検出",
@@ -298,7 +298,7 @@ const ja: Record<string, string> = {
   "about.license": "ライセンス",
   "about.developer": "開発者",
   "about.source": "ソースコード",
-  "about.copyright": "© 2025 OpenAEC Foundation. All rights reserved.",
+  "about.copyright": "© 2026 OpenAEC Foundation. All rights reserved.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "表示",

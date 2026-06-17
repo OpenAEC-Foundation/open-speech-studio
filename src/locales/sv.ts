@@ -243,7 +243,7 @@ const sv: Record<string, string> = {
   "titlebar.minimize": "Minimera",
   "titlebar.close": "Stäng",
 
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk identifiering",
@@ -298,7 +298,7 @@ const sv: Record<string, string> = {
   "about.license": "Licens",
   "about.developer": "Utvecklare",
   "about.source": "Kallkod",
-  "about.copyright": "\u00A9 2025 OpenAEC Foundation. Alla rattigheter forbehallna.",
+  "about.copyright": "© 2026 OpenAEC Foundation. Alla rattigheter forbehallna.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "Visa",

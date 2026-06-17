@@ -11,13 +11,14 @@ import MeetingRecorder from "./components/MeetingRecorder";
 import TitleBar from "./components/TitleBar";
 import About from "./components/About";
 import FileTranscriber from "./components/FileTranscriber";
+import TextToSpeech from "./components/TextToSpeech";
 import StatusBar from "./components/StatusBar";
-import { soundRecordStart, soundRecordStop, soundTranscriptionDone, soundError, initSounds } from "./lib/sounds";
+import { soundRecordStart, soundTranscriptionDone, soundError, initSounds } from "./lib/sounds";
+import { showOverlay, closeOverlay, emitOverlayAudioLevel } from "./lib/overlay";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
-// ─── Dictation overlay window ─────────────────────────────
-let overlayWindow: any = null;
+// ─── Audio level polling for the overlay's recording bar ──
 let audioLevelInterval: ReturnType<typeof setInterval> | null = null;
 
 function startAudioLevelPolling() {
@@ -25,8 +26,7 @@ function startAudioLevelPolling() {
   audioLevelInterval = setInterval(async () => {
     try {
       const level = await api.getAudioLevel();
-      const { emit } = await import("@tauri-apps/api/event");
-      await emit("overlay-audio-level", level);
+      await emitOverlayAudioLevel(level);
     } catch (_) {}
   }, 80);
 }
@@ -36,70 +36,6 @@ function stopAudioLevelPolling() {
     clearInterval(audioLevelInterval);
     audioLevelInterval = null;
   }
-}
-
-async function showOverlay(state: string, text?: string) {
-  if (!isTauri) return;
-  try {
-    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-    const { emit } = await import("@tauri-apps/api/event");
-
-    let win = await WebviewWindow.getByLabel("dictation-overlay");
-    if (!win) {
-      const { currentMonitor } = await import("@tauri-apps/api/window");
-      const monitor = await currentMonitor();
-      const screenW = monitor?.size?.width ?? 1920;
-      const screenH = monitor?.size?.height ?? 1080;
-      const scale = monitor?.scaleFactor ?? 1;
-      const overlayW = 200;
-      const overlayH = 48;
-      const margin = 16;
-
-      win = new WebviewWindow("dictation-overlay", {
-        url: "/?overlay=true",
-        title: "Dictation",
-        width: overlayW,
-        height: overlayH,
-        x: Math.round(screenW / scale) - overlayW - margin,
-        y: Math.round(screenH / scale) - overlayH - margin - 48,
-        decorations: false,
-        alwaysOnTop: true,
-        skipTaskbar: true,
-        resizable: false,
-        transparent: true,
-        focus: false,
-        visible: false,
-      });
-
-      overlayWindow = win;
-
-      // Wait for the webview to finish loading before sending events
-      await new Promise<void>((resolve) => {
-        win!.once("tauri://window-created", () => resolve());
-        // Fallback timeout in case the event is missed
-        setTimeout(resolve, 400);
-      });
-    } else {
-      overlayWindow = win;
-    }
-
-    await emit("overlay-state", state);
-    if (text) await emit("overlay-text", text);
-    await overlayWindow.show();
-  } catch (e) {
-    console.error("Overlay error:", e);
-  }
-}
-
-async function closeOverlay() {
-  if (!isTauri) return;
-  try {
-    const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-    const win = await WebviewWindow.getByLabel("dictation-overlay");
-    if (win) {
-      await win.hide();
-    }
-  } catch (_) {}
 }
 
 async function showMeetingIndicator(settingsGetter: () => { floating_indicator?: boolean } | null) {
@@ -154,45 +90,93 @@ function formatBothHotkeys(): string {
   return "Ctrl + Win  /  Ctrl + Shift + Space";
 }
 
-type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "transcribe" | "about";
+type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "transcribe" | "tts" | "about";
 
 // ─── Transcription time estimator ──────────────────────────
-// Per-model ratio tracking: transcription_time / recording_duration.
-// Stored per model name so switching models doesn't pollute the estimate.
-const ESTIMATE_PREFIX = "oss_ratio_";
+// Models transcription time as a LINEAR function of audio length:
+//
+//     transcribe_sec = overhead + slope * audio_sec
+//
+// `overhead` captures fixed cost (spawning whisper-cli, IO) and `slope`
+// captures the per-audio-second cost — i.e. how fast THIS machine is.
+// A least-squares fit over the last few real runs nails both after ~3
+// transcriptions. Seeded defaults are used ONLY when no real samples exist
+// yet, so they never pollute the fit. Samples are kept per model name.
+const SAMPLES_PREFIX = "oss_samples_";
+const MAX_SAMPLES = 12;
 
-// Sensible defaults per model size (transcribe_time / audio_time).
-// These are conservative — actual measurements quickly replace them.
-const MODEL_DEFAULTS: Record<string, number> = {
+// Default per-second slope per model size, used before any real measurement.
+const DEFAULT_SLOPE: Record<string, number> = {
   tiny: 0.15, base: 0.25, small: 0.5,
-  medium: 1.0, "large-v3": 1.8, "large-v3-turbo": 0.9,
+  medium: 1.0, "large-v3-turbo": 0.9, "large-v3": 1.8,
 };
+const DEFAULT_OVERHEAD = 0.4; // seconds
 
-function getRatioKey(model: string): string {
-  return ESTIMATE_PREFIX + (model || "unknown");
+function samplesKey(model: string): string {
+  return SAMPLES_PREFIX + (model || "unknown");
 }
 
-function getModelRatio(model: string): number {
-  const stored = parseFloat(localStorage.getItem(getRatioKey(model)) || "0");
-  if (stored > 0) return stored;
-  // Fallback to default for this model size
-  for (const [key, val] of Object.entries(MODEL_DEFAULTS)) {
+function loadSamples(model: string): [number, number][] {
+  try {
+    const raw = localStorage.getItem(samplesKey(model));
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch (_) {}
+  return [];
+}
+
+function defaultSlope(model: string): number {
+  for (const [key, val] of Object.entries(DEFAULT_SLOPE)) {
     if (model.includes(key)) return val;
   }
-  return 0.3; // Generic fallback
+  return 0.4;
 }
 
+/** Record one (audioSeconds, transcribeSeconds) observation for this model. */
 function updateEstimate(model: string, recordingMs: number, transcriptionMs: number) {
-  const newRatio = transcriptionMs / Math.max(recordingMs, 500);
-  const prev = getModelRatio(model);
-  // Exponential moving average — weight new observation 40% for faster convergence
-  const ratio = prev > 0 ? prev * 0.6 + newRatio * 0.4 : newRatio;
-  localStorage.setItem(getRatioKey(model), ratio.toFixed(4));
+  const audioSec = Math.max(0.2, recordingMs / 1000);
+  const transSec = Math.max(0.05, transcriptionMs / 1000);
+  const samples = loadSamples(model);
+  samples.push([audioSec, transSec]);
+  localStorage.setItem(samplesKey(model), JSON.stringify(samples.slice(-MAX_SAMPLES)));
 }
 
+/** Predict transcription seconds for a recording of the given length. */
 function getEstimatedSeconds(model: string, recordingMs: number): number {
-  const ratio = getModelRatio(model);
-  return Math.max(1, Math.round((recordingMs * ratio) / 1000));
+  const audioSec = Math.max(0.2, recordingMs / 1000);
+  const samples = loadSamples(model);
+
+  let overhead: number;
+  let slope: number;
+
+  if (samples.length >= 2) {
+    // Least-squares linear fit: trans = overhead + slope * audio
+    const n = samples.length;
+    let sx = 0, sy = 0, sxx = 0, sxy = 0;
+    for (const [x, y] of samples) { sx += x; sy += y; sxx += x * x; sxy += x * y; }
+    const denom = n * sxx - sx * sx;
+    if (Math.abs(denom) > 1e-6) {
+      slope = (n * sxy - sx * sy) / denom;
+      overhead = (sy - slope * sx) / n;
+    } else {
+      // All clips ~same length — fit through origin (mean ratio)
+      slope = sy / sx;
+      overhead = 0;
+    }
+    if (!isFinite(slope) || slope <= 0) slope = defaultSlope(model);
+    if (!isFinite(overhead) || overhead < 0) overhead = 0;
+  } else if (samples.length === 1) {
+    // One point: assume a small fixed overhead, derive slope from it
+    overhead = Math.min(DEFAULT_OVERHEAD, samples[0][1] * 0.3);
+    slope = Math.max(0.05, (samples[0][1] - overhead) / samples[0][0]);
+  } else {
+    overhead = DEFAULT_OVERHEAD;
+    slope = defaultSlope(model);
+  }
+
+  return Math.max(1, Math.round(overhead + slope * audioSec));
 }
 
 export default function App() {
@@ -232,9 +216,18 @@ export default function App() {
     try {
       const { register, unregisterAll } = await import("@tauri-apps/plugin-global-shortcut");
       await unregisterAll();
-      await register(hotkey, hotkeyHandler);
-      console.log(`Global hotkey registered: ${hotkey}`);
-      // Also register secondary hotkey
+
+      // Hotkeys with the Win/Super key are owned EXCLUSIVELY by the Rust
+      // low-level keyboard hook (ctrl-win-pressed/released events). Never
+      // register them with the plugin too — that delivers duplicate and
+      // late events, causing double starts/sounds.
+      if (!/super/i.test(hotkey)) {
+        await register(hotkey, hotkeyHandler);
+        console.log(`Global hotkey registered: ${hotkey}`);
+      } else {
+        console.log(`Hotkey ${hotkey} handled by keyboard hook only`);
+      }
+
       if (hotkey !== SECONDARY_HOTKEY) {
         try {
           await register(SECONDARY_HOTKEY, hotkeyHandler);
@@ -337,38 +330,60 @@ export default function App() {
     } catch (_) {}
   };
 
+  let startLock = false;
+  let stopLock = false;
+
   const handleStartRecording = async () => {
     if (!isModelLoaded()) {
       sendNotification("Open Speech Studio", t("app.noModelNotification"));
       return;
     }
-    if (isRecording()) return;
+    // Never start while already recording, while a start is in flight,
+    // or while the previous transcription is still finishing.
+    if (isRecording() || startLock || stopLock) return;
+    startLock = true;
 
     try {
       await api.startDictation();
       recordingStartedAt = Date.now();
       setIsRecording(true);
       if (settings()?.audio_feedback !== false) soundRecordStart();
-      await showOverlay("recording");
+      await showOverlay({ state: "recording" });
       startAudioLevelPolling();
     } catch (e) {
-      if (settings()?.audio_feedback !== false) soundError();
       console.error("Recording error:", e);
     }
+    startLock = false;
   };
 
   const handleStopRecording = async () => {
-    if (!isRecording()) return;
+    if (stopLock) return;
+    // A very fast press-release can arrive while the start is still in
+    // flight — wait for it to finish instead of dropping the stop.
+    for (let i = 0; i < 40 && startLock; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    if (!isRecording() || stopLock) return;
+    stopLock = true;
 
     stopAudioLevelPolling();
-    if (settings()?.audio_feedback !== false) soundRecordStop();
     setIsRecording(false);
 
-    try {
-      await showOverlay("transcribing", '');
+    // Predict transcription duration from the learned per-model ratio.
+    // The overlay animates its own progress bar from this single estimate.
+    const recordingMs = Date.now() - recordingStartedAt;
+    const modelName = settings()?.model_name || "";
+    const estimatedMs = Math.max(1000, getEstimatedSeconds(modelName, recordingMs) * 1000);
+    const transcribeStart = Date.now();
 
-      // Synchronous path: wait for transcription result (v0.6 proven flow)
+    try {
+      await showOverlay({ state: "transcribing", estimatedMs });
+
       const result = await api.stopDictationSync();
+
+      // Learn from this run: actual transcription time vs recording length
+      updateEstimate(modelName, recordingMs, Date.now() - transcribeStart);
+
       const finalText = result.text?.trim() || '';
 
       if (finalText && settings()?.auto_paste) {
@@ -383,14 +398,19 @@ export default function App() {
       }, ...prev]);
 
       if (settings()?.audio_feedback !== false) soundTranscriptionDone();
-      await showOverlay('done', finalText.substring(0, 50));
-      setTimeout(() => closeOverlay(), 2000);
+      await showOverlay({ state: "done", text: finalText.substring(0, 50) });
+      closeOverlay(2200);
     } catch (e) {
-      if (settings()?.audio_feedback !== false) soundError();
-      await showOverlay("error", String(e));
-      setTimeout(() => closeOverlay(), 3000);
+      // Ignore "Not dictating" — benign race between keyboard hook and global shortcut
+      const msg = String(e);
+      if (!msg.includes("Not dictating")) {
+        if (settings()?.audio_feedback !== false) soundError();
+        await showOverlay({ state: "error", text: msg });
+        closeOverlay(3200);
+      }
       console.error("Transcription error:", e);
     }
+    stopLock = false;
   };
 
   /** Toggle for UI buttons (click to start, click to stop) */
@@ -467,6 +487,10 @@ export default function App() {
             onRecordingStop={() => hideMeetingIndicator()}
           />
         </div>
+
+        <Show when={view() === "tts"}>
+          <TextToSpeech settings={settings()} />
+        </Show>
 
         <Show when={view() === "about"}>
           <About />

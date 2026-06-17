@@ -243,7 +243,7 @@ const uk: Record<string, string> = {
   "titlebar.minimize": "Згорнути",
   "titlebar.close": "Закрити",
 
-  "statusBar.version": "Open Speech Studio v0.10.0 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.8.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0410\u0432\u0442\u043E\u0432\u0438\u0437\u043D\u0430\u0447\u0435\u043D\u043D\u044F",
@@ -298,7 +298,7 @@ const uk: Record<string, string> = {
   "about.license": "\u041B\u0456\u0446\u0435\u043D\u0437\u0456\u044F",
   "about.developer": "\u0420\u043E\u0437\u0440\u043E\u0431\u043D\u0438\u043A",
   "about.source": "\u0412\u0438\u0445\u0456\u0434\u043D\u0438\u0439 \u043A\u043E\u0434",
-  "about.copyright": "\u00A9 2025 OpenAEC Foundation. \u0423\u0441\u0456 \u043F\u0440\u0430\u0432\u0430 \u0437\u0430\u0445\u0438\u0449\u0435\u043D\u0456.",
+  "about.copyright": "© 2026 OpenAEC Foundation. \u0423\u0441\u0456 \u043F\u0440\u0430\u0432\u0430 \u0437\u0430\u0445\u0438\u0449\u0435\u043D\u0456.",
 
   // ── Tray ────────────────────────────────────────────────
   "tray.show": "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u0438",

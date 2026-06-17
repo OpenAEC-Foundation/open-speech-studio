@@ -2,6 +2,7 @@ import { createSignal, createEffect, onCleanup, onMount, Show, For } from "solid
 import { api, type TranscriptionResult, type ModelInfo, getMicAnalyser, isServerMode } from "../lib/api";
 import { useI18n, getLanguageOptions } from "../lib/i18n";
 import { soundRecordStart, soundRecordStop, soundTranscriptionDone, soundError } from "../lib/sounds";
+import { showOverlay, closeOverlay } from "../lib/overlay";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
@@ -72,53 +73,13 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
     if (isRecording()) props.onRecordingStop?.();
   });
 
-  // ─── Overlay for meeting recording ──────────────
+  // ─── Overlay for meeting recording (shared module) ──────
   async function showMeetingOverlay() {
-    if (!isTauri) return;
-    try {
-      const { emit } = await import("@tauri-apps/api/event");
-      const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
-      const { currentMonitor } = await import("@tauri-apps/api/window");
-
-      // Reuse existing overlay or create a new one
-      const existing = await WebviewWindow.getByLabel("dictation-overlay");
-      if (!existing) {
-        const monitor = await currentMonitor();
-        const screenW = monitor?.size?.width ?? 1920;
-        const screenH = monitor?.size?.height ?? 1080;
-        const scale = monitor?.scaleFactor ?? 1;
-        const overlayW = 280;
-        const overlayH = 64;
-        const margin = 16;
-
-        new WebviewWindow("dictation-overlay", {
-          url: "/?overlay=true",
-          title: t("sidebar.meeting"),
-          width: overlayW,
-          height: overlayH,
-          x: Math.round(screenW / scale) - overlayW - margin,
-          y: Math.round(screenH / scale) - overlayH - margin - 48,
-          decorations: false,
-          alwaysOnTop: true,
-          skipTaskbar: true,
-          resizable: false,
-          transparent: true,
-          focus: false,
-        });
-        await new Promise((r) => setTimeout(r, 300));
-      }
-      await emit("overlay-state", "recording");
-    } catch (e) {
-      console.error("Meeting overlay error:", e);
-    }
+    await showOverlay({ state: "recording" });
   }
 
   async function closeMeetingOverlay() {
-    if (!isTauri) return;
-    try {
-      const { emit } = await import("@tauri-apps/api/event");
-      await emit("overlay-close");
-    } catch (_) {}
+    await closeOverlay();
   }
 
   const updateElapsed = () => {

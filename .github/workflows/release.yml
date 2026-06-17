@@ -46,12 +46,6 @@ jobs:
             rust-target: x86_64-unknown-linux-gnu
             label: Linux
             args: --bundles deb,rpm
-          - platform: macos-latest
-            rust-target: aarch64-apple-darwin
-            label: macOS (ARM)
-          - platform: macos-14
-            rust-target: x86_64-apple-darwin
-            label: macOS (Intel)
 
     name: Build – ${{ matrix.label }}
     runs-on: ${{ matrix.platform }}
@@ -238,6 +232,5 @@ jobs:
           body: |
             **Downloads:**
             - **Windows:** `.exe` (NSIS installer) / `.msi`
-            - **macOS:** `.dmg` (Apple Silicon & Intel)
             - **Linux:** `.AppImage` / `.deb`
           files: release/*
