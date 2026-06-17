@@ -363,7 +363,8 @@ pub struct ProcessInfo {
 
 #[tauri::command]
 pub async fn get_running_processes() -> Result<Vec<ProcessInfo>, String> {
-    let mut processes = Vec::new();
+    let mut processes: Vec<ProcessInfo> = Vec::new();
+    #[cfg(target_os = "windows")]
     let patterns = ["whisper-cli", "llama-cli", "piper", "open-speech-studio"];
 
     #[cfg(target_os = "windows")]
