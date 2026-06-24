@@ -88,6 +88,8 @@ const nl: Record<string, string> = {
   "settings.gpuStatusNoCuda": "CUDA-bibliotheken niet gevonden — installeer CUDA toolkit",
   "settings.gpuStatusOff": "GPU uitgeschakeld — CPU wordt gebruikt",
   "settings.autoPasteHint": "Tekst automatisch typen na transcriptie",
+  "settings.autoEnter": "Enter na plakken",
+  "settings.autoEnterHint": "Automatisch verzenden door op Enter te drukken nadat de tekst is getypt (handig voor prompts/chat). Vereist automatisch plakken.",
   "settings.audioFeedback": "Geluidseffecten",
   "settings.audioFeedbackEnabled": "Geluiden afspelen bij start, stop en voltooiing",
   "settings.audioFeedbackDisabled": "Geen audiofeedback",

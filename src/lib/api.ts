@@ -7,6 +7,7 @@ export interface Settings {
   hotkey: string;
   hotkey_mode: string;
   auto_paste: boolean;
+  auto_enter?: boolean;
   audio_device: string;
   theme: string;
   file_auto_save: boolean;
@@ -155,7 +156,7 @@ const tauriApi = {
   isModelLoaded: () => tauriInvoke<boolean>("is_model_loaded"),
   getGpuInfo: () => tauriInvoke<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string }>("get_gpu_info"),
   getGpuStatus: () => tauriInvoke<{ enabled: boolean; cuda_available: boolean; active: boolean; device_name: string }>("get_gpu_status"),
-  typeText: (text: string) => tauriInvoke<void>("type_text", { text }),
+  typeText: (text: string, autoEnter?: boolean) => tauriInvoke<void>("type_text", { text, autoEnter: autoEnter ?? false }),
   updateTrayLanguage: (language: string) => tauriInvoke<void>("update_tray_language", { language }),
   startFileJob: (jobId: string, filePath: string) =>
     tauriInvoke<void>("start_file_job", { jobId, filePath }),
@@ -638,7 +639,7 @@ const browserApi = {
     return !!SR;
   },
 
-  typeText: (_text: string) => Promise.resolve(),
+  typeText: (_text: string, _autoEnter?: boolean) => Promise.resolve(),
   updateTrayLanguage: (_language: string) => Promise.resolve(),
   getGpuInfo: () => Promise.resolve({ available: false, name: "Not available in browser mode", vram_mb: 0, driver: "", recommendation: "GPU detection requires the desktop app" }),
   getGpuStatus: () => Promise.resolve({ enabled: false, cuda_available: false, active: false, device_name: "" }),

@@ -1410,8 +1410,12 @@ async fn update_tray_language(app: tauri::AppHandle, language: String) -> Result
     Ok(())
 }
 
-#[tauri::command]
-async fn type_text(state: State<'_, AppState>, text: String) -> Result<(), String> {
+#[tauri::command(rename_all = "camelCase")]
+async fn type_text(
+    state: State<'_, AppState>,
+    text: String,
+    auto_enter: Option<bool>,
+) -> Result<(), String> {
     // Restore focus to the window that was active when recording started
     #[cfg(target_os = "windows")]
     {
@@ -1427,7 +1431,7 @@ async fn type_text(state: State<'_, AppState>, text: String) -> Result<(), Strin
         }
     }
 
-    use enigo::{Enigo, Keyboard, Settings};
+    use enigo::{Enigo, Keyboard, Settings, Key, Direction};
     let mut enigo = Enigo::new(&Settings::default()).map_err(|e| {
         #[cfg(target_os = "macos")]
         {
@@ -1441,6 +1445,12 @@ async fn type_text(state: State<'_, AppState>, text: String) -> Result<(), Strin
         e.to_string()
     })?;
     enigo.text(&text).map_err(|e| e.to_string())?;
+
+    // Optionally submit by pressing Enter (e.g. to send a prompt directly).
+    if auto_enter.unwrap_or(false) {
+        std::thread::sleep(std::time::Duration::from_millis(30));
+        enigo.key(Key::Return, Direction::Click).map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 

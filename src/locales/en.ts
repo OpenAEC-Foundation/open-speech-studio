@@ -88,6 +88,8 @@ const en: Record<string, string> = {
   "settings.gpuStatusNoCuda": "CUDA libraries not found — install CUDA toolkit",
   "settings.gpuStatusOff": "GPU disabled — using CPU",
   "settings.autoPasteHint": "Automatically type text after transcription",
+  "settings.autoEnter": "Press Enter after paste",
+  "settings.autoEnterHint": "Automatically submit by pressing Enter after the text is typed (handy for prompts/chat). Requires auto paste.",
   "settings.audioFeedback": "Sound effects",
   "settings.audioFeedbackEnabled": "Play sounds on start, stop and completion",
   "settings.audioFeedbackDisabled": "No audio feedback",

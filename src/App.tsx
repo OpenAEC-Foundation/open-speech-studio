@@ -17,6 +17,9 @@ import { soundRecordStart, soundTranscriptionDone, soundError, initSounds } from
 import { showOverlay, closeOverlay, emitOverlayAudioLevel } from "./lib/overlay";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
+// The low-level keyboard hook that owns Win/Super hotkeys exists only on
+// Windows. On Linux/macOS the global-shortcut plugin must handle them.
+const isWindows = navigator.userAgent.includes("Windows");
 
 // ─── Audio level polling for the overlay's recording bar ──
 let audioLevelInterval: ReturnType<typeof setInterval> | null = null;
@@ -217,11 +220,11 @@ export default function App() {
       const { register, unregisterAll } = await import("@tauri-apps/plugin-global-shortcut");
       await unregisterAll();
 
-      // Hotkeys with the Win/Super key are owned EXCLUSIVELY by the Rust
-      // low-level keyboard hook (ctrl-win-pressed/released events). Never
-      // register them with the plugin too — that delivers duplicate and
-      // late events, causing double starts/sounds.
-      if (!/super/i.test(hotkey)) {
+      // On Windows, hotkeys with the Win/Super key are owned EXCLUSIVELY by
+      // the Rust low-level keyboard hook (ctrl-win-pressed/released events) —
+      // registering them with the plugin too causes duplicate/late events.
+      // On Linux/macOS there is no such hook, so the plugin MUST register them.
+      if (!isWindows || !/super/i.test(hotkey)) {
         await register(hotkey, hotkeyHandler);
         console.log(`Global hotkey registered: ${hotkey}`);
       } else {
@@ -387,7 +390,7 @@ export default function App() {
       const finalText = result.text?.trim() || '';
 
       if (finalText && settings()?.auto_paste) {
-        await api.typeText(finalText);
+        await api.typeText(finalText, settings()?.auto_enter === true);
       }
 
       setTranscriptions(prev => [{

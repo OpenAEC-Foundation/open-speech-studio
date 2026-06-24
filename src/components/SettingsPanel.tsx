@@ -50,6 +50,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [language, setLanguage] = createSignal("auto");
   const [useGpu, setUseGpu] = createSignal(false);
   const [autoPaste, setAutoPaste] = createSignal(true);
+  const [autoEnter, setAutoEnter] = createSignal(false);
   const [audioDevice, setAudioDevice] = createSignal("default");
   const [devices, setDevices] = createSignal<string[]>([]);
   const [fileAutoSave, setFileAutoSave] = createSignal(false);
@@ -89,6 +90,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setLanguage(props.settings.language);
       setUseGpu(props.settings.use_gpu);
       setAutoPaste(props.settings.auto_paste);
+      setAutoEnter(props.settings.auto_enter ?? false);
       setAudioDevice(props.settings.audio_device);
       setFileAutoSave(props.settings.file_auto_save ?? false);
       setFileSaveDir(props.settings.file_save_directory ?? "");
@@ -345,6 +347,22 @@ export default function SettingsPanel(props: SettingsPanelProps) {
                 <span class="toggle-slider" />
               </label>
               <span class="setting-hint">{t("settings.autoPasteHint")}</span>
+            </div>
+          </div>
+
+          <div class="setting-row" style={{ opacity: autoPaste() ? 1 : 0.4 }}>
+            <label>{t("settings.autoEnter")}</label>
+            <div class="toggle-group">
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  checked={autoEnter()}
+                  disabled={!autoPaste()}
+                  onChange={(e) => { setAutoEnter(e.target.checked); autoSave({ auto_enter: e.target.checked }); }}
+                />
+                <span class="toggle-slider" />
+              </label>
+              <span class="setting-hint">{t("settings.autoEnterHint")}</span>
             </div>
           </div>
 

@@ -13,6 +13,9 @@ pub struct Settings {
     #[serde(default = "default_hotkey_mode")]
     pub hotkey_mode: String,
     pub auto_paste: bool,
+    /// Press Enter automatically after pasting a dictation result.
+    #[serde(default)]
+    pub auto_enter: bool,
     pub audio_device: String,
     pub theme: String,
     #[serde(default = "default_false")]
@@ -81,6 +84,7 @@ impl Default for Settings {
             hotkey: "Ctrl+Super".to_string(),
             hotkey_mode: "hold".to_string(),
             auto_paste: true,
+            auto_enter: false,
             audio_device: "default".to_string(),
             theme: "light".to_string(),
             file_auto_save: false,
