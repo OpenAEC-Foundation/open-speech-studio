@@ -50,20 +50,28 @@ export function soundRecordStart() {
   osc.stop(ctx.currentTime + 0.15);
 }
 
-/** Short falling blip — recording stopped (key released) */
+/** Soft musical two-note cue — recording stopped (keys released).
+ *  A gentle G5→E5 descending third: reads as "captured", not as an error. */
 export function soundRecordStop() {
   const ctx = getCtx();
-  const osc = ctx.createOscillator();
-  const vol = ctx.createGain();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(900, ctx.currentTime);
-  osc.frequency.linearRampToValueAtTime(600, ctx.currentTime + 0.12);
-  vol.gain.value = 0.3;
-  vol.gain.setTargetAtTime(0, ctx.currentTime + 0.08, 0.03);
-  osc.connect(vol);
-  vol.connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.15);
+  const t = ctx.currentTime;
+  const notes = [
+    { freq: 784, start: 0,    dur: 0.11 }, // G5
+    { freq: 659, start: 0.07, dur: 0.16 }, // E5
+  ];
+  for (const note of notes) {
+    const osc = ctx.createOscillator();
+    const vol = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = note.freq;
+    vol.gain.setValueAtTime(0, t + note.start);
+    vol.gain.linearRampToValueAtTime(0.16, t + note.start + 0.015);
+    vol.gain.setTargetAtTime(0, t + note.start + note.dur * 0.5, note.dur * 0.25);
+    osc.connect(vol);
+    vol.connect(ctx.destination);
+    osc.start(t + note.start);
+    osc.stop(t + note.start + note.dur + 0.05);
+  }
 }
 
 /** Pleasant three-note major chord chime — transcription done */

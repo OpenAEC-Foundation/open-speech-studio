@@ -13,7 +13,7 @@ import About from "./components/About";
 import FileTranscriber from "./components/FileTranscriber";
 import TextToSpeech from "./components/TextToSpeech";
 import StatusBar from "./components/StatusBar";
-import { soundRecordStart, soundTranscriptionDone, soundError, initSounds } from "./lib/sounds";
+import { soundRecordStart, soundRecordStop, soundTranscriptionDone, soundError, initSounds } from "./lib/sounds";
 import { showOverlay, closeOverlay, emitOverlayAudioLevel } from "./lib/overlay";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
@@ -371,6 +371,9 @@ export default function App() {
 
     stopAudioLevelPolling();
     setIsRecording(false);
+    // Distinct "stop" cue when the keys are released (start of processing).
+    // The start/stop locks above guarantee this fires exactly once.
+    if (settings()?.audio_feedback !== false) soundRecordStop();
 
     // Predict transcription duration from the learned per-model ratio.
     // The overlay animates its own progress bar from this single estimate.

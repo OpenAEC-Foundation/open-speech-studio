@@ -243,7 +243,7 @@ const sv: Record<string, string> = {
   "titlebar.minimize": "Minimera",
   "titlebar.close": "Stäng",
 
-  "statusBar.version": "Open Speech Studio v0.10.1 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.2 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk identifiering",

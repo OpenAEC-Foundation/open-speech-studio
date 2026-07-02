@@ -243,7 +243,7 @@ const hr: Record<string, string> = {
   "titlebar.close": "Zatvori",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.1 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.2 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatsko prepoznavanje",
