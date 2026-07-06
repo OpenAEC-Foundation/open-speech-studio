@@ -188,7 +188,12 @@ const tauriApi = {
 
 // ─── Local server detection ──────────────────────────────────
 
-const SERVER_URL = "http://localhost:3333";
+// Op localhost (dev) praat de web-build met de lokale server op :3333; wordt de
+// build vanaf een echt domein geserveerd (bv. speech.<domein> in de cloud), dan
+// is de transcriptieserver same-origin achter /api/* (reverse proxy).
+const IS_LOCAL_PAGE =
+  typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname);
+const SERVER_URL = IS_LOCAL_PAGE ? "http://localhost:3333" : "";
 let serverAvailable: boolean | null = null; // null = not checked yet
 
 async function checkServer(): Promise<boolean> {
@@ -534,11 +539,39 @@ const browserApi = {
     ];
   },
 
-  downloadModel: (_modelName: string) =>
-    Promise.reject(new Error("Model download is not available in browser mode. Place .bin files manually in the models/ folder.")),
+  downloadModel: async (modelName: string) => {
+    // Met een (cloud)server downloadt de server het ggml-model server-side.
+    if (await checkServer()) {
+      const res = await fetch(`${SERVER_URL}/api/download-model`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: modelName }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}) as { error?: string });
+        throw new Error(err.error || "Model download failed");
+      }
+      const data = await res.json();
+      return data.path as string;
+    }
+    throw new Error("Model download is not available in browser mode. Place .bin files manually in the models/ folder.");
+  },
 
-  deleteModel: (_modelName: string) =>
-    Promise.reject(new Error("Model deletion is not available in browser mode.")),
+  deleteModel: async (modelName: string) => {
+    if (await checkServer()) {
+      const res = await fetch(`${SERVER_URL}/api/delete-model`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: modelName }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}) as { error?: string });
+        throw new Error(err.error || "Model deletion failed");
+      }
+      return;
+    }
+    throw new Error("Model deletion is not available in browser mode.");
+  },
 
   loadModel: async (modelPath: string) => {
     if (await checkServer()) {
