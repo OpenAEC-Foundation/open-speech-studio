@@ -243,7 +243,7 @@ const el: Record<string, string> = {
   "titlebar.close": "Κλείσιμο",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.2 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.3 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0391\u03C5\u03C4\u03CC\u03BC\u03B1\u03C4\u03B7 \u03B1\u03BD\u03AF\u03C7\u03BD\u03B5\u03C5\u03C3\u03B7",

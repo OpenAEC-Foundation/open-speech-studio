@@ -243,7 +243,7 @@ const pt: Record<string, string> = {
   "titlebar.close": "Fechar",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.2 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.3 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Detectar automaticamente",

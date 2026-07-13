@@ -195,13 +195,40 @@ export default function App() {
   /** All hotkeys that trigger recording (primary + secondary) */
   const SECONDARY_HOTKEY = "Ctrl+Shift+Space";
 
+  // ── Hotkey auto-repeat debounce ─────────────────────────────
+  // While a hotkey is held, the OS can emit rapid released/pressed pairs
+  // (key auto-repeat), which without protection produces a storm of
+  // start/stop cycles — each stop runs Whisper — and freezes the app.
+  // We collapse those pairs: a release is deferred briefly, and a press
+  // arriving inside that window cancels it (we're still holding).
+  const HOTKEY_DEBOUNCE_MS = 140;
+  let pendingStopTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const onHoldPressed = () => {
+    if (pendingStopTimer) {
+      // Auto-repeat while holding — cancel the pending stop, stay recording.
+      clearTimeout(pendingStopTimer);
+      pendingStopTimer = null;
+      return;
+    }
+    handleStartRecording();
+  };
+
+  const onHoldReleased = () => {
+    if (pendingStopTimer) clearTimeout(pendingStopTimer);
+    pendingStopTimer = setTimeout(() => {
+      pendingStopTimer = null;
+      handleStopRecording();
+    }, HOTKEY_DEBOUNCE_MS);
+  };
+
   const hotkeyHandler = (event: any) => {
     const mode = settings()?.hotkey_mode || "hold";
     if (mode === "hold") {
       if (event.state === "Pressed") {
-        handleStartRecording();
+        onHoldPressed();
       } else if (event.state === "Released") {
-        handleStopRecording();
+        onHoldReleased();
       }
     } else {
       if (event.state === "Pressed") {
@@ -278,12 +305,13 @@ export default function App() {
           }
         });
 
-        // Ctrl+Win via low-level keyboard hook (Rust backend)
+        // Ctrl+Win via low-level keyboard hook (Rust backend).
+        // Routed through the same debounce so auto-repeat can't storm.
         listen<void>("ctrl-win-pressed", () => {
-          handleStartRecording();
+          onHoldPressed();
         });
         listen<void>("ctrl-win-released", () => {
-          handleStopRecording();
+          onHoldReleased();
         });
       });
     }

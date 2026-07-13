@@ -243,7 +243,7 @@ const uk: Record<string, string> = {
   "titlebar.minimize": "Згорнути",
   "titlebar.close": "Закрити",
 
-  "statusBar.version": "Open Speech Studio v0.10.2 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.3 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "\u0410\u0432\u0442\u043E\u0432\u0438\u0437\u043D\u0430\u0447\u0435\u043D\u043D\u044F",

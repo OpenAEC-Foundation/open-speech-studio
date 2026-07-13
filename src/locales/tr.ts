@@ -243,7 +243,7 @@ const tr: Record<string, string> = {
   "titlebar.minimize": "Küçült",
   "titlebar.close": "Kapat",
 
-  "statusBar.version": "Open Speech Studio v0.10.2 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.3 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Otomatik algıla",

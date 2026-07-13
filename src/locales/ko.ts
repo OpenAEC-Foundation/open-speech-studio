@@ -243,7 +243,7 @@ const ko: Record<string, string> = {
   "titlebar.minimize": "최소화",
   "titlebar.close": "닫기",
 
-  "statusBar.version": "Open Speech Studio v0.10.2 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.10.3 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "자동 감지",
