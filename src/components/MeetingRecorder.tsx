@@ -255,15 +255,49 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
     URL.revokeObjectURL(url);
   };
 
-  const timestamp = () => new Date().toISOString().slice(0, 16).replace(":", "-");
-
-  const exportTxt = () => {
-    const blob = new Blob([getFullTranscript()], { type: "text/plain;charset=utf-8" });
-    downloadBlob(blob, `transcript-${timestamp()}.txt`);
-    setStatus(t("meeting.statusExportedTxt"));
+  // Save an export to disk and open it in its default app (LibreOffice for
+  // .odt, the text editor for .txt/.md). Falls back to a browser download
+  // outside the desktop app. `content` is text, or a Blob for binary (.odt).
+  const saveAndOpen = async (content: string | Blob, filename: string, ext: string) => {
+    if (!isTauri) {
+      const blob = content instanceof Blob
+        ? content
+        : new Blob([content], { type: "text/plain;charset=utf-8" });
+      downloadBlob(blob, filename);
+      return true;
+    }
+    try {
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const { invoke } = await import("@tauri-apps/api/core");
+      const path = await save({
+        defaultPath: filename,
+        filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
+      });
+      if (!path) return false; // user cancelled
+      if (content instanceof Blob) {
+        const bytes = Array.from(new Uint8Array(await content.arrayBuffer()));
+        await invoke("save_binary_file", { path, data: bytes });
+      } else {
+        await invoke("save_text_file", { path, content });
+      }
+      // Open the freshly-written file in its associated editor.
+      await invoke("open_path", { path });
+      return true;
+    } catch (e) {
+      console.error("Export failed:", e);
+      return false;
+    }
   };
 
-  const exportMarkdown = () => {
+  const timestamp = () => new Date().toISOString().slice(0, 16).replace(":", "-");
+
+  const exportTxt = async () => {
+    if (await saveAndOpen(getFullTranscript(), `transcript-${timestamp()}.txt`, "txt")) {
+      setStatus(t("meeting.statusExportedTxt"));
+    }
+  };
+
+  const exportMarkdown = async () => {
     const lines = [`# ${t("meeting.exportTranscriptHeading")} — ${new Date().toLocaleString()}`, ""];
     segments().forEach((s, i) => {
       lines.push(`## ${t("meeting.exportSegment")} ${i + 1} — ${s.timestamp}`);
@@ -275,9 +309,9 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
     });
     lines.push("---");
     lines.push(`*${t("meeting.exportSegmentsCount", { count: segments().length })} — ${t("meeting.exportWordsCount", { count: totalWords() })} — ${t("meeting.exportRecordingTime", { time: elapsed() })}*`);
-    const blob = new Blob([lines.join("\n")], { type: "text/markdown;charset=utf-8" });
-    downloadBlob(blob, `transcript-${timestamp()}.md`);
-    setStatus(t("meeting.statusExportedMd"));
+    if (await saveAndOpen(lines.join("\n"), `transcript-${timestamp()}.md`, "md")) {
+      setStatus(t("meeting.statusExportedMd"));
+    }
   };
 
   const exportOdt = async () => {
@@ -335,8 +369,9 @@ ${paragraphs}
     zip.file("META-INF/manifest.xml", manifestXml);
 
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.oasis.opendocument.text" });
-    downloadBlob(blob, `transcript-${timestamp()}.odt`);
-    setStatus(t("meeting.statusExportedOdt"));
+    if (await saveAndOpen(blob, `transcript-${timestamp()}.odt`, "odt")) {
+      setStatus(t("meeting.statusExportedOdt"));
+    }
   };
 
   const escapeXml = (s: string) =>

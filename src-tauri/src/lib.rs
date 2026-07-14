@@ -1388,6 +1388,45 @@ async fn save_text_file(path: String, content: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Write raw bytes to a path (used for binary exports like .odt).
+#[tauri::command]
+async fn save_binary_file(path: String, data: Vec<u8>) -> Result<(), String> {
+    std::fs::write(&path, &data).map_err(|e| format!("Failed to write file: {}", e))?;
+    Ok(())
+}
+
+/// Open a file (or folder) with the OS default application.
+#[tauri::command]
+async fn open_path(path: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        // `start` needs an (empty) title arg first so a quoted path isn't
+        // mistaken for the window title.
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", &path])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn update_tray_language(app: tauri::AppHandle, language: String) -> Result<(), String> {
     let (show_l, enabled_l, quit_l) = tray_labels(&language);
@@ -1683,6 +1722,8 @@ pub fn run() {
             get_gpu_status,
             is_model_loaded,
             save_text_file,
+            save_binary_file,
+            open_path,
             type_text,
             update_tray_language,
             init_job_queue,
