@@ -23,7 +23,6 @@ use tauri::{AppHandle, Runtime};
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
-use crate::auth;
 
 // ── Constants ───────────────────────────────────────────────
 const ACCOUNTS_BASE: &str = "https://account.impertio.app";
@@ -154,7 +153,7 @@ async fn resolve<R: Runtime>(app: &AppHandle<R>) -> Result<CachedConfig, String>
 }
 
 async fn fetch_from_server<R: Runtime>(app: &AppHandle<R>) -> Result<AppConfig, String> {
-    let token = auth::auth_get_access_token(app.clone())
+    let token = openaec_accounts_client::client::access_token()
         .await?
         .ok_or_else(|| "not signed in".to_string())?;
 

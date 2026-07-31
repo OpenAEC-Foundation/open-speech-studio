@@ -741,7 +741,6 @@ export const auth = {
   login: () => tauriInvoke<UserProfile>("auth_login"),
   logout: () => tauriInvoke<void>("auth_logout"),
   currentUser: () => tauriInvoke<UserProfile | null>("auth_current_user"),
-  getAccessToken: () => tauriInvoke<string | null>("auth_get_access_token"),
   userInfo: () => tauriInvoke<UserInfo>("auth_userinfo"),
 };
 

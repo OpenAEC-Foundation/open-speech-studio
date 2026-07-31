@@ -856,7 +856,7 @@ async fn start_file_job(
 
     if remote_enabled {
         let url = app_config::get_ai_server_url(&app).await?;
-        let token = auth::auth_get_access_token(app.clone())
+        let token = openaec_accounts_client::client::access_token()
             .await?
             .ok_or("Sign in to use the cloud transcription server")?;
         return start_remote_file_job(
@@ -1194,7 +1194,7 @@ pub(crate) async fn transcribe_buffer_remote(
     language: &str,
 ) -> Result<(String, String), String> {
     let base_url = app_config::get_ai_server_url(app).await?;
-    let token = auth::auth_get_access_token(app.clone())
+    let token = openaec_accounts_client::client::access_token()
         .await?
         .ok_or("Sign in to use the cloud transcription server")?;
     let url = format!("{}/api/v1/transcribe", base_url.trim_end_matches('/'));
@@ -1603,6 +1603,30 @@ pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .init();
 
+    // Configure the shared OpenAEC login. These values belong to THIS app, not
+    // to the shared crate. Override per environment with a JSON file pointed at
+    // by OPENAEC_ACCOUNTS_CONFIG.
+    openaec_accounts_client::init(openaec_accounts_client::Setup {
+        // Unique per app: sharing this string with another Impertio app would
+        // make them overwrite each other's tokens.
+        keyring_service: "open-speech-studio-openaec".into(),
+        config_env_var: "OPENAEC_ACCOUNTS_CONFIG".into(),
+        app_name: "Open Speech Studio".into(),
+        defaults: openaec_accounts_client::AccountsConfig {
+            issuer: "https://account.impertio.app".into(),
+            client_id: "impertio_1jUhRbtdb-OA".into(),
+            // 127.0.0.1 rather than localhost: accounts-impertio only applies
+            // RFC 8252's port-agnostic loopback rule to 127.0.0.1 and [::1].
+            // The path must match the registered redirect URI exactly.
+            redirect_uri: "http://127.0.0.1:53682/callback".into(),
+            scopes: "openid profile email offline_access".into(),
+            accounts_api_url: "https://account.impertio.app".into(),
+            // This app talks to its own transcription host, discovered at
+            // runtime via app_config, so the crate's AI host is unused here.
+            ai_api_url: "https://account.impertio.app".into(),
+        },
+    });
+
     // Add the bundled bin/ resource directory to the library search path
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
@@ -1738,7 +1762,6 @@ pub fn run() {
             auth::auth_login,
             auth::auth_logout,
             auth::auth_current_user,
-            auth::auth_get_access_token,
             auth::auth_userinfo,
             app_config::get_app_config,
             app_config::invalidate_app_config,

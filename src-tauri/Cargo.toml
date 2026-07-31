@@ -15,6 +15,10 @@ crate-type = ["lib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# Shared OpenAEC login (OIDC + PKCE, OS-keyring token storage, authenticated
+# calls). Replaces this app's own ~460-line auth.rs. Pinned to a tag so builds
+# are reproducible and upgrades are deliberate.
+openaec-accounts-client = { git = "https://github.com/OpenAEC-Foundation/openaec-accounts-client", tag = "v0.2.1" }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-clipboard-manager = "2"
@@ -39,7 +43,6 @@ symphonia = { version = "0.5", default-features = false, features = ["mp3", "aac
 ort = { version = "=2.0.0-rc.11", default-features = false, features = ["std", "ndarray", "load-dynamic"] }
 ndarray = "0.17"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "multipart", "json"] }
-oauth2 = { version = "4", default-features = false, features = ["reqwest", "rustls-tls"] }
 tiny_http = "0.12"
 url = "2"
 rand = "0.8"

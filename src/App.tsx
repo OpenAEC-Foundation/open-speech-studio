@@ -188,6 +188,12 @@ export default function App() {
   const [settings, setSettings] = createSignal<Settings | null>(null);
   const [isRecording, setIsRecording] = createSignal(false);
   const [isModelLoaded, setIsModelLoaded] = createSignal(false);
+  // Transcription is possible either with a local model OR with the remote
+  // server. The backend already bypasses the local pipeline when the server
+  // is on (see start_file_job in lib.rs), but the UI used to gate purely on
+  // isModelLoaded and so blocked server-only users before the request was
+  // ever made — "no model" even though no model is needed.
+  const canTranscribe = () => isModelLoaded() || (settings()?.remote_server_enabled ?? false);
   const [transcriptions, setTranscriptions] = createSignal<TranscriptionResult[]>([]);
   let recordingStartedAt = 0;
   // activeSessions and completionPollInterval reserved for future live streaming (stap 2)
@@ -365,7 +371,7 @@ export default function App() {
   let stopLock = false;
 
   const handleStartRecording = async () => {
-    if (!isModelLoaded()) {
+    if (!canTranscribe()) {
       sendNotification("Open Speech Studio", t("app.noModelNotification"));
       return;
     }
@@ -464,7 +470,7 @@ export default function App() {
         currentView={view()}
         onViewChange={setView}
         isRecording={isRecording()}
-        isModelLoaded={isModelLoaded()}
+        isModelLoaded={canTranscribe()}
         modelName={settings()?.model_name || ""}
         onRecord={handleRecord}
       />
@@ -483,7 +489,7 @@ export default function App() {
           <TranscriptionView
             transcriptions={transcriptions()}
             isRecording={isRecording()}
-            isModelLoaded={isModelLoaded()}
+            isModelLoaded={canTranscribe()}
             onRecord={handleRecord}
             hotkey={formatBothHotkeys()}
             modelName={settings()?.model_name || ""}
@@ -559,7 +565,7 @@ export default function App() {
       </div>
       <StatusBar
         isRecording={isRecording()}
-        isModelLoaded={isModelLoaded()}
+        isModelLoaded={canTranscribe()}
         modelName={settings()?.model_name || ""}
       />
     </div>
