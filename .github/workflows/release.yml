@@ -45,7 +45,7 @@ jobs:
           - platform: ubuntu-22.04
             rust-target: x86_64-unknown-linux-gnu
             label: Linux
-            args: --bundles deb,rpm
+            args: --bundles deb,rpm,appimage
 
     name: Build – ${{ matrix.label }}
     runs-on: ${{ matrix.platform }}
