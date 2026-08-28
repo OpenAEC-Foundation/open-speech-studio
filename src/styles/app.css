@@ -2113,6 +2113,12 @@ optgroup {
   color: var(--danger);
 }
 
+.meeting-system-warning {
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--danger);
+}
+
 .mic-stat-label {
   font-size: 9px;
   color: var(--theme-text-muted);

@@ -33,6 +33,16 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
   const [autoInterval, setAutoInterval] = createSignal(5);
   let autoTranscribeTimer: ReturnType<typeof setInterval> | null = null;
 
+  // Meeting type: an online meeting also captures what the PC plays, so the
+  // people on the other end of Teams/Zoom/Meet reach the transcript.
+  const [meetingType, setMeetingType] = createSignal<"physical" | "online">("physical");
+  const [systemActive, setSystemActive] = createSignal(false);
+  const [systemLevel, setSystemLevel] = createSignal(0);
+  const [systemSilentSec, setSystemSilentSec] = createSignal<number | null>(null);
+  let systemPollTimer: ReturnType<typeof setInterval> | null = null;
+
+  const wantsSystemAudio = () => meetingType() === "online" && isTauri;
+
   // Mic stats
   const [micLevel, setMicLevel] = createSignal(0);
   const [micPeak, setMicPeak] = createSignal(0);
@@ -65,8 +75,47 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
     setUseServer(isServerMode());
   });
 
+  const startSystemMonitor = () => {
+    if (!wantsSystemAudio()) return;
+    const poll = async () => {
+      try {
+        const status = await api.getSystemAudioStatus();
+        setSystemActive(status.active);
+        setSystemLevel(Math.min(100, status.level * 100));
+        setSystemSilentSec(
+          status.last_packet_ms_ago === null
+            ? null
+            : Math.floor(status.last_packet_ms_ago / 1000),
+        );
+      } catch (_) {}
+    };
+    poll();
+    systemPollTimer = setInterval(poll, 500);
+  };
+
+  const stopSystemMonitor = () => {
+    if (systemPollTimer) {
+      clearInterval(systemPollTimer);
+      systemPollTimer = null;
+    }
+    setSystemLevel(0);
+  };
+
+  // WASAPI delivers nothing at all while the machine is silent, so "no packets
+  // for a while" is a hint, not proof of a broken setup — hence a warning line
+  // rather than an error.
+  const systemAudioWarning = () => {
+    if (!isRecording() || !wantsSystemAudio()) return null;
+    if (!systemActive()) return t("meeting.systemAudioUnavailable");
+    const start = startTime();
+    const sinceStart = start ? Math.floor((Date.now() - start.getTime()) / 1000) : 0;
+    const silent = systemSilentSec() ?? sinceStart;
+    return silent >= 30 ? t("meeting.systemAudioSilent", { seconds: silent }) : null;
+  };
+
   onCleanup(() => {
     if (timerInterval) clearInterval(timerInterval);
+    stopSystemMonitor();
     if (animFrame) cancelAnimationFrame(animFrame);
     if (autoTranscribeTimer) clearInterval(autoTranscribeTimer);
     closeMeetingOverlay();
@@ -155,12 +204,13 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
   const startRecording = async () => {
     try {
       if (props.audioFeedback !== false) soundRecordStart();
-      await api.startRecording();
+      await api.startRecording(wantsSystemAudio());
       setIsRecording(true);
       setStartTime(new Date());
       setStatus(t("meeting.statusRecording"));
       timerInterval = setInterval(updateElapsed, 1000);
       startMicMonitor();
+      startSystemMonitor();
       showMeetingOverlay();
       props.onRecordingStart?.();
 
@@ -189,7 +239,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
         if (props.audioFeedback !== false) soundTranscriptionDone();
       }
       if (props.audioFeedback !== false) soundRecordStart();
-      await api.startRecording();
+      await api.startRecording(wantsSystemAudio());
       startMicMonitor();
       setStatus(t("meeting.statusSegments", { count: segments().length + 1 }));
     } catch (e) {
@@ -208,6 +258,7 @@ export default function MeetingRecorder(props: MeetingRecorderProps) {
       autoTranscribeTimer = null;
     }
     stopMicMonitor();
+    stopSystemMonitor();
     closeMeetingOverlay();
     props.onRecordingStop?.();
 
@@ -427,6 +478,18 @@ ${paragraphs}
       {/* Model & language selection */}
       <div class="meeting-config">
         <div class="meeting-config-item">
+          <label>{t("meeting.type")}</label>
+          <select
+            value={meetingType()}
+            onChange={(e) => setMeetingType(e.currentTarget.value as "physical" | "online")}
+            disabled={isRecording() || !isTauri}
+            title={isTauri ? t("meeting.typeOnlineHint") : t("meeting.typeOnlineUnavailable")}
+          >
+            <option value="physical">{t("meeting.typePhysical")}</option>
+            <option value="online">{t("meeting.typeOnline")}</option>
+          </select>
+        </div>
+        <div class="meeting-config-item">
           <label>{t("meeting.model")}</label>
           <select
             value={activeModel()}
@@ -576,6 +639,22 @@ ${paragraphs}
               <div class={`mic-stats-meter-fill ${getLevelClass()}`} style={{ width: `${micLevel()}%` }} />
             </div>
           </div>
+
+          {/* PC audio level, online meetings only */}
+          <Show when={wantsSystemAudio()}>
+            <div class="mic-stats-meter">
+              <div class="mic-stats-meter-label">
+                <span>{t("meeting.systemAudioLevel")}</span>
+                <span>{Math.round(systemLevel())}%</span>
+              </div>
+              <div class="mic-stats-meter-track">
+                <div class="mic-stats-meter-fill" style={{ width: `${systemLevel()}%` }} />
+              </div>
+            </div>
+            <Show when={systemAudioWarning()}>
+              <div class="meeting-system-warning">{systemAudioWarning()}</div>
+            </Show>
+          </Show>
 
           {/* Stats grid */}
           <div class="mic-stats-grid">
