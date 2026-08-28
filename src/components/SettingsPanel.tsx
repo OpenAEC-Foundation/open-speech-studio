@@ -53,6 +53,8 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   const [autoEnter, setAutoEnter] = createSignal(false);
   const [audioDevice, setAudioDevice] = createSignal("default");
   const [devices, setDevices] = createSignal<string[]>([]);
+  const [systemAudioDevice, setSystemAudioDevice] = createSignal("default");
+  const [outputDevices, setOutputDevices] = createSignal<string[]>([]);
   const [fileAutoSave, setFileAutoSave] = createSignal(false);
   const [fileSaveDir, setFileSaveDir] = createSignal("");
   const [fileConfirmActions, setFileConfirmActions] = createSignal(true);
@@ -92,6 +94,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setAutoPaste(props.settings.auto_paste);
       setAutoEnter(props.settings.auto_enter ?? false);
       setAudioDevice(props.settings.audio_device);
+      setSystemAudioDevice(props.settings.system_audio_device ?? "default");
       setFileAutoSave(props.settings.file_auto_save ?? false);
       setFileSaveDir(props.settings.file_save_directory ?? "");
       setFileConfirmActions(props.settings.file_confirm_actions ?? true);
@@ -116,6 +119,12 @@ export default function SettingsPanel(props: SettingsPanelProps) {
       setDevices(devs);
     } catch (e) {
       console.error("Failed to get audio devices:", e);
+    }
+    try {
+      const outs = await api.getOutputDevices();
+      setOutputDevices(outs);
+    } catch (e) {
+      console.error("Failed to get output devices:", e);
     }
     try {
       const gpu = await api.getGpuInfo();
@@ -493,6 +502,19 @@ export default function SettingsPanel(props: SettingsPanelProps) {
             <select value={audioDevice()} onChange={(e) => { setAudioDevice(e.target.value); autoSave({ audio_device: e.target.value }); }}>
               <option value="default">{t("settings.defaultMic")}</option>
               {devices().map((d) => (
+                <option value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <label>
+              {t("settings.systemAudioDevice")}
+              <span class="setting-hint">{t("settings.systemAudioHint")}</span>
+            </label>
+            <select value={systemAudioDevice()} onChange={(e) => { setSystemAudioDevice(e.target.value); autoSave({ system_audio_device: e.target.value }); }}>
+              <option value="default">{t("settings.defaultOutput")}</option>
+              {outputDevices().map((d) => (
                 <option value={d}>{d}</option>
               ))}
             </select>

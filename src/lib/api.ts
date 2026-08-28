@@ -9,6 +9,7 @@ export interface Settings {
   auto_paste: boolean;
   auto_enter?: boolean;
   audio_device: string;
+  system_audio_device?: string;
   theme: string;
   file_auto_save: boolean;
   file_save_directory: string;
@@ -29,6 +30,12 @@ export interface Settings {
   tts_server_url?: string;
   tts_voice?: string;
   tts_allow_install?: boolean;
+}
+
+export interface SystemAudioStatus {
+  active: boolean;
+  level: number;
+  last_packet_ms_ago: number | null;
 }
 
 export interface ModelInfo {
@@ -135,7 +142,8 @@ const tauriApi = {
   downloadModel: (modelName: string) => tauriInvoke<string>("download_model", { modelName }),
   deleteModel: (modelName: string) => tauriInvoke<void>("delete_model", { modelName }),
   loadModel: (modelPath: string) => tauriInvoke<void>("load_model", { modelPath }),
-  startRecording: () => tauriInvoke<void>("start_recording"),
+  startRecording: (systemAudio?: boolean) =>
+    tauriInvoke<void>("start_recording", { systemAudio: systemAudio ?? false }),
   stopRecording: () => tauriInvoke<TranscriptionResult>("stop_recording"),
   getRecordingStatus: () => tauriInvoke<boolean>("get_recording_status"),
   startDictation: () => tauriInvoke<string>("start_dictation"),
@@ -152,7 +160,9 @@ const tauriApi = {
     tauriInvoke<void>("add_dictionary_word", { word, replacement }),
   removeDictionaryWord: (word: string) => tauriInvoke<void>("remove_dictionary_word", { word }),
   getAudioDevices: () => tauriInvoke<string[]>("get_audio_devices"),
+  getOutputDevices: () => tauriInvoke<string[]>("get_output_devices"),
   getAudioLevel: () => tauriInvoke<number>("get_audio_level"),
+  getSystemAudioStatus: () => tauriInvoke<SystemAudioStatus>("get_system_audio_status"),
   isModelLoaded: () => tauriInvoke<boolean>("is_model_loaded"),
   getGpuInfo: () => tauriInvoke<{ available: boolean; name: string; vram_mb: number; driver: string; recommendation: string }>("get_gpu_info"),
   getGpuStatus: () => tauriInvoke<{ enabled: boolean; cuda_available: boolean; active: boolean; device_name: string }>("get_gpu_status"),
@@ -234,6 +244,7 @@ function loadLocalSettings(): Settings {
     hotkey_mode: "hold",
     auto_paste: true,
     audio_device: "default",
+    system_audio_device: "default",
     theme: "dark",
     file_auto_save: false,
     file_save_directory: "",
@@ -591,7 +602,7 @@ const browserApi = {
     }
   },
 
-  startRecording: async () => {
+  startRecording: async (_systemAudio?: boolean) => {
     try {
       if (await checkServer()) {
         return startServerRecording();
@@ -645,6 +656,11 @@ const browserApi = {
   },
 
   getAudioLevel: () => Promise.resolve(0),
+
+  getSystemAudioStatus: (): Promise<SystemAudioStatus> =>
+    Promise.resolve({ active: false, level: 0, last_packet_ms_ago: null }),
+
+  getOutputDevices: () => Promise.resolve([] as string[]),
 
   getAudioDevices: async () => {
     try {

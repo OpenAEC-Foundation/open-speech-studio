@@ -17,6 +17,9 @@ pub struct Settings {
     #[serde(default)]
     pub auto_enter: bool,
     pub audio_device: String,
+    /// Output device captured via loopback for online meetings.
+    #[serde(default = "default_device")]
+    pub system_audio_device: String,
     pub theme: String,
     #[serde(default = "default_false")]
     pub file_auto_save: bool,
@@ -86,6 +89,7 @@ impl Default for Settings {
             auto_paste: true,
             auto_enter: false,
             audio_device: "default".to_string(),
+            system_audio_device: default_device(),
             theme: "light".to_string(),
             file_auto_save: false,
             file_save_directory: String::new(),
@@ -115,6 +119,10 @@ impl Default for Settings {
 
 fn default_tts_voice() -> String {
     "chloe".to_string()
+}
+
+fn default_device() -> String {
+    "default".to_string()
 }
 
 fn default_ui_language() -> String {

@@ -11,6 +11,7 @@ Part of the [OpenAEC Foundation](https://github.com/OpenAEC-Foundation).
 - **Multilingual** — Supports 99+ languages with automatic language detection.
 - **Dictionary** — Add your own words, names and jargon for better recognition.
 - **Universal speech** — Works in any application via a global hotkey.
+- **Online meetings** — Records your microphone and your PC audio together, so everyone in a Teams, Zoom or Meet call ends up in the transcript (Windows).
 - **Open source** — Apache 2.0 license. Free to use, modify and distribute.
 
 ## Installation
@@ -24,6 +25,17 @@ Download the latest installer from the [Releases](https://github.com/OpenAEC-Fou
 3. Press **Ctrl+Shift+Space** to start speaking
 4. Speak your text
 5. Press again to stop — text is automatically inserted
+
+### Recording a meeting
+
+Open **Record & Transcribe** and pick the meeting type before you start:
+
+- **In-person** — microphone only.
+- **Online** — microphone plus PC audio, so the remote participants are transcribed too. Windows only; elsewhere the recording falls back to the microphone.
+
+Pick which output is captured under **Settings → Audio → System audio device**; by
+default it follows the Windows default output. The PC level meter next to the
+microphone meter shows whether that audio is actually arriving.
 
 ### Dictionary
 
