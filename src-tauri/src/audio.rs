@@ -472,4 +472,63 @@ mod tests {
         assert_eq!(out.len(), 16);
         assert!(out[0].abs() < 1e-6);
     }
+
+    /// End-to-end check that WASAPI loopback capture actually works on this
+    /// machine: render a quiet tone on the default output and confirm the
+    /// loopback stream picks it up. Needs real audio hardware, so it is opt-in:
+    ///
+    ///     cargo test --lib -- --ignored loopback
+    #[test]
+    #[ignore = "needs audio hardware; renders a quiet tone for a second"]
+    fn loopback_capture_hears_what_the_machine_plays() {
+        let mut recorder = AudioRecorder::new().expect("recorder");
+        recorder
+            .start(&CaptureConfig {
+                mode: CaptureMode::MicPlusSystem,
+                input_device: None,
+                system_device: None,
+            })
+            .expect("capture starts");
+        assert!(recorder.system_active(), "loopback stream must be open");
+
+        let host = cpal::default_host();
+        let device = host.default_output_device().expect("output device");
+        let config = device.default_output_config().expect("output config");
+        let rate = config.sample_rate().0 as f32;
+        let channels = config.channels() as usize;
+        let mut phase = 0.0f32;
+        let tone = device
+            .build_output_stream(
+                &config.into(),
+                move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+                    for frame in data.chunks_mut(channels) {
+                        phase += 440.0 * std::f32::consts::TAU / rate;
+                        let sample = 0.02 * phase.sin();
+                        frame.iter_mut().for_each(|s| *s = sample);
+                    }
+                },
+                |e| panic!("output stream error: {e}"),
+                None,
+            )
+            .expect("tone stream");
+        tone.play().expect("tone plays");
+
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+
+        assert!(
+            recorder.system_last_packet_ms_ago().is_some(),
+            "no loopback packet arrived while audio was playing"
+        );
+        assert!(
+            recorder.system_level() > 0.0,
+            "loopback captured silence while a tone was playing"
+        );
+
+        drop(tone);
+        let audio = recorder.stop().expect("stop");
+        assert!(
+            audio.iter().any(|s| s.abs() > 0.001),
+            "mixed timeline is silent"
+        );
+    }
 }
