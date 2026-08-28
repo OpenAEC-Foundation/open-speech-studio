@@ -20,6 +20,7 @@ mod convert;
 mod dictionary;
 mod job_queue;
 mod meeting_writer;
+mod mixer;
 mod settings;
 mod speaker;
 mod transcriber;
