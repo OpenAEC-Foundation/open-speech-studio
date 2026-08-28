@@ -319,11 +319,31 @@ async fn load_model(state: State<'_, AppState>, model_path: String) -> Result<()
 }
 
 #[tauri::command]
-async fn start_recording(state: State<'_, AppState>) -> Result<(), String> {
+async fn start_recording(
+    state: State<'_, AppState>,
+    system_audio: Option<bool>,
+) -> Result<(), String> {
     let mut is_recording = state.is_recording.lock().map_err(|e| e.to_string())?;
     if *is_recording {
         return Ok(());
     }
+
+    // An online meeting also captures what the machine is playing, so remote
+    // participants end up in the transcript. Anything else records the
+    // microphone alone.
+    let want_system = system_audio.unwrap_or(false);
+    let capture = {
+        let settings = state.settings.lock().map_err(|e| e.to_string())?;
+        audio::CaptureConfig {
+            mode: if want_system {
+                audio::CaptureMode::MicPlusSystem
+            } else {
+                audio::CaptureMode::MicOnly
+            },
+            input_device: Some(settings.audio_device.clone()),
+            system_device: Some(settings.system_audio_device.clone()),
+        }
+    };
 
     // Capture the currently focused window so we can restore it after transcription
     #[cfg(target_os = "windows")]
@@ -338,14 +358,18 @@ async fn start_recording(state: State<'_, AppState>) -> Result<(), String> {
     }
 
     let mut rec = state.recorder.lock().map_err(|e| e.to_string())?;
-    if rec.is_some() {
-        // Recorder already exists (kept alive by active dictation) — clear main buffer
-        if let Some(recorder) = rec.as_ref() {
-            recorder.take_buffer();
+    if let Some(recorder) = rec.as_mut() {
+        // Recorder already exists (kept alive by active dictation) — drop what
+        // is buffered, and open the loopback stream if this meeting wants it.
+        recorder.clear_buffer();
+        if want_system {
+            if let Err(e) = recorder.ensure_system_stream(capture.system_device.as_deref()) {
+                log::warn!("System audio capture unavailable, recording microphone only: {e}");
+            }
         }
     } else {
         let mut recorder = audio::AudioRecorder::new().map_err(|e| e.to_string())?;
-        recorder.start().map_err(|e| e.to_string())?;
+        recorder.start(&capture).map_err(|e| e.to_string())?;
         *rec = Some(recorder);
     }
     *is_recording = true;
@@ -456,9 +480,16 @@ async fn start_dictation(state: State<'_, AppState>) -> Result<String, String> {
             recorder.start_dictation();
         }
     } else {
-        // No meeting — start a fresh recorder for dictation
+        // No meeting — start a fresh recorder for dictation. Dictation is
+        // always microphone-only.
+        let input_device = {
+            let settings = state.settings.lock().map_err(|e| e.to_string())?;
+            Some(settings.audio_device.clone())
+        };
         let mut recorder = audio::AudioRecorder::new().map_err(|e| e.to_string())?;
-        recorder.start().map_err(|e| e.to_string())?;
+        recorder
+            .start(&audio::CaptureConfig::mic_only(input_device))
+            .map_err(|e| e.to_string())?;
         recorder.start_dictation();
         *rec = Some(recorder);
     }
@@ -1276,6 +1307,40 @@ async fn get_audio_level(state: State<'_, AppState>) -> Result<f32, String> {
     }
 }
 
+#[tauri::command]
+async fn get_output_devices() -> Result<Vec<String>, String> {
+    audio::list_output_devices().map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SystemAudioStatus {
+    /// Whether the loopback stream is open.
+    pub active: bool,
+    pub level: f32,
+    /// How long ago the last system packet arrived. None means none has —
+    /// WASAPI delivers nothing at all while the machine is silent.
+    pub last_packet_ms_ago: Option<u64>,
+}
+
+#[tauri::command]
+async fn get_system_audio_status(
+    state: State<'_, AppState>,
+) -> Result<SystemAudioStatus, String> {
+    let rec = state.recorder.lock().map_err(|e| e.to_string())?;
+    Ok(match rec.as_ref() {
+        Some(recorder) => SystemAudioStatus {
+            active: recorder.system_active(),
+            level: recorder.system_level(),
+            last_packet_ms_ago: recorder.system_last_packet_ms_ago(),
+        },
+        None => SystemAudioStatus {
+            active: false,
+            level: 0.0,
+            last_packet_ms_ago: None,
+        },
+    })
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GpuInfo {
     pub available: bool,
@@ -1742,7 +1807,9 @@ pub fn run() {
             start_file_job,
             cancel_file_job,
             get_audio_devices,
+            get_output_devices,
             get_audio_level,
+            get_system_audio_status,
             get_gpu_info,
             get_gpu_status,
             is_model_loaded,
