@@ -312,7 +312,7 @@ const nl: Record<string, string> = {
   "titlebar.close": "Sluiten",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.3 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.12.0 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Automatisch detecteren",
