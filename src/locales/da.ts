@@ -243,7 +243,7 @@ const da: Record<string, string> = {
   "titlebar.close": "Luk",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.10.3 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.12.0 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automatisk genkendelse",
