@@ -52,7 +52,7 @@ jobs:
         run: |
           all='[
             {"group":"windows","platform":"windows-latest","rust-target":"x86_64-pc-windows-msvc","label":"Windows"},
-            {"group":"linux","platform":"ubuntu-22.04","rust-target":"x86_64-unknown-linux-gnu","label":"Linux","args":"--bundles deb,rpm,appimage"},
+            {"group":"linux","platform":"ubuntu-22.04","rust-target":"x86_64-unknown-linux-gnu","label":"Linux","args":"--verbose --bundles deb,rpm,appimage"},
             {"group":"macos","platform":"macos-latest","rust-target":"aarch64-apple-darwin","label":"macOS-ARM","args":"--bundles app,dmg","whisper-arch":"arm64","whisper-metal":"ON"},
             {"group":"macos","platform":"macos-15-intel","rust-target":"x86_64-apple-darwin","label":"macOS-Intel","args":"--bundles app,dmg","whisper-arch":"x86_64","whisper-metal":"OFF"}
           ]'
@@ -123,56 +123,37 @@ jobs:
         shell: bash
         run: mkdir -p bin
 
-      - name: Cache whisper.cpp binary
-        if: runner.os == 'Linux'
-        id: whisper-cache
-        uses: actions/cache@v5
-        with:
-          path: bin/whisper-cli
-          key: whisper-v1.8.3-${{ runner.os }}-${{ runner.arch }}
-
-      - name: Build whisper.cpp (Linux)
-        if: runner.os == 'Linux' && steps.whisper-cache.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          git clone --depth 1 --branch v1.8.3 https://github.com/ggml-org/whisper.cpp.git _whisper_build
-          cmake -S _whisper_build -B _whisper_build/build -DCMAKE_BUILD_TYPE=Release
-          cmake --build _whisper_build/build --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
-          cp _whisper_build/build/bin/whisper-cli bin/ || cp _whisper_build/build/bin/main bin/whisper-cli
-          chmod +x bin/whisper-cli
-          # Copy shared libraries
-          find _whisper_build/build -name '*.so' -exec cp {} bin/ \; 2>/dev/null || true
-          find _whisper_build/build -name '*.dylib' -exec cp {} bin/ \; 2>/dev/null || true
-          rm -rf _whisper_build
-          ls -la bin/
-
-      # macOS: one self-contained whisper-cli per architecture, named with the
+      # Linux/macOS: one self-contained whisper-cli per target, named with the
       # target triple so Tauri bundles it as a sidecar next to the app binary
-      # (see src-tauri/tauri.macos.conf.json) and signs it along with the app.
-      - name: Cache whisper.cpp binary (macOS)
-        if: runner.os == 'macOS'
-        id: whisper-cache-macos
+      # (see src-tauri/tauri.linux.conf.json and tauri.macos.conf.json). On
+      # macOS it is signed along with the app.
+      - name: Cache whisper.cpp binary
+        if: runner.os != 'Windows'
+        id: whisper-cache
         uses: actions/cache@v5
         with:
           path: bin/whisper-cli-${{ matrix.rust-target }}
           key: whisper-v1.8.3-static-${{ matrix.rust-target }}
 
-      - name: Build whisper.cpp (macOS)
-        if: runner.os == 'macOS' && steps.whisper-cache-macos.outputs.cache-hit != 'true'
+      - name: Build whisper.cpp (Linux/macOS)
+        if: runner.os != 'Windows' && steps.whisper-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            platform_flags="-DCMAKE_OSX_ARCHITECTURES=${{ matrix.whisper-arch }} -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DGGML_METAL=${{ matrix.whisper-metal }} -DGGML_METAL_EMBED_LIBRARY=ON"
+          else
+            platform_flags="-DGGML_OPENMP=OFF"
+          fi
           git clone --depth 1 --branch v1.8.3 https://github.com/ggml-org/whisper.cpp.git _whisper_build
+          # GGML_NATIVE=OFF: do not tune for the CI runner's CPU.
           cmake -S _whisper_build -B _whisper_build/build \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=OFF \
-            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.whisper-arch }} \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
             -DGGML_NATIVE=OFF \
-            -DGGML_METAL=${{ matrix.whisper-metal }} \
-            -DGGML_METAL_EMBED_LIBRARY=ON \
             -DWHISPER_BUILD_TESTS=OFF \
-            -DWHISPER_BUILD_SERVER=OFF
-          cmake --build _whisper_build/build --config Release -j$(sysctl -n hw.ncpu) --target whisper-cli
+            -DWHISPER_BUILD_SERVER=OFF \
+            $platform_flags
+          cmake --build _whisper_build/build --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu) --target whisper-cli
           cp _whisper_build/build/bin/whisper-cli bin/whisper-cli-${{ matrix.rust-target }}
           chmod +x bin/whisper-cli-${{ matrix.rust-target }}
           rm -rf _whisper_build
@@ -242,6 +223,33 @@ jobs:
           "$WHISPER" -ng -m "$APP/Contents/Resources/models/ggml-small.bin" -f "$RUNNER_TEMP/jfk.wav" -nt | tee "$RUNNER_TEMP/out.txt"
           grep -qi "ask not" "$RUNNER_TEMP/out.txt"
 
+      # ── Verify Linux packages ──────────────────────────────
+      - name: Verify Linux packages
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE="src-tauri/target/${{ matrix.rust-target }}/release/bundle"
+          ls -la "$BUNDLE"/deb/*.deb "$BUNDLE"/rpm/*.rpm "$BUNDLE"/appimage/*.AppImage
+          dpkg-deb -x "$BUNDLE"/deb/*.deb "$RUNNER_TEMP/deb"
+          WHISPER="$RUNNER_TEMP/deb/usr/bin/whisper-cli"
+          MODEL=$(find "$RUNNER_TEMP/deb/usr/lib" -name ggml-small.bin | head -1)
+          echo "Model: $MODEL"
+          # The app looks for the model relative to its own binary.
+          test "$(dirname "$(dirname "$(dirname "$MODEL")")")" = "$RUNNER_TEMP/deb/usr/lib"
+          if find "$RUNNER_TEMP/deb" -iname '*.dll' -o -iname '*.exe' | grep -q .; then
+            echo "::error::Windows binaries ended up in the Linux package"
+            exit 1
+          fi
+          ldd "$WHISPER"
+          if ldd "$WHISPER" | grep -q 'not found'; then
+            echo "::error::whisper-cli depends on libraries that are not on a stock system"
+            exit 1
+          fi
+          curl -fsSL -o "$RUNNER_TEMP/jfk.wav" https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.8.3/samples/jfk.wav
+          "$WHISPER" -ng -m "$MODEL" -f "$RUNNER_TEMP/jfk.wav" -nt | tee "$RUNNER_TEMP/out.txt"
+          grep -qi "ask not" "$RUNNER_TEMP/out.txt"
+
       # ── Sign Windows binaries ──────────────────────────────
       - name: Sign Windows binaries
         if: runner.os == 'Windows'
@@ -303,6 +311,7 @@ jobs:
             src-tauri/target/${{ matrix.rust-target }}/release/bundle/macos/*.app
             src-tauri/target/${{ matrix.rust-target }}/release/bundle/appimage/*.AppImage
             src-tauri/target/${{ matrix.rust-target }}/release/bundle/deb/*.deb
+            src-tauri/target/${{ matrix.rust-target }}/release/bundle/rpm/*.rpm
           if-no-files-found: ignore
           retention-days: 14
 
@@ -331,6 +340,7 @@ jobs:
           find artifacts -name '*.dmg' -exec cp {} release/ \;
           find artifacts -name '*.AppImage' -exec cp {} release/ \;
           find artifacts -name '*.deb' -exec cp {} release/ \;
+          find artifacts -name '*.rpm' -exec cp {} release/ \;
           ls -la release/
 
       - name: Publish release
@@ -344,6 +354,6 @@ jobs:
           body: |
             **Downloads:**
             - **Windows:** `.exe` (NSIS installer) / `.msi`
-            - **Linux:** `.AppImage` / `.deb`
+            - **Linux:** `.AppImage` / `.deb` / `.rpm`
             - **macOS:** `.dmg` (`aarch64` for Apple Silicon, `x64` for Intel)
           files: release/*
