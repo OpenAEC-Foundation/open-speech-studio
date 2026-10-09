@@ -4,6 +4,11 @@
     "externalBin": ["../bin/whisper-cli"],
     "resources": {
       "../models/ggml-small.bin": "models/ggml-small.bin"
+    },
+    "linux": {
+      "rpm": {
+        "compression": { "type": "none" }
+      }
     }
   }
 }
