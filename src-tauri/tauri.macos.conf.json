@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "bundle": {
+    "externalBin": ["../bin/whisper-cli"],
+    "resources": {
+      "../models/ggml-small.bin": "models/ggml-small.bin"
+    },
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "entitlements": "Entitlements.plist"
+    }
+  }
+}

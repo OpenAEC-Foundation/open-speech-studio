@@ -4,6 +4,12 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: Which platforms to build
+        type: choice
+        default: all
+        options: [all, windows, linux, macos]
 
 concurrency:
   group: release-${{ github.ref }}
@@ -32,20 +38,37 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+  # ── 1b. Build matrix ──────────────────────────────────────
+  # Tag pushes build everything; a manual run can pick one platform.
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - id: matrix
+        env:
+          PLATFORMS: ${{ inputs.platforms || 'all' }}
+        run: |
+          all='[
+            {"group":"windows","platform":"windows-latest","rust-target":"x86_64-pc-windows-msvc","label":"Windows"},
+            {"group":"linux","platform":"ubuntu-22.04","rust-target":"x86_64-unknown-linux-gnu","label":"Linux","args":"--bundles deb,rpm,appimage"},
+            {"group":"macos","platform":"macos-latest","rust-target":"aarch64-apple-darwin","label":"macOS-ARM","args":"--bundles app,dmg","whisper-arch":"arm64","whisper-metal":"ON"},
+            {"group":"macos","platform":"macos-15-intel","rust-target":"x86_64-apple-darwin","label":"macOS-Intel","args":"--bundles app,dmg","whisper-arch":"x86_64","whisper-metal":"OFF"}
+          ]'
+          if [ "$PLATFORMS" = "all" ]; then
+            include=$(jq -c . <<<"$all")
+          else
+            include=$(jq -c --arg p "$PLATFORMS" '[.[] | select(.group == $p)]' <<<"$all")
+          fi
+          echo "matrix={\"include\":$include}" >> "$GITHUB_OUTPUT"
+
   # ── 2. Build installers ───────────────────────────────────
   build:
-    needs: check
+    needs: [check, plan]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: windows-latest
-            rust-target: x86_64-pc-windows-msvc
-            label: Windows
-          - platform: ubuntu-22.04
-            rust-target: x86_64-unknown-linux-gnu
-            label: Linux
-            args: --bundles deb,rpm,appimage
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
 
     name: Build – ${{ matrix.label }}
     runs-on: ${{ matrix.platform }}
@@ -101,15 +124,15 @@ jobs:
         run: mkdir -p bin
 
       - name: Cache whisper.cpp binary
-        if: runner.os != 'Windows'
+        if: runner.os == 'Linux'
         id: whisper-cache
         uses: actions/cache@v5
         with:
           path: bin/whisper-cli
           key: whisper-v1.8.3-${{ runner.os }}-${{ runner.arch }}
 
-      - name: Build whisper.cpp (Linux/macOS)
-        if: runner.os != 'Windows' && steps.whisper-cache.outputs.cache-hit != 'true'
+      - name: Build whisper.cpp (Linux)
+        if: runner.os == 'Linux' && steps.whisper-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           git clone --depth 1 --branch v1.8.3 https://github.com/ggml-org/whisper.cpp.git _whisper_build
@@ -123,12 +146,124 @@ jobs:
           rm -rf _whisper_build
           ls -la bin/
 
+      # macOS: one self-contained whisper-cli per architecture, named with the
+      # target triple so Tauri bundles it as a sidecar next to the app binary
+      # (see src-tauri/tauri.macos.conf.json) and signs it along with the app.
+      - name: Cache whisper.cpp binary (macOS)
+        if: runner.os == 'macOS'
+        id: whisper-cache-macos
+        uses: actions/cache@v5
+        with:
+          path: bin/whisper-cli-${{ matrix.rust-target }}
+          key: whisper-v1.8.3-static-${{ matrix.rust-target }}
+
+      - name: Build whisper.cpp (macOS)
+        if: runner.os == 'macOS' && steps.whisper-cache-macos.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          git clone --depth 1 --branch v1.8.3 https://github.com/ggml-org/whisper.cpp.git _whisper_build
+          cmake -S _whisper_build -B _whisper_build/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.whisper-arch }} \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DGGML_NATIVE=OFF \
+            -DGGML_METAL=${{ matrix.whisper-metal }} \
+            -DGGML_METAL_EMBED_LIBRARY=ON \
+            -DWHISPER_BUILD_TESTS=OFF \
+            -DWHISPER_BUILD_SERVER=OFF
+          cmake --build _whisper_build/build --config Release -j$(sysctl -n hw.ncpu) --target whisper-cli
+          cp _whisper_build/build/bin/whisper-cli bin/whisper-cli-${{ matrix.rust-target }}
+          chmod +x bin/whisper-cli-${{ matrix.rust-target }}
+          rm -rf _whisper_build
+
+      # With a Developer ID certificate in the repository secrets the app is
+      # signed and (if the notarization secrets are there too) notarized.
+      # Without them it is ad-hoc signed, which Apple Silicon needs to run it
+      # at all, but Gatekeeper will still warn on first launch.
+      - name: Configure macOS signing
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          CERT: ${{ secrets.APPLE_CERTIFICATE }}
+          CERT_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          NOTARY_ID: ${{ secrets.APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          NOTARY_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$CERT" ] && [ -n "$CERT_PASSWORD" ]; then
+            echo "Signing with Developer ID certificate"
+            echo "APPLE_CERTIFICATE=$CERT" >> "$GITHUB_ENV"
+            echo "APPLE_CERTIFICATE_PASSWORD=$CERT_PASSWORD" >> "$GITHUB_ENV"
+            if [ -n "$IDENTITY" ]; then
+              echo "APPLE_SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+            fi
+            if [ -n "$NOTARY_ID" ] && [ -n "$NOTARY_PASSWORD" ] && [ -n "$NOTARY_TEAM" ]; then
+              echo "Notarization enabled"
+              echo "APPLE_ID=$NOTARY_ID" >> "$GITHUB_ENV"
+              echo "APPLE_PASSWORD=$NOTARY_PASSWORD" >> "$GITHUB_ENV"
+              echo "APPLE_TEAM_ID=$NOTARY_TEAM" >> "$GITHUB_ENV"
+            else
+              echo "::warning::Notarization secrets missing - app is signed but not notarized"
+            fi
+          else
+            echo "::warning::No Apple certificate configured - using ad-hoc signature"
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+          fi
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: --target ${{ matrix.rust-target }} ${{ matrix.args || '' }}
+
+      # ── Verify macOS bundle ────────────────────────────────
+      - name: Verify macOS bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP=$(find "src-tauri/target/${{ matrix.rust-target }}/release/bundle/macos" -maxdepth 1 -name '*.app' | head -1)
+          echo "Bundle: $APP"
+          ls -la "$APP/Contents/MacOS" "$APP/Contents/Resources/models"
+          WHISPER="$APP/Contents/MacOS/whisper-cli"
+          lipo -archs "$WHISPER" | grep -qx "${{ matrix.whisper-arch }}"
+          otool -L "$WHISPER"
+          if otool -L "$WHISPER" | grep -q '@rpath'; then
+            echo "::error::whisper-cli depends on libraries that are not in the bundle"
+            exit 1
+          fi
+          /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$APP/Contents/Info.plist"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -d --entitlements - "$APP"
+          curl -fsSL -o "$RUNNER_TEMP/jfk.wav" https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.8.3/samples/jfk.wav
+          "$WHISPER" -ng -m "$APP/Contents/Resources/models/ggml-small.bin" -f "$RUNNER_TEMP/jfk.wav" -nt | tee "$RUNNER_TEMP/out.txt"
+          grep -qi "ask not" "$RUNNER_TEMP/out.txt"
+
+      - name: Probe Piper (temporary)
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP"
+          V=https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/low/en_US-amy-low
+          curl -fsSL -o voice.onnx "$V.onnx"
+          curl -fsSL -o voice.onnx.json "$V.onnx.json"
+          for a in aarch64 x64; do
+            echo "=== piper_macos_$a ==="
+            mkdir "piper-$a"
+            curl -fsSL "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_macos_$a.tar.gz" | tar -xz -C "piper-$a"
+            find "piper-$a" -maxdepth 2 | head -40
+            D="$RUNNER_TEMP/piper-$a/piper"
+            file "$D/piper"; otool -L "$D/piper"
+            (cd "$D" && echo "Hello from the probe." | ./piper --model "$RUNNER_TEMP/voice.onnx" --output_file "$RUNNER_TEMP/out-$a.wav") \
+              && echo "RESULT $a plain: OK" || echo "RESULT $a plain: FAILED"
+            (cd "$D" && echo "Hello from the probe." | DYLD_LIBRARY_PATH="$D" ./piper --model "$RUNNER_TEMP/voice.onnx" --output_file "$RUNNER_TEMP/out-$a-dyld.wav") \
+              && echo "RESULT $a dyld: OK" || echo "RESULT $a dyld: FAILED"
+            ls -la "$RUNNER_TEMP"/out-$a*.wav || true
+          done
 
       # ── Sign Windows binaries ──────────────────────────────
       - name: Sign Windows binaries
@@ -233,4 +368,5 @@ jobs:
             **Downloads:**
             - **Windows:** `.exe` (NSIS installer) / `.msi`
             - **Linux:** `.AppImage` / `.deb`
+            - **macOS:** `.dmg` (`aarch64` for Apple Silicon, `x64` for Intel)
           files: release/*
