@@ -242,29 +242,6 @@ jobs:
           "$WHISPER" -ng -m "$APP/Contents/Resources/models/ggml-small.bin" -f "$RUNNER_TEMP/jfk.wav" -nt | tee "$RUNNER_TEMP/out.txt"
           grep -qi "ask not" "$RUNNER_TEMP/out.txt"
 
-      - name: Probe Piper (temporary)
-        if: runner.os == 'macOS'
-        continue-on-error: true
-        shell: bash
-        run: |
-          cd "$RUNNER_TEMP"
-          V=https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/low/en_US-amy-low
-          curl -fsSL -o voice.onnx "$V.onnx"
-          curl -fsSL -o voice.onnx.json "$V.onnx.json"
-          for a in aarch64 x64; do
-            echo "=== piper_macos_$a ==="
-            mkdir "piper-$a"
-            curl -fsSL "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_macos_$a.tar.gz" | tar -xz -C "piper-$a"
-            find "piper-$a" -maxdepth 2 | head -40
-            D="$RUNNER_TEMP/piper-$a/piper"
-            file "$D/piper"; otool -L "$D/piper"
-            (cd "$D" && echo "Hello from the probe." | ./piper --model "$RUNNER_TEMP/voice.onnx" --output_file "$RUNNER_TEMP/out-$a.wav") \
-              && echo "RESULT $a plain: OK" || echo "RESULT $a plain: FAILED"
-            (cd "$D" && echo "Hello from the probe." | DYLD_LIBRARY_PATH="$D" ./piper --model "$RUNNER_TEMP/voice.onnx" --output_file "$RUNNER_TEMP/out-$a-dyld.wav") \
-              && echo "RESULT $a dyld: OK" || echo "RESULT $a dyld: FAILED"
-            ls -la "$RUNNER_TEMP"/out-$a*.wav || true
-          done
-
       # ── Sign Windows binaries ──────────────────────────────
       - name: Sign Windows binaries
         if: runner.os == 'Windows'

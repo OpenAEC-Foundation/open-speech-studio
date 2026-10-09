@@ -128,6 +128,11 @@ async fn ensure_binary<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<(), Stri
     if piper_exe().is_some() {
         return Ok(());
     }
+    if cfg!(target_os = "macos") {
+        // The upstream macOS archives are x86_64-only and ship without the
+        // libraries the executable links against, so they cannot start.
+        return Err("Text-to-speech is not available on macOS yet: Piper has no working macOS build.".into());
+    }
     if !cfg!(windows) {
         return Err("Automatic Piper download is only wired up for Windows here.".into());
     }
