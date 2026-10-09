@@ -196,6 +196,10 @@ fn get_model_search_dirs() -> Vec<PathBuf> {
             // On some platforms, resources are in a sibling directory
             dirs.push(exe_dir.join("../models"));
             dirs.push(exe_dir.join("../Resources/models"));
+            // Linux packages (deb/rpm/AppImage): /usr/bin + /usr/lib/<name>/
+            for name in ["Open Speech Studio", "open-speech-studio"] {
+                dirs.push(exe_dir.join("../lib").join(name).join("models"));
+            }
         }
     }
 

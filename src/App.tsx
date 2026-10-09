@@ -90,7 +90,9 @@ function formatHotkey(raw: string): string {
 
 /** Show both available hotkey combos */
 function formatBothHotkeys(): string {
-  return "Ctrl + Win  /  Ctrl + Shift + Space";
+  // Ctrl+Win is a modifier-only combo that only the Windows keyboard hook
+  // can listen for; elsewhere just the secondary hotkey is live.
+  return isWindows ? "Ctrl + Win  /  Ctrl + Shift + Space" : "Ctrl + Shift + Space";
 }
 
 type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "transcribe" | "tts" | "about";
@@ -258,8 +260,14 @@ export default function App() {
       // registering them with the plugin too causes duplicate/late events.
       // On Linux/macOS there is no such hook, so the plugin MUST register them.
       if (!isWindows || !/super/i.test(hotkey)) {
-        await register(hotkey, hotkeyHandler);
-        console.log(`Global hotkey registered: ${hotkey}`);
+        // Own try/catch: a modifier-only combo like the default "Ctrl+Super"
+        // is rejected by the plugin, and that must not block the secondary.
+        try {
+          await register(hotkey, hotkeyHandler);
+          console.log(`Global hotkey registered: ${hotkey}`);
+        } catch (e1) {
+          console.warn(`Failed to register hotkey ${hotkey}:`, e1);
+        }
       } else {
         console.log(`Hotkey ${hotkey} handled by keyboard hook only`);
       }
