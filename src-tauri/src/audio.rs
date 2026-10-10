@@ -148,14 +148,7 @@ impl AudioRecorder {
             StreamRole::System => device.default_output_config()?,
         };
 
-        if default_config.sample_format() != cpal::SampleFormat::F32 {
-            return Err(format!(
-                "{:?} device uses unsupported sample format {:?}",
-                role,
-                default_config.sample_format()
-            )
-            .into());
-        }
+        let sample_format = default_config.sample_format();
 
         let device_sample_rate = default_config.sample_rate().0;
         let device_channels = default_config.channels() as usize;
@@ -184,9 +177,7 @@ impl AudioRecorder {
         let last_packet = self.system_last_packet_ms.clone();
         let started_at = self.started_at;
 
-        let stream = device.build_input_stream(
-            &config,
-            move |data: &[f32], info: &cpal::InputCallbackInfo| {
+        let process = move |data: &[f32], info: &cpal::InputCallbackInfo| {
                 if !data.is_empty() {
                     let sum_sq: f32 = data.iter().map(|s| s * s).sum();
                     let rms = (sum_sq / data.len() as f32).sqrt();
@@ -239,12 +230,36 @@ impl AudioRecorder {
                         dbuf.extend_from_slice(&resampled);
                     }
                 }
-            },
-            move |err| {
-                log::error!("{role:?} audio stream error: {err}");
-            },
-            None,
-        )?;
+        };
+
+        // Devices deliver whatever their driver prefers: float on Windows and
+        // macOS, usually 16-bit integers on ALSA. Everything downstream works
+        // in f32, so integer formats are converted on the way in.
+        use cpal::SampleFormat as F;
+        let stream = match sample_format {
+            F::F32 => device.build_input_stream(
+                &config,
+                process,
+                move |err| log::error!("{role:?} audio stream error: {err}"),
+                None,
+            )?,
+            F::I8 => build_converting_stream::<i8>(device, &config, role, process)?,
+            F::I16 => build_converting_stream::<i16>(device, &config, role, process)?,
+            F::I32 => build_converting_stream::<i32>(device, &config, role, process)?,
+            F::I64 => build_converting_stream::<i64>(device, &config, role, process)?,
+            F::U8 => build_converting_stream::<u8>(device, &config, role, process)?,
+            F::U16 => build_converting_stream::<u16>(device, &config, role, process)?,
+            F::U32 => build_converting_stream::<u32>(device, &config, role, process)?,
+            F::U64 => build_converting_stream::<u64>(device, &config, role, process)?,
+            F::F64 => build_converting_stream::<f64>(device, &config, role, process)?,
+            other => {
+                return Err(format!(
+                    "{:?} device uses unsupported sample format {:?}",
+                    role, other
+                )
+                .into())
+            }
+        };
 
         Ok(stream)
     }
@@ -316,6 +331,31 @@ impl AudioRecorder {
         buf.clear();
         data
     }
+}
+
+/// Open an input stream on a device that does not deliver f32, converting each
+/// packet before handing it to `process`.
+fn build_converting_stream<T>(
+    device: &cpal::Device,
+    config: &cpal::StreamConfig,
+    role: StreamRole,
+    mut process: impl FnMut(&[f32], &cpal::InputCallbackInfo) + Send + 'static,
+) -> Result<cpal::Stream, cpal::BuildStreamError>
+where
+    T: cpal::SizedSample + Send + 'static,
+    f32: cpal::FromSample<T>,
+{
+    let mut converted: Vec<f32> = Vec::new();
+    device.build_input_stream(
+        config,
+        move |data: &[T], info: &cpal::InputCallbackInfo| {
+            converted.clear();
+            converted.extend(data.iter().map(|s| -> f32 { cpal::Sample::from_sample(*s) }));
+            process(&converted, info);
+        },
+        move |err| log::error!("{role:?} audio stream error: {err}"),
+        None,
+    )
 }
 
 /// Downmix to mono and resample to the timeline's 16 kHz.

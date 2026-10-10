@@ -3,6 +3,9 @@
    ============================================ */
 
 :root {
+  /* The UI is dark-only; this makes native controls (select popups,
+     scrollbars) follow instead of using the light system theme. */
+  color-scheme: dark;
   --theme-sidebar-bg: #332d2d;
   --theme-sidebar-hover: rgba(217, 119, 6, 0.1);
   --theme-sidebar-active: rgba(217, 119, 6, 0.15);
