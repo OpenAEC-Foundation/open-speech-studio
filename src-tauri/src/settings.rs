@@ -168,7 +168,16 @@ fn default_sound_volume() -> f32 {
 /// Find the best available model, checking config dir (user downloads) first, then bundled dirs.
 fn find_bundled_model() -> (String, String) {
     // Prefer small, fallback to base, then tiny
-    let preferences = ["small", "base", "tiny", "medium", "large-v3-turbo", "large-v3"];
+    let preferences = [
+        "small",
+        "base",
+        "tiny",
+        "large-v3-turbo-q5_0",
+        "large-v3-turbo-q8_0",
+        "medium",
+        "large-v3-turbo",
+        "large-v3",
+    ];
 
     for model_name in preferences {
         let filename = format!("ggml-{}.bin", model_name);

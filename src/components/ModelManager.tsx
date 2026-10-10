@@ -128,7 +128,7 @@ export default function ModelManager(props: ModelManagerProps) {
   };
 
   const getModelInfo = (name: string) => {
-    const key = name; // "tiny", "base", "small", "medium", "large-v3-turbo", "large-v3"
+    const key = name; // the model name as listed by the backend, e.g. "small"
     return {
       desc: t(`models.${key}.desc`),
       speed: t(`models.${key}.speed`),

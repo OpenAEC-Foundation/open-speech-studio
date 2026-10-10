@@ -192,6 +192,16 @@ const en: Record<string, string> = {
   "models.small.accuracy": "High",
   "models.small.ram": "~2 GB",
   "models.small.languages": "99 languages",
+  "models.large-v3-turbo-q5_0.desc": "Compact version of large-v3-turbo. Clearly more accurate than small at nearly the same download size.",
+  "models.large-v3-turbo-q5_0.speed": "~1.5x realtime",
+  "models.large-v3-turbo-q5_0.accuracy": "Very high",
+  "models.large-v3-turbo-q5_0.ram": "~2 GB",
+  "models.large-v3-turbo-q5_0.languages": "99 languages",
+  "models.large-v3-turbo-q8_0.desc": "Lightly compressed large-v3-turbo. Almost the full accuracy at about half the size.",
+  "models.large-v3-turbo-q8_0.speed": "~1.5x realtime",
+  "models.large-v3-turbo-q8_0.accuracy": "Excellent",
+  "models.large-v3-turbo-q8_0.ram": "~3 GB",
+  "models.large-v3-turbo-q8_0.languages": "99 languages",
   "models.medium.desc": "High accuracy for professional transcription. GPU strongly recommended.",
   "models.medium.speed": "~2x realtime",
   "models.medium.accuracy": "Very high",
@@ -312,7 +322,7 @@ const en: Record<string, string> = {
   "titlebar.close": "Close",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.12.1 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.12.2 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Auto-detect",

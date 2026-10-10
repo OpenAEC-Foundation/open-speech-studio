@@ -544,6 +544,8 @@ const browserApi = {
       { name: "tiny", size: "~75 MB", downloaded: false, path: null },
       { name: "base", size: "~142 MB", downloaded: false, path: null },
       { name: "small", size: "~466 MB", downloaded: false, path: null },
+      { name: "large-v3-turbo-q5_0", size: "~574 MB", downloaded: false, path: null },
+      { name: "large-v3-turbo-q8_0", size: "~874 MB", downloaded: false, path: null },
       { name: "medium", size: "~1.5 GB", downloaded: false, path: null },
       { name: "large-v3-turbo", size: "~1.6 GB", downloaded: false, path: null },
       { name: "large-v3", size: "~3.1 GB", downloaded: false, path: null },

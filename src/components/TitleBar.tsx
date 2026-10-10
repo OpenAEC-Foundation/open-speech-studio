@@ -3,6 +3,7 @@ import { useI18n } from "../lib/i18n";
 import { auth, type UserInfo, type UserProfile } from "../lib/api";
 import { authUser, setAuthUser, initAuth } from "../lib/authStore";
 import appIcon from "../assets/icon.png";
+import { version as appVersion } from "../../package.json";
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 const isMac = navigator.platform?.startsWith("Mac");
@@ -136,7 +137,7 @@ export default function TitleBar() {
       {isMac && <div class="titlebar-mac-spacer" data-tauri-drag-region />}
       <img class="titlebar-icon" src={appIcon} alt="" width="16" height="16" data-tauri-drag-region />
       <div class="titlebar-title" data-tauri-drag-region>
-        Open Speech Studio <span class="titlebar-version">v0.10.0</span>
+        Open Speech Studio <span class="titlebar-version">v{appVersion}</span>
       </div>
       <div class="titlebar-buttons">
         <div class="titlebar-auth-wrap">

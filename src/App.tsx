@@ -20,6 +20,8 @@ const isTauri = !!(window as any).__TAURI_INTERNALS__;
 // The low-level keyboard hook that owns Win/Super hotkeys exists only on
 // Windows. On Linux/macOS the global-shortcut plugin must handle them.
 const isWindows = navigator.userAgent.includes("Windows");
+// Ctrl+Win/Super is delivered by the backend on Windows and Linux.
+const hasCtrlSuperHotkey = !navigator.userAgent.includes("Mac");
 
 // ─── Audio level polling for the overlay's recording bar ──
 let audioLevelInterval: ReturnType<typeof setInterval> | null = null;
@@ -90,9 +92,9 @@ function formatHotkey(raw: string): string {
 
 /** Show both available hotkey combos */
 function formatBothHotkeys(): string {
-  // Ctrl+Win is a modifier-only combo that only the Windows keyboard hook
-  // can listen for; elsewhere just the secondary hotkey is live.
-  return isWindows ? "Ctrl + Win  /  Ctrl + Shift + Space" : "Ctrl + Shift + Space";
+  // Ctrl+Win is a modifier-only combo that needs a backend key listener;
+  // where there is none, just the secondary hotkey is live.
+  return hasCtrlSuperHotkey ? "Ctrl + Win  /  Ctrl + Shift + Space" : "Ctrl + Shift + Space";
 }
 
 type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "transcribe" | "tts" | "about";
@@ -113,6 +115,7 @@ const MAX_SAMPLES = 12;
 // Default per-second slope per model size, used before any real measurement.
 const DEFAULT_SLOPE: Record<string, number> = {
   tiny: 0.15, base: 0.25, small: 0.5,
+  "large-v3-turbo-q5_0": 0.8, "large-v3-turbo-q8_0": 0.85,
   medium: 1.0, "large-v3-turbo": 0.9, "large-v3": 1.8,
 };
 const DEFAULT_OVERHEAD = 0.4; // seconds

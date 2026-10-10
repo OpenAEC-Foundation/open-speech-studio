@@ -152,6 +152,9 @@ async fn get_available_models() -> Result<Vec<ModelInfo>, String> {
         ("tiny", "75 MB"),
         ("base", "142 MB"),
         ("small", "466 MB"),
+        // Quantized large-v3-turbo: fills the gap between small and medium.
+        ("large-v3-turbo-q5_0", "574 MB"),
+        ("large-v3-turbo-q8_0", "874 MB"),
         ("medium", "1.5 GB"),
         ("large-v3", "3.1 GB"),
         ("large-v3-turbo", "1.6 GB"),
@@ -2000,6 +2003,48 @@ pub fn run() {
                         } else {
                             log::error!("Failed to install keyboard hook");
                         }
+                    }
+                });
+            }
+
+            // Linux: Ctrl+Super is a modifier-only combo the global-shortcut
+            // plugin cannot register, so watch the keyboard ourselves and emit
+            // the same events as the Windows hook. This listens through the X
+            // server; it sees nothing from native Wayland windows, where the
+            // secondary hotkey remains the way in.
+            #[cfg(target_os = "linux")]
+            {
+                let app_handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    use rdev::{EventType, Key};
+
+                    let mut ctrl_down = false;
+                    let mut super_down = false;
+                    let mut combo_active = false;
+
+                    let result = rdev::listen(move |event| {
+                        let (key, down) = match event.event_type {
+                            EventType::KeyPress(key) => (key, true),
+                            EventType::KeyRelease(key) => (key, false),
+                            _ => return,
+                        };
+                        match key {
+                            Key::ControlLeft | Key::ControlRight => ctrl_down = down,
+                            Key::MetaLeft | Key::MetaRight => super_down = down,
+                            _ => return,
+                        }
+                        let combo = ctrl_down && super_down;
+                        if combo && !combo_active {
+                            combo_active = true;
+                            let _ = app_handle.emit("ctrl-win-pressed", ());
+                        } else if !combo && combo_active {
+                            combo_active = false;
+                            let _ = app_handle.emit("ctrl-win-released", ());
+                        }
+                    });
+                    match result {
+                        Ok(()) => {}
+                        Err(e) => log::warn!("Ctrl+Super listener unavailable: {:?}", e),
                     }
                 });
             }

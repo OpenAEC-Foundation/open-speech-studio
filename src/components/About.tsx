@@ -1,5 +1,6 @@
 import { useI18n } from "../lib/i18n";
 import appIcon from "../assets/icon.png";
+import { version as appVersion } from "../../package.json";
 
 export default function About() {
   const { t } = useI18n();
@@ -9,7 +10,7 @@ export default function About() {
         <img class="about-icon" src={appIcon} alt="" width="64" height="64" />
         <div>
           <h2>Open Speech Studio</h2>
-          <span class="about-version">v0.12.1</span>
+          <span class="about-version">v{appVersion}</span>
         </div>
       </div>
 
