@@ -152,6 +152,9 @@ async fn get_available_models() -> Result<Vec<ModelInfo>, String> {
         ("tiny", "75 MB"),
         ("base", "142 MB"),
         ("small", "466 MB"),
+        // Quantized large-v3-turbo: fills the gap between small and medium.
+        ("large-v3-turbo-q5_0", "574 MB"),
+        ("large-v3-turbo-q8_0", "874 MB"),
         ("medium", "1.5 GB"),
         ("large-v3", "3.1 GB"),
         ("large-v3-turbo", "1.6 GB"),

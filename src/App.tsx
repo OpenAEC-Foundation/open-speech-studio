@@ -115,6 +115,7 @@ const MAX_SAMPLES = 12;
 // Default per-second slope per model size, used before any real measurement.
 const DEFAULT_SLOPE: Record<string, number> = {
   tiny: 0.15, base: 0.25, small: 0.5,
+  "large-v3-turbo-q5_0": 0.8, "large-v3-turbo-q8_0": 0.85,
   medium: 1.0, "large-v3-turbo": 0.9, "large-v3": 1.8,
 };
 const DEFAULT_OVERHEAD = 0.4; // seconds
