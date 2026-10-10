@@ -20,6 +20,8 @@ const isTauri = !!(window as any).__TAURI_INTERNALS__;
 // The low-level keyboard hook that owns Win/Super hotkeys exists only on
 // Windows. On Linux/macOS the global-shortcut plugin must handle them.
 const isWindows = navigator.userAgent.includes("Windows");
+// Ctrl+Win/Super is delivered by the backend on Windows and Linux.
+const hasCtrlSuperHotkey = !navigator.userAgent.includes("Mac");
 
 // ─── Audio level polling for the overlay's recording bar ──
 let audioLevelInterval: ReturnType<typeof setInterval> | null = null;
@@ -90,9 +92,9 @@ function formatHotkey(raw: string): string {
 
 /** Show both available hotkey combos */
 function formatBothHotkeys(): string {
-  // Ctrl+Win is a modifier-only combo that only the Windows keyboard hook
-  // can listen for; elsewhere just the secondary hotkey is live.
-  return isWindows ? "Ctrl + Win  /  Ctrl + Shift + Space" : "Ctrl + Shift + Space";
+  // Ctrl+Win is a modifier-only combo that needs a backend key listener;
+  // where there is none, just the secondary hotkey is live.
+  return hasCtrlSuperHotkey ? "Ctrl + Win  /  Ctrl + Shift + Space" : "Ctrl + Shift + Space";
 }
 
 type View = "home" | "settings" | "dictionary" | "models" | "mic-test" | "meeting" | "transcribe" | "tts" | "about";

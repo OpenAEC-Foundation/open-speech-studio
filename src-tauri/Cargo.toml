@@ -55,6 +55,9 @@ windows-sys = { version = "0.60", features = ["Win32_UI_WindowsAndMessaging", "W
 [target.'cfg(not(windows))'.dependencies]
 libc = "0.2"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+rdev = "0.5"
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
