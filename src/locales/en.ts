@@ -322,7 +322,7 @@ const en: Record<string, string> = {
   "titlebar.close": "Close",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.12.1 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.12.2 | OpenAEC Foundation",
 
   // ── Languages (Whisper recognition languages) ────────────
   "languages.auto": "Auto-detect",

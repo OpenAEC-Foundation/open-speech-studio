@@ -243,7 +243,7 @@ const fi: Record<string, string> = {
   "titlebar.close": "Sulje",
 
   // ── StatusBar ────────────────────────────────────────────
-  "statusBar.version": "Open Speech Studio v0.12.1 | OpenAEC Foundation",
+  "statusBar.version": "Open Speech Studio v0.12.2 | OpenAEC Foundation",
 
   // ── Languages ────────────────────────────────────────────
   "languages.auto": "Automaattinen tunnistus",
