@@ -158,47 +158,35 @@ jobs:
           chmod +x bin/whisper-cli-${{ matrix.rust-target }}
           rm -rf _whisper_build
 
-      # With a Developer ID certificate in the repository secrets the app is
-      # signed and (if the notarization secrets are there too) notarized.
-      # Without them it is ad-hoc signed, which Apple Silicon needs to run it
-      # at all, but Gatekeeper will still warn on first launch.
-      - name: Configure macOS signing
+      - name: Prepare shared notarization key
         if: runner.os == 'macOS'
         shell: bash
         env:
-          CERT: ${{ secrets.APPLE_CERTIFICATE }}
-          CERT_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          NOTARY_ID: ${{ secrets.APPLE_ID }}
-          NOTARY_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          NOTARY_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
         run: |
-          if [ -n "$CERT" ] && [ -n "$CERT_PASSWORD" ]; then
-            echo "Signing with Developer ID certificate"
-            echo "APPLE_CERTIFICATE=$CERT" >> "$GITHUB_ENV"
-            echo "APPLE_CERTIFICATE_PASSWORD=$CERT_PASSWORD" >> "$GITHUB_ENV"
-            if [ -n "$IDENTITY" ]; then
-              echo "APPLE_SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
-            fi
-            if [ -n "$NOTARY_ID" ] && [ -n "$NOTARY_PASSWORD" ] && [ -n "$NOTARY_TEAM" ]; then
-              echo "Notarization enabled"
-              echo "APPLE_ID=$NOTARY_ID" >> "$GITHUB_ENV"
-              echo "APPLE_PASSWORD=$NOTARY_PASSWORD" >> "$GITHUB_ENV"
-              echo "APPLE_TEAM_ID=$NOTARY_TEAM" >> "$GITHUB_ENV"
-            else
-              echo "::warning::Notarization secrets missing - app is signed but not notarized"
-            fi
-          else
-            echo "::warning::No Apple certificate configured - using ad-hoc signature"
-            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
-          fi
+          set -euo pipefail
+          test -n "$APPLE_API_KEY_CONTENT"
+          umask 077
+          printf '%s' "$APPLE_API_KEY_CONTENT" > "$RUNNER_TEMP/apple-api-key.p8"
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
+          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER || '' }}
+          APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
+          APPLE_API_KEY_PATH: ${{ runner.os == 'macOS' && format('{0}/apple-api-key.p8', runner.temp) || '' }}
         with:
           args: --target ${{ matrix.rust-target }} ${{ matrix.args || '' }}
+
+      - name: Remove notarization key
+        if: always() && runner.os == 'macOS'
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/apple-api-key.p8"
 
       # ── Verify macOS bundle ────────────────────────────────
       - name: Verify macOS bundle
@@ -218,6 +206,8 @@ jobs:
           fi
           /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$APP/Contents/Info.plist"
           codesign --verify --deep --strict --verbose=2 "$APP"
+          spctl --assess --type execute --verbose=4 "$APP"
+          xcrun stapler validate "$APP"
           codesign -d --entitlements - "$APP"
           curl -fsSL -o "$RUNNER_TEMP/jfk.wav" https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.8.3/samples/jfk.wav
           "$WHISPER" -ng -m "$APP/Contents/Resources/models/ggml-small.bin" -f "$RUNNER_TEMP/jfk.wav" -nt | tee "$RUNNER_TEMP/out.txt"
