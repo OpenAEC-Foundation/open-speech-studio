@@ -1,0 +1,1 @@
+The Snap download packages the exact published amd64 deb, verifies its version and GitHub SHA256 digest, and uses the approved app icon. Build artifacts and the release asset are available even when Store credentials are absent. In that case upload through the publisher dashboard. Store review requirements remain in force.

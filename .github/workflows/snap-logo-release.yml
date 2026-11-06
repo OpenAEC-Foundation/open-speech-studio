@@ -1,0 +1,49 @@
+name: Build Snap download
+on:
+  push:
+    branches: [codex/snap-download-channel-2026-11-06]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing published release tag
+        required: true
+        default: v0.12.3
+permissions:
+  contents: write
+concurrency:
+  group: snap-download-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  snap:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.version || 'v0.12.3' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the published and tested release
+        run: python3 snap/prepare-release.py "$RELEASE_TAG"
+      - name: Build Snap from the released deb
+        id: snap
+        uses: snapcore/action-build@v1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: open-speech-studio-snap
+          path: ${{ steps.snap.outputs.snap }}
+          if-no-files-found: error
+      - name: Attach Snap to the same release
+        env:
+          SNAP_FILE: ${{ steps.snap.outputs.snap }}
+        run: gh release upload "$RELEASE_TAG" "$SNAP_FILE" --clobber
+      - name: Publish to the existing stable channel when credentials are configured
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          SNAP_FILE: ${{ steps.snap.outputs.snap }}
+        run: |
+          if [ -z "$SNAPCRAFT_STORE_CREDENTIALS" ]; then
+            echo 'Snap is built and attached to the release. Store upload requires the publisher dashboard.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          sudo snap install snapcraft --classic
+          snapcraft upload "$SNAP_FILE" --release=stable
