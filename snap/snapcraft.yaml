@@ -1,0 +1,48 @@
+name: open-speech-studio
+base: core22
+version: 0.0.0
+title: Open Speech Studio
+summary: Open Speech Studio for Linux
+description: Open Speech Studio. This Snap packages the published OpenAEC release with its approved app
+  logo.
+grade: stable
+confinement: strict
+icon: src-tauri/icons/icon.png
+architectures:
+- amd64
+apps:
+  open-speech-studio:
+    command: usr/bin/open-speech-studio
+    extensions:
+    - gnome
+    desktop: usr/share/applications/open-speech-studio.desktop
+    plugs:
+    - home
+    - removable-media
+    - network
+    - browser-support
+    - audio-playback
+    - audio-record
+    - network-bind
+    slots:
+    - single-instance
+slots:
+  single-instance:
+    interface: dbus
+    bus: session
+    name: org.openaec.speech-studio.SingleInstance
+parts:
+  open-speech-studio:
+    plugin: nil
+    stage-packages:
+    - libxdo3
+    - libasound2
+    - libappindicator3-1
+    - curl
+    override-build: 'set -eu
+
+      dpkg-deb -x "${CRAFT_PROJECT_DIR}/release.deb" "${CRAFT_PART_INSTALL}"
+
+      python3 "${CRAFT_PROJECT_DIR}/snap/prepare-desktop.py" "${CRAFT_PART_INSTALL}"
+
+      '
