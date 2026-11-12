@@ -118,3 +118,28 @@ Apache License 2.0 — see [LICENSE](LICENSE)
 ## Contributing
 
 Contributions are welcome! Open an issue or pull request on GitHub.
+
+### Transcription reliability and file formats
+
+Windows releases include an independent CPU-only `whisper-cli-cpu.exe`, built
+from whisper.cpp v1.8.3. If GPU mode is disabled, the NVIDIA driver cannot be
+loaded, or the CUDA executable fails its startup probe, the app selects this
+CPU backend. The existing CUDA backend remains available for NVIDIA systems.
+For Windows development, run `pwsh -File scripts/build-whisper-cpu.ps1` once
+before starting Tauri (requires CMake and the Visual Studio C++ toolchain).
+
+Local transcription limits previous-text context and suppresses non-speech
+tokens. A bundled Silero VAD model skips silence; missing VAD files do not block
+transcription. Potential phrase loops are collapsed with a visible review
+warning and access to the original text. This cannot recover speech omitted by
+the model: check flagged output against the recording.
+
+MP4/M4A/MOV files with a supported AAC audio track are decoded locally. Video-only
+files and unsupported audio codecs produce an error; accepting a container does
+not imply support for every codec inside it.
+
+New dictionaries include Dutch and English AEC terms. Existing users can choose
+**Dictionary → Add Dutch and English AEC terms** without overwriting their own
+words or replacements. The words are passed as bounded recognition hints to the
+local model; they do not translate the recording or train the model. Removing a
+term persists until the user explicitly adds the defaults again.

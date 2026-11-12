@@ -1,3 +1,4 @@
+import aecTermsText from "../../src-tauri/resources/aec-terms.txt?raw";
 export interface Settings {
   language: string;
   ui_language: string;
@@ -48,6 +49,7 @@ export interface ModelInfo {
 export interface TranscriptionResult {
   text: string;
   original_text?: string;
+  repetition_warning?: boolean;
   language: string;
   duration_ms: number;
 }
@@ -155,6 +157,7 @@ const tauriApi = {
   pollChunkResults: () => tauriInvoke<Array<[string, number, string, number]>>("poll_chunk_results"),
   initJobQueue: () => tauriInvoke<void>("init_job_queue"),
   getDictionary: () => tauriInvoke<Dictionary>("get_dictionary"),
+  addAecDictionaryTerms: () => tauriInvoke<Dictionary>("add_aec_dictionary_terms"),
   saveDictionary: (dict: Dictionary) => tauriInvoke<void>("save_dictionary", { dict }),
   addDictionaryWord: (word: string, replacement: string | null) =>
     tauriInvoke<void>("add_dictionary_word", { word, replacement }),
@@ -257,12 +260,21 @@ function saveLocalSettings(s: Settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
 }
 
+function addDefaultAecTerms(dict: Dictionary): Dictionary {
+  const words = { ...dict.words };
+  for (const line of aecTermsText.split("\n")) {
+    const term = line.trim();
+    if (term && !term.startsWith("#") && !Object.prototype.hasOwnProperty.call(words, term)) words[term] = null;
+  }
+  return { words };
+}
+
 function loadLocalDictionary(): Dictionary {
   try {
     const raw = localStorage.getItem(DICT_KEY);
     if (raw) return JSON.parse(raw);
   } catch (_) {}
-  return { words: {} };
+  return addDefaultAecTerms({ words: {} });
 }
 
 function saveLocalDictionary(d: Dictionary) {
@@ -638,6 +650,11 @@ const browserApi = {
   initJobQueue: () => Promise.resolve(),
 
   getDictionary: () => Promise.resolve({ ...currentDict }),
+  addAecDictionaryTerms: () => {
+    currentDict = addDefaultAecTerms(currentDict);
+    saveLocalDictionary(currentDict);
+    return Promise.resolve({ ...currentDict });
+  },
 
   saveDictionary: (dict: Dictionary) => {
     currentDict = { ...dict };

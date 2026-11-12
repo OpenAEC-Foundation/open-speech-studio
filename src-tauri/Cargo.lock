@@ -3273,7 +3273,7 @@ dependencies = [
 
 [[package]]
 name = "open-speech-studio"
-version = "0.12.3"
+version = "0.12.4"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4929,6 +4929,7 @@ dependencies = [
  "symphonia-codec-aac",
  "symphonia-codec-pcm",
  "symphonia-core",
+ "symphonia-format-isomp4",
  "symphonia-format-riff",
  "symphonia-metadata",
 ]
@@ -4989,6 +4990,19 @@ dependencies = [
  "bytemuck",
  "lazy_static",
  "log",
+]
+
+[[package]]
+name = "symphonia-format-isomp4"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "243739585d11f81daf8dac8d9f3d18cc7898f6c09a259675fc364b382c30e0a5"
+dependencies = [
+ "encoding_rs",
+ "log",
+ "symphonia-core",
+ "symphonia-metadata",
+ "symphonia-utils-xiph",
 ]
 
 [[package]]

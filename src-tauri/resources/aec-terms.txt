@@ -1,0 +1,50 @@
+# Dutch and English AEC vocabulary. Recognition hints; no automatic replacements.
+OpenAEC
+BIM
+IFC
+Revit
+Archicad
+AutoCAD
+CAD
+GIS
+NL-SfB
+NEN
+NEN-EN
+Eurocode
+Bbl
+Omgevingswet
+bestek
+bouwbesluit
+bouwfysica
+bouwkundige
+bouwvergunning
+constructeur
+constructieberekening
+detailtekening
+fundering
+gevel
+installatietechniek
+maatvoering
+omgevingsvergunning
+plattegrond
+prefab
+staalconstructie
+utiliteitsbouw
+verdiepingsvloer
+wapening
+warmtepomp
+architecture
+engineering
+construction
+building information modelling
+clash detection
+common data environment
+curtain wall
+floor plan
+foundation
+HVAC
+load-bearing
+MEP
+reinforced concrete
+structural engineer
+thermal bridge

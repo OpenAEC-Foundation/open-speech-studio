@@ -35,3 +35,9 @@ temp/
 CLAUDE.md
 PROMPTS.md
 .superpowers/
+
+# Reproducible Windows CPU backend (built by CI)
+bin/whisper-cli-*
+
+# Tauri schema generated on Linux
+src-tauri/gen/schemas/linux-schema.json

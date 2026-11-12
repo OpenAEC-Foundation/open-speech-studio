@@ -24,6 +24,7 @@ mod mixer;
 mod settings;
 mod speaker;
 mod transcriber;
+mod transcript;
 mod tts;
 
 use serde::{Deserialize, Serialize};
@@ -97,6 +98,7 @@ pub struct TranscriptionResult {
     pub text: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub original_text: Option<String>,
+    pub repetition_warning: bool,
     pub language: String,
     pub duration_ms: u64,
 }
@@ -429,13 +431,18 @@ async fn stop_recording(
     };
     let duration_ms = start.elapsed().as_millis() as u64;
 
+    let (cleaned, repetition_warning) = transcript::remove_repetition_loops(&text);
+    let original_text = repetition_warning.then(|| text.clone());
+    text = cleaned;
+
     // Apply dictionary corrections
     let dict = state.dictionary.lock().map_err(|e| e.to_string())?;
     text = dict.apply_corrections(&text);
 
     Ok(TranscriptionResult {
         text,
-        original_text: None,
+        original_text,
+        repetition_warning,
         language: settings.language.clone(),
         duration_ms,
     })
@@ -643,13 +650,18 @@ async fn stop_dictation_sync(
     };
     let duration_ms = start.elapsed().as_millis() as u64;
 
+    let (cleaned, repetition_warning) = transcript::remove_repetition_loops(&text);
+    let original_text = repetition_warning.then(|| text.clone());
+    text = cleaned;
+
     // Apply dictionary corrections
     let dict = state.dictionary.lock().map_err(|e| e.to_string())?;
     text = dict.apply_corrections(&text);
 
     Ok(TranscriptionResult {
         text,
-        original_text: None,
+        original_text,
+        repetition_warning,
         language: settings.language.clone(),
         duration_ms,
     })
@@ -764,17 +776,8 @@ async fn get_gpu_status(state: State<'_, AppState>) -> Result<GpuStatus, String>
     let settings = state.settings.lock().map_err(|e| e.to_string())?;
     let enabled = settings.use_gpu;
 
-    // Check if ggml-cuda.dll exists next to the whisper binary
-    let cuda_available = {
-        let transcriber = state.transcriber.lock().map_err(|e| e.to_string())?;
-        if let Some(t) = transcriber.as_ref() {
-            t.whisper_bin.parent()
-                .map(|dir| dir.join("ggml-cuda.dll").exists())
-                .unwrap_or(false)
-        } else {
-            false
-        }
-    };
+    let cuda_available = state.transcriber.lock().map_err(|e| e.to_string())?
+        .as_ref().is_some_and(|t| t.cuda_available());
 
     // Quick probe: run whisper-cli --help and check for CUDA device detection
     let (active, device_name) = if enabled && cuda_available {
@@ -832,6 +835,14 @@ async fn save_dictionary(
 }
 
 #[tauri::command]
+async fn add_aec_dictionary_terms(state: State<'_, AppState>) -> Result<dictionary::Dictionary, String> {
+    let mut dict = state.dictionary.lock().map_err(|e| e.to_string())?;
+    dict.add_aec_terms();
+    dictionary::save_dictionary(&dict).map_err(|e| e.to_string())?;
+    Ok(dict.clone())
+}
+
+#[tauri::command]
 async fn add_dictionary_word(
     state: State<'_, AppState>,
     word: String,
@@ -867,6 +878,8 @@ pub struct FileJobResult {
     pub language: String,
     pub duration_ms: u64,
     pub error: Option<String>,
+    pub original_text: Option<String>,
+    pub repetition_warning: bool,
 }
 
 /// Start a file transcription as a background job. Returns immediately.
@@ -907,7 +920,7 @@ async fn start_file_job(
     }
 
     // Gather what we need without holding locks long
-    let (whisper_bin, model_path, language, use_gpu, dict) = {
+    let (transcriber, language, dict) = {
         let settings = state.settings.lock().map_err(|e| e.to_string())?;
         let transcriber_guard = state.transcriber.lock().map_err(|e| e.to_string())?;
         let t = transcriber_guard
@@ -915,10 +928,8 @@ async fn start_file_job(
             .ok_or("Model not loaded. Go to Models to load one.")?;
         let d = state.dictionary.lock().map_err(|e| e.to_string())?.clone();
         (
-            t.whisper_bin.clone(),
-            t.model_path.clone(),
+            t.clone(),
             settings.language.clone(),
-            settings.use_gpu,
             d,
         )
     };
@@ -934,28 +945,12 @@ async fn start_file_job(
         temp_path
     };
 
-    let mut cmd = Command::new(&whisper_bin);
-    cmd.arg("-m").arg(&model_path);
+    let mut cmd = Command::new(&transcriber.whisper_bin);
     cmd.arg("-f").arg(&actual_file);
-    cmd.arg("--no-timestamps");
-    if !use_gpu {
-        cmd.arg("--no-gpu");
-    }
-    cmd.arg("-t").arg("4");
-    // No --output-txt: we read from stdout, don't create files next to the input
+    transcriber.apply_common_args(&mut cmd, &language);
+    // No --output-txt: do not create files next to the user's media.
     cmd.stderr(Stdio::piped());
     cmd.stdout(Stdio::piped());
-
-    if !language.is_empty() && language != "auto" {
-        cmd.arg("-l").arg(&language);
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
 
     let mut child = cmd.spawn().map_err(|e| format!("Failed to start whisper: {}", e))?;
 
@@ -969,7 +964,6 @@ async fn start_file_job(
     let file_jobs = state.file_jobs.clone();
     let job_id_clone = job_id.clone();
     let language_clone = language.clone();
-    let file_path_clone = file_path.clone();
     let actual_file_clone = actual_file.clone();
     let is_temp_file = actual_file != file_path;
 
@@ -977,11 +971,25 @@ async fn start_file_job(
     std::thread::spawn(move || {
         let start = std::time::Instant::now();
 
+        // Drain stdout concurrently. Long transcripts can fill the pipe and
+        // deadlock the child before it closes stderr or exits.
+        let stdout = child.stdout.take().expect("stdout was piped");
+        let stdout_thread = std::thread::spawn(move || {
+            use std::io::Read;
+            let mut text = String::new();
+            BufReader::new(stdout).read_to_string(&mut text).map(|_| text)
+        });
+        let mut diagnostics = String::new();
         // Read stderr for progress lines: "whisper_full_with_state: progress = XX%"
         if let Some(stderr) = child.stderr.take() {
             let reader = BufReader::new(stderr);
             for line in reader.lines() {
                 if let Ok(line) = line {
+                    // Keep a bounded diagnostic tail without accumulating a
+                    // whole recording's logs in memory.
+                    if diagnostics.len() > 8192 { diagnostics.clear(); }
+                    diagnostics.push_str(&line);
+                    diagnostics.push('\n');
                     if let Some(pct) = parse_progress(&line) {
                         let _ = app.emit(
                             "file-job-progress",
@@ -996,6 +1004,7 @@ async fn start_file_job(
         }
 
         let status = child.wait();
+        let stdout_result = stdout_thread.join();
         let duration_ms = start.elapsed().as_millis() as u64;
 
         // Remove from active jobs
@@ -1008,34 +1017,15 @@ async fn start_file_job(
             let _ = std::fs::remove_file(&actual_file_clone);
         }
 
-        let (text, error) = match status {
-            Ok(exit) if exit.success() => {
-                // Read stdout
-                let mut text = String::new();
-                if let Some(mut stdout) = child.stdout.take() {
-                    use std::io::Read;
-                    let _ = stdout.read_to_string(&mut text);
-                }
-                let text = text.trim().to_string();
-
-                // Fallback: check for .txt output file
-                let txt_path = format!("{}.txt", file_path_clone);
-                let text = if text.is_empty() && std::path::Path::new(&txt_path).exists() {
-                    let file_text =
-                        std::fs::read_to_string(&txt_path).unwrap_or_default();
-                    let _ = std::fs::remove_file(&txt_path);
-                    file_text.trim().to_string()
-                } else {
-                    text
-                };
-
-                // Apply dictionary
-                let text = dict.apply_corrections(&text);
-                (text, None)
-            }
-            Ok(_) => (String::new(), Some("Whisper exited with error".to_string())),
-            Err(e) => (String::new(), Some(format!("Process error: {}", e))),
+        let (text, error) = match (status, stdout_result) {
+            (Ok(exit), Ok(Ok(text))) if exit.success() => (text.trim().to_owned(), None),
+            (Ok(exit), _) if !exit.success() => (String::new(), Some(format!("Whisper failed ({exit}): {diagnostics}"))),
+            (Err(e), _) => (String::new(), Some(format!("Process error: {e}"))),
+            _ => (String::new(), Some("Cannot read transcription output".into())),
         };
+        let (cleaned, repetition_warning) = transcript::remove_repetition_loops(&text);
+        let original_text = repetition_warning.then_some(text);
+        let text = dict.apply_corrections(&cleaned);
 
         let _ = app.emit(
             "file-job-done",
@@ -1045,6 +1035,8 @@ async fn start_file_job(
                 language: language_clone,
                 duration_ms,
                 error,
+                original_text,
+                repetition_warning,
             },
         );
     });
@@ -1097,6 +1089,9 @@ fn start_remote_file_job(
             }
         };
 
+        let (cleaned, repetition_warning) = transcript::remove_repetition_loops(&text);
+        let original_text = repetition_warning.then_some(text);
+        let text = cleaned;
         let _ = app.emit(
             "file-job-done",
             FileJobResult {
@@ -1105,6 +1100,8 @@ fn start_remote_file_job(
                 language: lang_out,
                 duration_ms,
                 error,
+                original_text,
+                repetition_warning,
             },
         );
     });
@@ -1669,6 +1666,7 @@ fn delete_speaker_profile(state: State<'_, AppState>, name: String) -> Result<()
 }
 
 pub fn run() {
+    transcriber::suppress_loader_dialogs();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .init();
 
@@ -1806,6 +1804,7 @@ pub fn run() {
             get_dictionary,
             save_dictionary,
             add_dictionary_word,
+            add_aec_dictionary_terms,
             remove_dictionary_word,
             start_file_job,
             cancel_file_job,

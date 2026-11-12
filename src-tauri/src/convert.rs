@@ -16,8 +16,8 @@ const TARGET_RATE: u32 = 16_000;
 /// Decode an audio file and write a 16 kHz mono WAV to `output_path`.
 pub fn to_wav_16k_mono(input_path: &str, output_path: &str) -> Result<(), String> {
     let path = Path::new(input_path);
-    let file = std::fs::File::open(path)
-        .map_err(|e| format!("Cannot open {}: {}", input_path, e))?;
+    let file =
+        std::fs::File::open(path).map_err(|e| format!("Cannot open {}: {}", input_path, e))?;
 
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
@@ -27,7 +27,12 @@ pub fn to_wav_16k_mono(input_path: &str, output_path: &str) -> Result<(), String
     }
 
     let probed = symphonia::default::get_probe()
-        .format(&hint, mss, &FormatOptions::default(), &MetadataOptions::default())
+        .format(
+            &hint,
+            mss,
+            &FormatOptions::default(),
+            &MetadataOptions::default(),
+        )
         .map_err(|e| format!("Unsupported audio format: {}", e))?;
 
     let mut format = probed.format;
@@ -36,7 +41,10 @@ pub fn to_wav_16k_mono(input_path: &str, output_path: &str) -> Result<(), String
     let track = format
         .tracks()
         .iter()
-        .find(|t| t.codec_params.codec != symphonia::core::codecs::CODEC_TYPE_NULL)
+        .find(|t| {
+            t.codec_params.sample_rate.is_some()
+                && t.codec_params.codec != symphonia::core::codecs::CODEC_TYPE_NULL
+        })
         .ok_or("No audio track found")?;
 
     let codec_params = track.codec_params.clone();
@@ -59,7 +67,7 @@ pub fn to_wav_16k_mono(input_path: &str, output_path: &str) -> Result<(), String
             {
                 break;
             }
-            Err(_) => break,
+            Err(e) => return Err(format!("Cannot read audio packets: {}", e)),
         };
 
         if packet.track_id() != track_id {
@@ -68,7 +76,7 @@ pub fn to_wav_16k_mono(input_path: &str, output_path: &str) -> Result<(), String
 
         let decoded = match decoder.decode(&packet) {
             Ok(d) => d,
-            Err(_) => continue,
+            Err(e) => return Err(format!("Cannot decode audio track: {}", e)),
         };
 
         let spec = *decoded.spec();
@@ -114,9 +122,13 @@ pub fn to_wav_16k_mono(input_path: &str, output_path: &str) -> Result<(), String
     for &s in &resampled {
         let clamped = s.clamp(-1.0, 1.0);
         let i16_val = (clamped * 32767.0) as i16;
-        writer.write_sample(i16_val).map_err(|e| format!("WAV write error: {}", e))?;
+        writer
+            .write_sample(i16_val)
+            .map_err(|e| format!("WAV write error: {}", e))?;
     }
-    writer.finalize().map_err(|e| format!("WAV finalize error: {}", e))?;
+    writer
+        .finalize()
+        .map_err(|e| format!("WAV finalize error: {}", e))?;
 
     Ok(())
 }
@@ -143,4 +155,39 @@ fn resample(input: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     }
 
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decodes_aac_in_mp4_with_video_before_audio() {
+        let output =
+            std::env::temp_dir().join(format!("oss-mp4-test-{}.wav", uuid::Uuid::new_v4()));
+        let input = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/aac-video.mp4");
+        to_wav_16k_mono(input, output.to_str().unwrap()).unwrap();
+        let mut wav = hound::WavReader::open(&output).unwrap();
+        assert_eq!(wav.spec().sample_rate, 16_000);
+        assert_eq!(wav.spec().channels, 1);
+        assert_eq!(wav.spec().bits_per_sample, 16);
+        // AAC priming/padding can add a frame around this one-second fixture.
+        assert!(
+            (15_500..17_000).contains(&wav.duration()),
+            "duration: {}",
+            wav.duration()
+        );
+        assert!(wav.samples::<i16>().any(|s| s.unwrap().abs() > 100));
+        drop(wav);
+        std::fs::remove_file(output).unwrap();
+    }
+
+    #[test]
+    fn rejects_video_without_an_audio_track() {
+        let output =
+            std::env::temp_dir().join(format!("oss-no-audio-{}.wav", uuid::Uuid::new_v4()));
+        let input = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/video-only.mp4");
+        assert!(to_wav_16k_mono(input, output.to_str().unwrap()).is_err());
+        assert!(!output.exists());
+    }
 }

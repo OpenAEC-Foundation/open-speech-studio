@@ -3,7 +3,8 @@
   "bundle": {
     "externalBin": ["../bin/whisper-cli"],
     "resources": {
-      "../models/ggml-small.bin": "models/ggml-small.bin"
+      "../models/ggml-small.bin": "models/ggml-small.bin",
+      "../models/ggml-silero-v5.1.2.bin": "models/ggml-silero-v5.1.2.bin"
     },
     "macOS": {
       "minimumSystemVersion": "12.0",
