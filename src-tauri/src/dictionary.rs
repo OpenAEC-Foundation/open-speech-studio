@@ -20,23 +20,30 @@ impl Dictionary {
         }
     }
 
-    /// Whisper's initial prompt is vocabulary, not an instruction or translation.
-    /// Keep it deterministic and bounded below the model's context limit.
+    /// Whisper keeps the tail of a long initial prompt. Prefer user vocabulary
+    /// over bundled defaults, and put the most relevant terms at that tail.
+    /// The character budget also keeps very large dictionaries off the command line.
     pub fn recognition_prompt(&self) -> String {
+        let defaults: Vec<_> = include_str!("../resources/aec-terms.txt")
+            .lines()
+            .map(str::trim)
+            .filter(|w| !w.is_empty() && !w.starts_with('#'))
+            .collect();
         let mut words: Vec<_> = self.words.keys().collect();
-        words.sort();
-        let mut prompt = String::new();
+        words.sort_by_key(|word| (defaults.contains(&word.as_str()), word.as_str()));
+        let mut selected = Vec::new();
+        let mut length = 0;
         for word in words {
             let word = word.trim();
-            if word.is_empty() || prompt.chars().count() + word.chars().count() + 2 > 600 {
+            let size = word.chars().count() + if selected.is_empty() { 0 } else { 2 };
+            if word.is_empty() || length + size > 600 {
                 continue;
             }
-            if !prompt.is_empty() {
-                prompt.push_str(", ");
-            }
-            prompt.push_str(word);
+            selected.push(word);
+            length += size;
         }
-        prompt
+        selected.reverse();
+        selected.join(", ")
     }
 
     pub fn add_word(&mut self, word: String, replacement: Option<String>) {
@@ -122,10 +129,25 @@ mod tests {
         let mut dict = Dictionary::default();
         dict.add_word("IFC".into(), None);
         dict.add_word("BIM".into(), None);
-        assert_eq!(dict.recognition_prompt(), "BIM, IFC");
+        assert_eq!(dict.recognition_prompt(), "IFC, BIM");
         for i in 0..1000 {
             dict.add_word(format!("woord-{i}-één"), None);
         }
         assert!(dict.recognition_prompt().chars().count() <= 600);
+    }
+}
+
+#[cfg(test)]
+mod priority_tests {
+    use super::*;
+
+    #[test]
+    fn bundled_vocabulary_cannot_crowd_out_a_users_own_term() {
+        let mut dict = default_dictionary();
+        dict.add_word("ZeerSpecifiekeProjectnaam".into(), None);
+        let prompt = dict.recognition_prompt();
+        assert!(prompt.ends_with("ZeerSpecifiekeProjectnaam"));
+        assert!(prompt.chars().count() <= 600);
+        assert!(dict.words.contains_key("warmtepomp"));
     }
 }
