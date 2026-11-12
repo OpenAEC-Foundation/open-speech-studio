@@ -28,20 +28,12 @@ impl Transcriber {
             .into());
         }
 
-        let whisper_bin = find_whisper_binary()?;
+        let whisper_bin = find_whisper_binary(use_gpu)?;
         log::info!("Using whisper binary: {}", whisper_bin.display());
-
-        // Check if CUDA DLL is available when GPU is requested
-        if use_gpu {
-            if let Some(bin_dir) = whisper_bin.parent() {
-                let cuda_dll = bin_dir.join("ggml-cuda.dll");
-                if cuda_dll.exists() {
-                    log::info!("CUDA support available: {}", cuda_dll.display());
-                } else {
-                    log::warn!("GPU requested but ggml-cuda.dll not found — falling back to CPU");
-                }
-            }
-        }
+        let use_gpu = use_gpu
+            && whisper_bin
+                .file_name()
+                .is_none_or(|n| n != "whisper-cli-cpu.exe");
 
         Ok(Self {
             whisper_bin,
@@ -51,7 +43,7 @@ impl Transcriber {
     }
 
     /// Apply common whisper.cpp arguments to a command.
-    fn apply_common_args(&self, cmd: &mut Command, language: &str) {
+    pub(crate) fn apply_common_args(&self, cmd: &mut Command, language: &str) {
         cmd.arg("-m").arg(&self.model_path);
         cmd.arg("--no-timestamps");
 
@@ -61,6 +53,18 @@ impl Transcriber {
         }
         cmd.arg("-t").arg("4");
         cmd.arg("--print-progress");
+        // Do not feed earlier decoded windows back into the next one. Leave
+        // temperature fallback enabled and suppress non-speech tokens.
+        cmd.args(["--max-context", "0", "--suppress-nst"]);
+        if let Some(vad) = crate::settings::find_model_file("ggml-silero-v5.1.2.bin") {
+            cmd.arg("--vad").arg("--vad-model").arg(vad);
+        }
+        if let Ok(dict) = crate::dictionary::load_dictionary() {
+            let prompt = dict.recognition_prompt();
+            if !prompt.is_empty() {
+                cmd.arg("--prompt").arg(prompt);
+            }
+        }
 
         if !language.is_empty() && language != "auto" {
             cmd.arg("-l").arg(language);
@@ -71,6 +75,23 @@ impl Transcriber {
             use std::os::windows::process::CommandExt;
             const CREATE_NO_WINDOW: u32 = 0x08000000;
             cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+    }
+
+    pub(crate) fn cuda_available(&self) -> bool {
+        #[cfg(windows)]
+        {
+            cuda_driver_available()
+                && self
+                    .whisper_bin
+                    .file_name()
+                    .is_some_and(|n| n != "whisper-cli-cpu.exe")
+        }
+        #[cfg(not(windows))]
+        {
+            self.whisper_bin
+                .parent()
+                .is_some_and(|p| p.join("libggml-cuda.so").exists())
         }
     }
 
@@ -98,9 +119,7 @@ impl Transcriber {
             return Err(format!("Whisper failed: {}", stderr).into());
         }
 
-        let text = String::from_utf8_lossy(&output.stdout)
-            .trim()
-            .to_string();
+        let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
         // Also check for .txt output file
         let txt_path = format!("{}.txt", file_path);
@@ -147,9 +166,7 @@ impl Transcriber {
             return Err(format!("Whisper failed: {}", stderr).into());
         }
 
-        let text = String::from_utf8_lossy(&output.stdout)
-            .trim()
-            .to_string();
+        let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
         // Also check for .txt output file (some versions write to file)
         let txt_path = wav_path.with_extension("wav.txt");
@@ -192,7 +209,11 @@ impl Transcriber {
         cmd.stderr(Stdio::piped());
         cmd.stdout(Stdio::piped());
 
-        log::info!("Running whisper with progress (gpu={}): {:?}", self.use_gpu, cmd);
+        log::info!(
+            "Running whisper with progress (gpu={}): {:?}",
+            self.use_gpu,
+            cmd
+        );
 
         let mut child = cmd.spawn()?;
 
@@ -253,7 +274,11 @@ impl Transcriber {
 }
 
 /// Write f32 samples to a 16-bit PCM WAV file (what whisper.cpp expects).
-fn write_wav(path: &Path, samples: &[f32], sample_rate: u32) -> Result<(), Box<dyn std::error::Error>> {
+fn write_wav(
+    path: &Path,
+    samples: &[f32],
+    sample_rate: u32,
+) -> Result<(), Box<dyn std::error::Error>> {
     let spec = hound::WavSpec {
         channels: 1,
         sample_rate,
@@ -271,18 +296,14 @@ fn write_wav(path: &Path, samples: &[f32], sample_rate: u32) -> Result<(), Box<d
 }
 
 /// Find the whisper.cpp binary in known locations.
-fn find_whisper_binary() -> Result<PathBuf, Box<dyn std::error::Error>> {
+fn find_whisper_binary(use_gpu: bool) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let bin_name = if cfg!(windows) {
         "whisper-cli.exe"
     } else {
         "whisper-cli"
     };
 
-    let alt_name = if cfg!(windows) {
-        "main.exe"
-    } else {
-        "main"
-    };
+    let alt_name = if cfg!(windows) { "main.exe" } else { "main" };
 
     let mut search_dirs: Vec<PathBuf> = Vec::new();
 
@@ -314,14 +335,46 @@ fn find_whisper_binary() -> Result<PathBuf, Box<dyn std::error::Error>> {
         }
     }
 
-    for dir in &search_dirs {
-        let path = dir.join(bin_name);
-        if path.exists() {
-            return Ok(path);
+    #[cfg(windows)]
+    {
+        suppress_loader_dialogs();
+        let cpu = || {
+            search_dirs
+                .iter()
+                .map(|d| d.join("whisper-cli-cpu.exe"))
+                .find(|p| p.is_file())
+        };
+        if !use_gpu || !cuda_driver_available() {
+            return cpu().ok_or_else(|| "CPU transcription backend missing. Reinstall the latest Open Speech Studio release.".into());
         }
-        let path = dir.join(alt_name);
-        if path.exists() {
-            return Ok(path);
+        // A legacy CUDA build can still fail to load (e.g. a driver update or
+        // a missing runtime DLL). Probe it before choosing it, then use CPU.
+        for dir in &search_dirs {
+            let path = dir.join(bin_name);
+            if path.is_file() {
+                use std::os::windows::process::CommandExt;
+                if Command::new(&path)
+                    .arg("--help")
+                    .creation_flags(0x08000000)
+                    .output()
+                    .is_ok_and(|o| o.status.success())
+                {
+                    return Ok(path);
+                }
+            }
+        }
+        return cpu().ok_or_else(|| "GPU backend could not start and CPU backend is missing. Reinstall Open Speech Studio.".into());
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = use_gpu;
+        for dir in &search_dirs {
+            for name in [bin_name, alt_name] {
+                let path = dir.join(name);
+                if path.is_file() {
+                    return Ok(path);
+                }
+            }
         }
     }
 
@@ -330,4 +383,67 @@ fn find_whisper_binary() -> Result<PathBuf, Box<dyn std::error::Error>> {
         bin_name
     )
     .into())
+}
+
+/// Children inherit this mode; CREATE_NO_WINDOW alone does not suppress loader
+/// error dialogs. Call once at startup, before any worker can spawn a child.
+pub(crate) fn suppress_loader_dialogs() {
+    #[cfg(windows)]
+    {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| unsafe {
+            #[link(name = "kernel32")]
+            extern "system" {
+                fn SetErrorMode(mode: u32) -> u32;
+            }
+            let old = SetErrorMode(0x0001 | 0x0002 | 0x8000);
+            SetErrorMode(old | 0x0001 | 0x0002 | 0x8000);
+        });
+    }
+}
+
+#[cfg(windows)]
+fn cuda_driver_available() -> bool {
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn LoadLibraryExW(
+            name: *const u16,
+            file: *mut std::ffi::c_void,
+            flags: u32,
+        ) -> *mut std::ffi::c_void;
+        fn FreeLibrary(module: *mut std::ffi::c_void) -> i32;
+    }
+    let name: Vec<u16> = "nvcuda.dll\0".encode_utf16().collect();
+    unsafe {
+        // Search only System32: an application-supplied DLL is not a driver.
+        let module = LoadLibraryExW(name.as_ptr(), std::ptr::null_mut(), 0x00000800);
+        if module.is_null() {
+            return false;
+        }
+        FreeLibrary(module);
+        true
+    }
+}
+
+#[cfg(all(test, windows))]
+mod windows_tests {
+    use super::*;
+
+    #[test]
+    fn cpu_mode_selects_the_independent_executable() {
+        assert_eq!(
+            find_whisper_binary(false).unwrap().file_name().unwrap(),
+            "whisper-cli-cpu.exe"
+        );
+    }
+
+    #[test]
+    fn default_gpu_preference_falls_back_without_a_driver() {
+        if !cuda_driver_available() {
+            assert_eq!(
+                find_whisper_binary(true).unwrap().file_name().unwrap(),
+                "whisper-cli-cpu.exe"
+            );
+        }
+    }
 }

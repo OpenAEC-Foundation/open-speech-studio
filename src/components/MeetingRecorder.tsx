@@ -1,3 +1,4 @@
+import TranscriptWarning from "./TranscriptWarning";
 import { createSignal, createEffect, onCleanup, onMount, Show, For } from "solid-js";
 import { api, type TranscriptionResult, type ModelInfo, getMicAnalyser, isServerMode } from "../lib/api";
 import { useI18n, getLanguageOptions } from "../lib/i18n";
@@ -611,6 +612,7 @@ ${paragraphs}
                       <span class="meta-tag">{segment.duration_ms}ms</span>
                     </div>
                     <div class="meeting-segment-text">{segment.text}</div>
+                    <TranscriptWarning originalText={segment.original_text} />
                   </div>
                 )}
               </For>

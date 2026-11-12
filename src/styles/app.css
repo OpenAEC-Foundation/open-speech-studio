@@ -3281,3 +3281,12 @@ html:has(.dictation-overlay) #app {
   font-family: monospace;
   font-size: 12px;
 }
+
+.transcript-warning {
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid var(--accent, #d99820);
+  border-radius: 4px;
+}
+.transcript-warning p { margin: 0 0 6px; }
+.transcript-warning pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; }

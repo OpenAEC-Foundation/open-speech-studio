@@ -698,6 +698,10 @@ const en: Record<string, string> = {
   "login.creditsResetsAt": "Resets {date}",
   "login.upgrade": "Upgrade",
   "login.manageAccount": "Manage account",
+  "transcription.repetitionWarning": "Repeated text was removed. Check this transcript against the recording: speech may be missing.",
+  "transcription.showOriginal": "Show original transcription",
+  "dictionary.addAecTerms": "Add Dutch and English AEC terms",
+  "dictionary.aecTermsAdded": "AEC terms added. Your words and replacements are preserved.",
 };
 
 export default en;

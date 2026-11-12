@@ -444,6 +444,7 @@ export default function App() {
       setTranscriptions(prev => [{
         text: finalText,
         original_text: result.original_text,
+        repetition_warning: result.repetition_warning,
         language: result.language || settings()?.language || 'nl',
         duration_ms: result.duration_ms || 0,
       }, ...prev]);

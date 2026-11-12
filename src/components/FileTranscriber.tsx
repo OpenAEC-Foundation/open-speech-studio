@@ -1,3 +1,4 @@
+import TranscriptWarning from "./TranscriptWarning";
 import { createSignal, onMount, onCleanup, Show, For } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import { api, type TranscriptionResult, type ModelInfo } from "../lib/api";
@@ -21,6 +22,7 @@ interface FileJob {
   text: string;
   language: string;
   durationMs: number;
+  originalText?: string;
   error: string;
   startedAt: number;
   elapsed: number;
@@ -117,6 +119,7 @@ export default function FileTranscriber() {
         language: string;
         duration_ms: number;
         error: string | null;
+        original_text?: string;
       }>("file-job-done", (event) => {
         const p = event.payload;
         let finishedJob: FileJob | undefined;
@@ -131,6 +134,7 @@ export default function FileTranscriber() {
               } else {
                 job.status = "done";
                 job.text = p.text;
+                job.originalText = p.original_text;
                 job.language = p.language;
                 job.durationMs = p.duration_ms;
                 job.progress = 100;
@@ -450,6 +454,8 @@ export default function FileTranscriber() {
                   />
                 </div>
               </Show>
+
+              <TranscriptWarning originalText={job.originalText} />
 
               {/* Error text */}
               <Show when={job.status === "error"}>

@@ -18,6 +18,16 @@ export default function DictionaryEditor() {
     }
   });
 
+  const addAecTerms = async () => {
+    try {
+      const dict = await api.addAecDictionaryTerms();
+      setWords(Object.entries(dict.words));
+      setStatusMsg(t("dictionary.aecTermsAdded"));
+    } catch (e) {
+      setStatusMsg(t("dictionary.error", { error: String(e) }));
+    }
+  };
+
   const addWord = async () => {
     const word = newWord().trim();
     if (!word) return;
@@ -26,7 +36,7 @@ export default function DictionaryEditor() {
 
     try {
       await api.addDictionaryWord(word, replacement);
-      setWords((prev) => [...prev, [word, replacement]]);
+      setWords((prev) => [...prev.filter(([existing]) => existing !== word), [word, replacement]]);
       setNewWord("");
       setNewReplacement("");
       setStatusMsg(t("dictionary.wordAdded", { word }));
@@ -54,6 +64,9 @@ export default function DictionaryEditor() {
         {t("dictionary.description")}
       </p>
 
+      <button class="btn btn-small" onClick={addAecTerms}>
+        {t("dictionary.addAecTerms")}
+      </button>
       <div class="dictionary-add">
         <div class="add-row">
           <input

@@ -123,6 +123,11 @@ jobs:
         shell: bash
         run: mkdir -p bin
 
+      - name: Build and test independent Windows CPU backend
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/build-whisper-cpu.ps1
+
       # Linux/macOS: one self-contained whisper-cli per target, named with the
       # target triple so Tauri bundles it as a sidecar next to the app binary
       # (see src-tauri/tauri.linux.conf.json and tauri.macos.conf.json). On

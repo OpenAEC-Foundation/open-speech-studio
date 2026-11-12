@@ -1,3 +1,4 @@
+import TranscriptWarning from "./TranscriptWarning";
 import { api, type TranscriptionResult } from "../lib/api";
 import { createSignal, For, Show } from "solid-js";
 import { useI18n } from "../lib/i18n";
@@ -83,6 +84,7 @@ export default function TranscriptionView(props: TranscriptionViewProps) {
             {(result) => (
               <div class="transcription-item">
                 <div class="transcription-text">{result.text}</div>
+                <TranscriptWarning originalText={result.original_text} />
                 <div class="transcription-meta">
                   <span class="meta-tag">{result.language || "auto"}</span>
                   <span class="meta-tag">{result.duration_ms}ms</span>
