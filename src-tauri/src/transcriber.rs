@@ -53,18 +53,15 @@ impl Transcriber {
         }
         cmd.arg("-t").arg("4");
         cmd.arg("--print-progress");
-        // Do not feed earlier decoded windows back into the next one. Leave
-        // temperature fallback enabled and suppress non-speech tokens.
-        cmd.args(["--max-context", "0", "--suppress-nst"]);
+        // Leave temperature fallback enabled and suppress non-speech tokens.
+        cmd.arg("--suppress-nst");
         if let Some(vad) = crate::settings::find_model_file("ggml-silero-v5.1.2.bin") {
             cmd.arg("--vad").arg("--vad-model").arg(vad);
         }
-        if let Ok(dict) = crate::dictionary::load_dictionary() {
-            let prompt = dict.recognition_prompt();
-            if !prompt.is_empty() {
-                cmd.arg("--prompt").arg(prompt);
-            }
-        }
+        let prompt = crate::dictionary::load_dictionary()
+            .map(|dict| dict.recognition_prompt())
+            .unwrap_or_default();
+        apply_context_policy(cmd, &prompt);
 
         if !language.is_empty() && language != "auto" {
             cmd.arg("-l").arg(language);
@@ -270,6 +267,47 @@ impl Transcriber {
         };
 
         Ok(result)
+    }
+}
+
+/// A zero history budget disables initial prompts in whisper.cpp as well.
+/// Reserve a small bounded budget when hints exist and keep those hints across
+/// windows; never permit the default unbounded accumulated transcription history.
+fn apply_context_policy(cmd: &mut Command, prompt: &str) {
+    if prompt.is_empty() {
+        cmd.args(["--max-context", "0"]);
+    } else {
+        cmd.args([
+            "--max-context",
+            "64",
+            "--carry-initial-prompt",
+            "--prompt",
+            prompt,
+        ]);
+    }
+}
+
+#[cfg(test)]
+mod context_tests {
+    use super::*;
+
+    #[test]
+    fn vocabulary_hints_have_a_nonzero_but_bounded_context_budget() {
+        let mut cmd = Command::new("whisper-cli");
+        apply_context_policy(&mut cmd, "BIM, IFC, fundering");
+        let args: Vec<_> = cmd.get_args().map(|a| a.to_str().unwrap()).collect();
+        assert!(args.windows(2).any(|w| w == ["--max-context", "64"]));
+        assert!(args.contains(&"--carry-initial-prompt"));
+        assert!(args
+            .windows(2)
+            .any(|w| w == ["--prompt", "BIM, IFC, fundering"]));
+    }
+
+    #[test]
+    fn empty_dictionary_disables_previous_text_without_an_empty_prompt() {
+        let mut cmd = Command::new("whisper-cli");
+        apply_context_policy(&mut cmd, "");
+        assert_eq!(cmd.get_args().collect::<Vec<_>>(), ["--max-context", "0"]);
     }
 }
 

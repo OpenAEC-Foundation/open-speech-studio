@@ -25,7 +25,7 @@ Copy-Item bin/whisper-cli-cpu.exe "$smoke/whisper-cli-cpu.exe" -Force
 $sample = Join-Path $source 'samples/jfk.wav'
 $model = (Resolve-Path models/ggml-small.bin).Path
 $vad = (Resolve-Path models/ggml-silero-v5.1.2.bin).Path
-& "$smoke/whisper-cli-cpu.exe" -ng -m $model -f $sample -nt -mc 0 --suppress-nst --vad -vm $vad 2> "$smoke/stderr.log" | Tee-Object -FilePath "$smoke/out.txt"
+& "$smoke/whisper-cli-cpu.exe" -ng -m $model -f $sample -nt -mc 64 --carry-initial-prompt --prompt 'BIM, IFC, fundering, structural engineer' --suppress-nst --vad -vm $vad 2> "$smoke/stderr.log" | Tee-Object -FilePath "$smoke/out.txt"
 if ($LASTEXITCODE) { throw "CPU transcription failed: $(Get-Content "$smoke/stderr.log" -Raw)" }
 if (!(Select-String -Path "$smoke/out.txt" -Pattern 'ask not' -Quiet)) {
     throw 'CPU transcription did not contain the expected words'
